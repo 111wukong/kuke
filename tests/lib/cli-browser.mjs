@@ -196,17 +196,28 @@ function probeScript() {
   function waitFor(fn, tries, gap) {
     var i = 0;
     return new Promise(function (resolve) {
-      function tick() {
+      function check() {
         var v = null;
         try { v = fn(); } catch (e) {}
         if (v) return resolve(v);
         if (++i >= (tries || 400)) return resolve(null);
-        setTimeout(tick, gap || 50);
+        /* ★ **每一次迭代**都要让出一帧，不是只在开头让一次。
+         *
+         *   这是这一串排查里最后一个坑：只在开头让一帧的话，
+         *   循环本身仍然是纯 setTimeout —— 而虚拟时间不为 fetch 暂停，
+         *   所以 400 次迭代在真实时间里几毫秒就跑完了，
+         *   此时页面还停在骨架屏上。
+         *
+         *   症状极具迷惑性：**每条剧本都只在第 1 步失败，后面全过**。
+         *   因为第 1 步紧跟挂载（还在加载数据），
+         *   而第 2 步之前的 200ms 睡眠 + 一帧恰好给了应用时间。
+         *
+         *   rAF 会强制一次真实渲染帧，代价是真实时间：
+         *   400 次迭代 × 一帧 ≈ 6 秒真实时间，足够任何本地请求跑完。
+         *   虚拟时间那边只是从 8000ms 涨到约 14000ms，预算 120000 完全够。 */
+        setTimeout(function () { nextFrame().then(check); }, gap || 50);
       }
-      /* 先让一帧，再进定时器循环 —— 两者都保留：
-         定时器推进虚拟时间（保证 dump 最终会发生），
-         rAF 提供真实时间（让应用把数据请求跑完）。 */
-      nextFrame().then(function () { tick(); });
+      check();
     });
   }
 
