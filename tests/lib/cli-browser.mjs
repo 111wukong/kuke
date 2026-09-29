@@ -136,13 +136,16 @@ function probeScript() {
      replaceState 不发请求，只改地址栏 —— 路由器挂载时会读它。 */
   try { history.replaceState({}, '', to); } catch (e) {}
 
+  /* ★ 立即挂载结果元素，不要等 DOMContentLoaded。
+     这个脚本在 </body> 之前，document.body 已经存在；
+     而等 DOMContentLoaded 会有一个窗口期 —— 如果 --dump-dom 恰好
+     在那个窗口里触发，页面上就没有 #probe-result，
+     调用方拿到的是"探针页没有输出结果"，看起来像文件没被正确提供。 */
   var out = document.createElement('pre');
   out.id = 'probe-result';
   out.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre';
   out.textContent = 'PENDING';
-  document.addEventListener('DOMContentLoaded', function () {
-    document.body.appendChild(out);
-  });
+  document.body.appendChild(out);
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -165,6 +168,11 @@ function probeScript() {
     return els.filter(function (el) { return (el.textContent || '').indexOf(text) >= 0; })[0];
   }
 
+  /* ★ 每走一步就写一次结果。
+     原因：--virtual-time-budget 是一个**虚拟时间**预算，而我的轮询循环
+     全都在消耗它。预算一旦到期，--dump-dom 会立刻抓当前 DOM ——
+     如果只在最后写一次，拿到的就是 PENDING，看不出跑到哪了。
+     逐步写入之后，最坏情况也能看到"卡在哪一步"。 */
   function done(v) {
     var el = document.getElementById('probe-result');
     if (el) el.textContent = JSON.stringify(v);
@@ -172,16 +180,18 @@ function probeScript() {
 
   async function main() {
     var log = [];
+    var flush = function () { done(log); };
     try {
       /* 等 React 挂载。判据是 #root 有子节点 —— 比等固定时长可靠。 */
       var mounted = await waitFor(function () {
         var root = document.getElementById('root');
         return root && root.children.length > 0 ? true : null;
-      }, 400, 50);
+      }, 200, 50);
 
-      if (!mounted) { done([{ act: 'fatal', error: '应用在 20 秒内没有挂载（#root 一直是空的）' }]); return; }
+      if (!mounted) { done([{ act: 'fatal', error: '应用在 10 秒（虚拟）内没有挂载，#root 一直是空的' }]); return; }
 
       log.push({ act: 'mounted', path: location.pathname, title: document.title });
+      flush();
 
       /* 被弹回登录页时给出明确诊断，而不是让每条断言各报一次"找不到元素" */
       if (location.pathname === '/login') {
@@ -228,14 +238,16 @@ function probeScript() {
           }
         } catch (e) { rec.error = String((e && e.message) || e); }
         log.push(rec);
-        await sleep(st.wait === undefined ? 260 : st.wait);
+        flush();
+        await sleep(st.wait === undefined ? 200 : st.wait);
       }
 
-      log.push({ act: 'finalText', value: (document.body.innerText || '').slice(0, 1200) });
+      log.push({ act: 'finalText', value: (document.body.innerText || '').slice(0, 1500) });
       log.push({ act: 'finalPath', value: location.pathname });
       done(log);
     } catch (e) {
-      done([{ act: 'fatal', error: String((e && e.message) || e) }]);
+      log.push({ act: 'fatal', error: String((e && e.message) || e) });
+      done(log);
     }
   }
   main();

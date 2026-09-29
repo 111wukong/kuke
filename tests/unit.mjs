@@ -50,6 +50,58 @@ const eq = (name, a, b) => ok(name, JSON.stringify(a) === JSON.stringify(b),
 const group = (t) => console.log(`\n${t}`);
 
 /* ============================================================
+   〇、源文件语法自检
+   ============================================================
+   ★ 这一组是为一个**反复踩**的坑加的：模板字符串里漏转义反引号。
+   比如注释里写 `document.body`（带反引号），而它所在的模板字符串
+   恰好是用反引号界定的 —— 字符串就被从中间截断了。
+
+   这个坑的恶劣之处在于：
+     · 报错信息指向下一行的中文，看起来像编码问题
+     · 如果内容里是 `${name}` 这种，语法**完全合法**，
+       运行时才炸（ReferenceError 或者静默变成字符串拼接）
+     · 如果内容是 `A` % `B` 这种，语法也合法，结果是 NaN ——
+       而绑进数据库才报「NOT NULL constraint failed」
+
+   所以最省事的防线就是：**让每个源文件都过一遍解析器**。
+   node --check 不执行代码，只解析，代价可以忽略。
+   本项目已经在 catalog.js / questions.js / labs.js / cli-browser.mjs
+   上各栽过一次。 */
+group('源文件语法自检');
+
+const SRC_ROOTS = [
+  path.resolve(__dirname, '../server/src'),
+  path.resolve(__dirname, '../tests'),
+  path.resolve(__dirname, '../web/src'),
+];
+
+function walk(dir, out = []) {
+  if (!fs.existsSync(dir)) return out;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p, out);
+    else if (/\.(mjs|js)$/.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+const srcFiles = SRC_ROOTS.flatMap((r) => walk(r));
+ok(`找到源文件（${srcFiles.length} 个）`, srcFiles.length > 20, `只找到 ${srcFiles.length} 个`);
+
+let syntaxBad = 0;
+for (const f of srcFiles) {
+  try {
+    execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' });
+  } catch (e) {
+    syntaxBad++;
+    const msg = String(e.stderr || e.message).split('\n').slice(0, 4).join(' ');
+    results.failures.push(`语法错误 ${path.relative(process.cwd(), f)} —— ${msg.slice(0, 200)}`);
+  }
+}
+ok(`全部 ${srcFiles.length} 个源文件语法正确`, syntaxBad === 0, `${syntaxBad} 个文件解析失败`);
+
+/* ============================================================
    一、SQL 语句切分与安全闸门
    ============================================================ */
 group('SQL 切分与安全闸门');
