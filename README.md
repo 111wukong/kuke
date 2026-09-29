@@ -22,6 +22,74 @@
 
 ---
 
+## 实拍截图
+
+下面全部是**真机截图**，不是效果图 —— 由 `npm run shots` 起无头 Chrome、
+登录、逐页拍摄生成（CI 上每次推送都会重新生成，见 Actions 的 artifacts）。
+
+### 登录页
+
+<img src="docs/screenshots/01-login.png" alt="登录页" width="100%">
+
+### 仪表盘 —— 今天该做什么已经排好了
+
+<img src="docs/screenshots/02-dashboard.png" alt="仪表盘" width="100%">
+
+### 知识树 —— 43 个知识点，带 68 条依赖边
+
+<img src="docs/screenshots/03-knowledge-tree.png" alt="知识树" width="100%">
+
+### 知识点详情 —— Markdown 正文 + SQL 高亮 + 依赖关系
+
+<img src="docs/screenshots/04-knowledge-detail.png" alt="知识点详情" width="100%">
+
+### SQL 实训场 —— 左表结构 / 中编辑器 / 下结果
+
+<img src="docs/screenshots/05-sql-lab.png" alt="SQL 实训场" width="100%">
+
+### SQL 闯关 —— 45 道关卡，判题靠跑结果集
+
+<img src="docs/screenshots/06-levels.png" alt="关卡列表" width="100%">
+
+<img src="docs/screenshots/07-level-detail.png" alt="关卡做题" width="100%">
+
+### 范式实验室 —— 闭包 / 候选键 / 范式判定 / 无损分解
+
+<img src="docs/screenshots/08-normalize.png" alt="范式实验室" width="100%">
+
+### 索引与事务实验台 —— 结论来自 EXPLAIN 和优先图
+
+<img src="docs/screenshots/09-index-lab.png" alt="索引实验台" width="100%">
+
+### 复习队列（FSRS 间隔重复）与错题本
+
+<img src="docs/screenshots/10-review.png" alt="复习队列" width="49%">
+<img src="docs/screenshots/11-mistakes.png" alt="错题本" width="49%">
+
+### 学习统计 —— 分类雷达图 + 根因诊断 + 学习路径
+
+<img src="docs/screenshots/12-stats.png" alt="学习统计" width="100%">
+
+### 成就墙
+
+<img src="docs/screenshots/13-achievements.png" alt="成就墙" width="100%">
+
+### 班级与教师工作台
+
+<img src="docs/screenshots/15-classes.png" alt="班级" width="49%">
+<img src="docs/screenshots/17-admin.png" alt="教师工作台" width="49%">
+
+### 亮色主题（宣纸）
+
+同一份数据、同一个仪表盘，只换主题 —— 这是 `--color-veil` 令牌方向反转
+是否生效的直观检验（亮色下卡片边界必须仍然可见）。
+
+<img src="docs/screenshots/18-dashboard-light.png" alt="亮色主题 · 仪表盘" width="100%">
+
+<img src="docs/screenshots/19-sql-lab-light.png" alt="亮色主题 · SQL 实训场" width="100%">
+
+---
+
 ## 快速开始
 
 ```bash

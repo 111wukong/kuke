@@ -67,6 +67,12 @@ jobs:
       - name: 安装依赖
         run: npm install --no-audit --no-fund
 
+      # ★ 装中文字体。Ubuntu runner 默认没有 CJK 字体，
+      #   不装的话所有汉字在截图里都是「豆腐块」—— 19 张实拍图全废。
+      #   这一步只影响 browser job（test job 不截图）。
+      - name: 安装中文字体
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
       - name: 下载构建产物
         uses: actions/download-artifact@v4
         with:

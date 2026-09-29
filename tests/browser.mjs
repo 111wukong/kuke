@@ -45,7 +45,7 @@
  *     轮询间隔压到 20ms（每次迭代都是一次真实的让出，
  *     等于给 React 更多真实时间），并捕获页面报错一起报出来。
  */
-import { startServer, check, soft, report } from './lib/harness.mjs';
+import { startServer, check, report } from './lib/harness.mjs';
 import {
   runProbe, screenshot, dumpDom, domText, prepareProbe,
   cleanupProfile, findBrowser, loginOnce,
@@ -113,6 +113,30 @@ try {
   /* ---------- 截图 ---------- */
 
   console.log(`\n[截图] → ${SHOT_DIR}`);
+
+  /* ★ 先把主题钉成「深空」（默认主题）。
+   *
+   *   主题存在 localStorage，而 useTheme 的初始值会跟随系统偏好 ——
+   *   CI runner 报的是 light，于是默认主题的页面会被拍成亮色，
+   *   和「默认深色」的定位不符。
+   *
+   *   这一步放在**登录之前**：登录页自带主题选择器，不需要登录就能用；
+   *   而且登录页截图本身也应该是深色的。 */
+  try {
+    await runProbe(srv.base, {
+      to: '/login',
+      steps: [
+        { act: 'assert', expr: "!!document.querySelector('button')", timeout: 8000 },
+        { act: 'click', text: '主题' },
+        { act: 'click', text: '深空' },
+        { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'deep-space'", timeout: 8000 },
+      ],
+      budget: 90000,
+    });
+    console.log('[主题] 已钉成深空');
+  } catch (e) {
+    console.log(`[主题] 钉深空失败（截图可能是亮色）—— ${String(e.message).split('\n')[0]}`);
+  }
 
   /* ★ 登录页必须在 loginOnce **之前**拍。
    *   profile 一旦有了 cookie，访问 /login 会被重定向到首页 ——
@@ -278,21 +302,12 @@ try {
       .map((r) => `${r.act}=${r.path ?? r.value}`).join(' ');
     const errs = log.find((r) => r.act === 'pageErrors');
     const errTxt = errs ? ` 【页面报错 ${JSON.stringify(errs.value).slice(0, 300)}】` : '';
-    /* ★ 用 soft 而不是 check。
-     *
-     *   这不是「放过失败」，而是承认 harness 的一个已知限制：
-     *   --virtual-time-budget 只控制 setTimeout，**虚拟时间不为 fetch 暂停**。
-     *   探针只能用定时器等待，于是应用拿不到足够的真实时间把数据请求跑完 ——
-     *   症状是「第 1 步找不到 textarea」，而截图里那一页渲染得好好的
-     *   （因为截图等的是 20000ms 虚拟预算，探针等的是 400 次定时器）。
-     *
-     *   已经试过：加大预算、压缩轮询间隔、换成 textContent、
-     *   关掉背景 rAF、把页面断言改走直接 dump —— 页面断言全绿了，
-     *   交互探针仍然不稳定。再往下就要改被测应用去迁就测试，那是本末倒置。
-     *
-     *   所以：交互探针**照跑、照打印**，但不让 CI 长期挂在红。
-     *   页面断言（15 条，覆盖全部 16 个页面）和截图是硬证据。 */
-    soft(name, bad.length === 0,
+    /* 这里曾经一度用 soft()（不计入失败）。原因是虚拟时间和 React
+     * 调度器不同步 —— 探针的轮询在真实时间里跑得太快，
+     * 应用还没把数据请求跑完。最后找到的解法是让**每一次轮询迭代
+     * 都让出一帧**（rAF 强制真实渲染），见 cli-browser.mjs 里的说明。
+     * 修好之后 22 条断言全绿，所以改回硬检查。 */
+    check(name, bad.length === 0,
       bad.map((x) => `第${(x.i ?? 0) + 1}步 ${x.act}${x.expr ? `(${String(x.expr).slice(0, 60)})` : x.text ? `(点击「${x.text}」)` : ''}: ${x.error || '断言不成立'}`).join(' | ')
       + (where ? ` 【${where}】` : '') + errTxt);
     return log;
