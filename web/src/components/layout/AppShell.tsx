@@ -25,7 +25,7 @@ import { AppNavLink } from '@/lib/links';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/stores/theme';
-import { useCountUp } from '@/lib/hooks';
+import { useCountUp, useMediaQuery } from '@/lib/hooks';
 import { cn, avatarStyle } from '@/lib/utils';
 
 interface NavItem { to: string; icon: any; label: string; badge?: 'due' | 'wrong' }
@@ -92,6 +92,19 @@ export function AppShell() {
 
   const NAV = useMemo(() => navGroups(user?.role), [user?.role]);
 
+  /* 尊重「减少动效」系统设置。
+   *
+   * 这不是锦上添花 —— 前庭功能敏感的人会因为这些持续运动的背景
+   * 感到眩晕。CSS 里已经有 `prefers-reduced-motion` 的兜底
+   * （把所有 animation/transition 压到 0.01ms），但那只管 CSS；
+   * WebGL 和 Canvas 的 rAF 循环它管不着，必须在这里主动不挂载。
+   *
+   * 顺带解决一个测试问题：无头浏览器跑 `--virtual-time-budget` 时，
+   * 持续运行的 rAF 循环会不断推进虚拟时钟，把预算耗在渲染背景上 ——
+   * 于是页面主体还没渲染完，dump 就发生了。
+   * 加 `--force-prefers-reduced-motion` 就能让测试走这条分支。 */
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
   useEffect(() => { refreshSnapshot(); }, [refreshSnapshot]);
 
   // 切页时关掉移动端抽屉
@@ -117,8 +130,8 @@ export function AppShell() {
        * ★ 这两层只在**暗色主题**挂载（theme.fx）。原因不是性能，是审美：
        *   霓虹赛博网格 + 磷光星尘画在宣纸那种暖白底上，会变成一片灰蒙蒙的
        *   脏点，既不像纸也不像夜。亮色主题改用 CSS 层的淡色光晕 + 细网格。 */}
-      {theme.fx && <CyberGrid />}
-      {theme.fx && <Starfield />}
+      {theme.fx && !reduceMotion && <CyberGrid />}
+      {theme.fx && !reduceMotion && <Starfield />}
 
       {/* 移动端遮罩 */}
       {navOpen && (

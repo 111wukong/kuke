@@ -321,7 +321,7 @@ export function prepareProbe(distDir) {
 
 /* ---------- 跑一次 Chrome ---------- */
 
-function runChrome(args, { timeout = 60000 } = {}) {
+function runChrome(args, { timeout = 60000, reducedMotion = false } = {}) {
   return new Promise((resolve, reject) => {
     const bin = findBrowser();
     if (!bin) return reject(new Error('找不到浏览器。设 KUKE_BROWSER=/path/to/chrome'));
@@ -342,6 +342,19 @@ function runChrome(args, { timeout = 60000 } = {}) {
       '--disable-sync',
       '--disable-component-update',
       '--no-pings',
+      /* ★ 按需强制「减少动效」。
+       *
+       *   两个作用：
+       *   ① 无障碍 —— 这是应用里真实存在的分支（前庭功能敏感的人
+       *      会因为持续运动的背景不适）。
+       *   ② 让断言可靠 —— WebGL/Canvas 背景持续跑 rAF，而 rAF 会不断
+       *      推进 --virtual-time-budget 的虚拟时钟：预算被耗在渲染背景上，
+       *      页面主体还没渲染完 dump 就发生了。
+       *
+       *   ⚠️ 但**截图不开**它 —— 那两层背景正是最好看的部分，
+       *      关掉会让 README 的实拍图失去说服力。
+       *      所以：断言走减少动效（可靠），截图走完整特效（好看）。 */
+      ...(reducedMotion ? ['--force-prefers-reduced-motion'] : []),
       '--hide-scrollbars',
       '--force-device-scale-factor=1',
       ...args,
@@ -363,13 +376,13 @@ function runChrome(args, { timeout = 60000 } = {}) {
 }
 
 /** 打开一个 URL，等 JS 跑完，返回渲染后的 DOM。 */
-export async function dumpDom(url, { width = 1440, height = 940, budget = 12000, timeout = 60000 } = {}) {
+export async function dumpDom(url, { width = 1440, height = 940, budget = 12000, timeout = 60000, reducedMotion = true } = {}) {
   const { stdout, stderr } = await runChrome([
     `--window-size=${width},${height}`,
     `--virtual-time-budget=${budget}`,
     '--dump-dom',
     url,
-  ], { timeout });
+  ], { timeout, reducedMotion });
   if (!stdout.includes('<')) {
     throw new Error(`--dump-dom 没拿到 HTML。stderr：\n${stderr.slice(-600)}`);
   }
@@ -377,7 +390,7 @@ export async function dumpDom(url, { width = 1440, height = 940, budget = 12000,
 }
 
 /** 打开一个 URL 并截图。 */
-export async function screenshot(url, file, { width = 1440, height = 940, budget = 12000, timeout = 60000 } = {}) {
+export async function screenshot(url, file, { width = 1440, height = 940, budget = 12000, timeout = 60000, reducedMotion = false } = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   await runChrome([
     `--window-size=${width},${height}`,

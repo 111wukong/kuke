@@ -201,7 +201,7 @@ try {
   async function assertPage(name, route, needles) {
     let text = '';
     try {
-      const html = await dumpDom(`${srv.base}${route}`, { width: 1440, height: 940, budget: 20000 });
+      const html = await dumpDom(`${srv.base}${route}`, { width: 1440, height: 940, budget: 40000 });
       text = domText(html);
     } catch (e) {
       check(name, false, `抓取失败：${String(e.message).split('\n')[0]}`);
