@@ -221,11 +221,15 @@ function probeScript() {
               try { return Function('return (' + st.expr + ')')() || null; } catch (e) { return null; }
             }, Math.ceil((st.timeout || 6000) / 100), 100);
             rec.ok = !!ok;
-            if (!rec.ok && st.act === 'assert') rec.actual = (document.body.innerText || '').slice(0, 300);
+            /* ★ 用 textContent 而不是 innerText：innerText 是**布局相关**的，
+               *   只返回已渲染的内容。--dump-dom 不触发完整布局，
+               *   动态挂载的主内容区会拿不到 —— 而侧栏渲染得早，所以在。
+               *   症状就是断言失败但 actual 里只有侧栏，看着像主内容没渲染。 */
+            if (!rec.ok && st.act === 'assert') rec.actual = (document.body.textContent || '').slice(0, 1200);
           } else if (st.act === 'read') {
             rec.value = st.expr
               ? Function('return (' + st.expr + ')')()
-              : (document.body.innerText || '').slice(0, 4000);
+              : (document.body.textContent || '').slice(0, 4000);
           } else if (st.act === 'clickNav') {
             var nav = findClickable(st.text);
             if (!nav) { rec.error = '找不到导航项：' + st.text; }
@@ -242,7 +246,7 @@ function probeScript() {
         await sleep(st.wait === undefined ? 200 : st.wait);
       }
 
-      log.push({ act: 'finalText', value: (document.body.innerText || '').slice(0, 1500) });
+      log.push({ act: 'finalText', value: (document.body.textContent || '').slice(0, 2000) });
       log.push({ act: 'finalPath', value: location.pathname });
       done(log);
     } catch (e) {

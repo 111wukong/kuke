@@ -13,7 +13,10 @@
  */
 import { startServer, makeClient, check, report } from './lib/harness.mjs';
 
-const srv = await startServer();
+/* ★ 这份测试专门验证限流，所以必须用**默认阈值**起服务。
+ *   harness 为了给浏览器测试让路会把阈值调到 100000 ——
+ *   不覆盖的话「登录接口有限流」这条会永远假绿。 */
+const srv = await startServer({ env: { KUKE_RATE_LIMIT: '300' } });
 const c = makeClient(srv.base);
 
 try {

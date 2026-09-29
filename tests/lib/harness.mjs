@@ -40,6 +40,10 @@ export async function startServer({ env = {}, waitMs = 30000 } = {}) {
       KUKE_PASSWORD: 'Teacher123',
       KUKE_USERNAME: '测试教师',
       NODE_ENV: 'test',
+      /* ★ 浏览器冒烟要加载 30+ 个页面，每个 8~10 个请求 ——
+       *   300/分钟 的默认阈值会被撞满，后半程的页面全变 429，
+       *   而症状是「探针页没有输出结果」，看起来像静态托管坏了。 */
+      KUKE_RATE_LIMIT: '100000',
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],

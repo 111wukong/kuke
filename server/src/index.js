@@ -187,7 +187,16 @@ app.decorate('requireAdmin', async (req, reply) => {
 await app.register(cookie);
 await app.register(rateLimit, {
   global: true,
-  max: 300,
+  /* ★ 限流阈值可以用环境变量调。
+   *
+   * 为什么需要这个口子：浏览器冒烟测试一次要加载 30+ 个页面，
+   * 每个页面 8~10 个请求 —— 加起来正好撞上 300/分钟 的默认阈值，
+   * 于是后半程的页面全部收到 429，探针页拿到的是 JSON 而不是 HTML，
+   * 报出来是「探针页没有输出结果（__probe.html 没被正确提供？）」，
+   * 看起来像静态托管坏了，其实是限流。
+   *
+   * 生产环境保持默认值；测试起的是本地一次性服务，调高它不削弱安全性。 */
+  max: Number(process.env.KUKE_RATE_LIMIT) || 300,
   timeWindow: '1 minute',
   /* 限流按 IP。这里**不做**用户级限流 —— 用户级要读 cookie、
    * 查库，成本比 IP 高一个量级，而教学系统的并发量远没到需要它的程度。 */

@@ -137,7 +137,7 @@ try {
     const switched = await runProbe(srv.base, {
       to: '/settings',
       steps: [
-        { act: 'assert', expr: "document.body.innerText.includes('宣纸')", timeout: 8000 },
+        { act: 'assert', expr: "document.body.textContent.includes('宣纸')", timeout: 8000 },
         { act: 'click', text: '宣纸' },
         { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 6000 },
       ],
@@ -177,21 +177,26 @@ try {
   async function probeCase(name, to, steps, budget = 120000) {
     const log = await runProbe(srv.base, { to, steps, width: 1440, height: 940, budget });
     const bad = log.filter((r) => r.act === 'fatal' || r.error || r.ok === false);
+    /* 诊断信息要带上是哪个路由 —— 不然「断言不成立」看不出
+     * 是页面没渲染，还是路由根本没切过去。 */
+    const where = log.filter((r) => r.act === 'mounted' || r.act === 'finalPath')
+      .map((r) => `${r.act}=${r.path ?? r.value}`).join(' ');
     check(name, bad.length === 0,
-      bad.map((b) => `${b.act}: ${b.error || '断言不成立'}${b.actual ? ` 实际=${String(b.actual).slice(0, 140)}` : ''}`).join(' | '));
+      bad.map((x) => `${x.act}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 200)}` : ''}`).join(' | ')
+      + (where ? ` 【${where}】` : ''));
     return log;
   }
 
   await probeCase('仪表盘：渲染了 hero 与概览卡', '/', [
-    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 8000 },
-    { act: 'assert', expr: "['待复习','错题','总正确率','SQL 关卡'].every(t => document.body.innerText.includes(t))" },
-    { act: 'assert', expr: "document.body.innerText.includes('今天做什么')" },
+    { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
+    { act: 'assert', expr: "['待复习','错题','总正确率','SQL 关卡'].every(t => document.body.textContent.includes(t))" },
+    { act: 'assert', expr: "document.body.textContent.includes('今天做什么')" },
   ]);
 
   await probeCase('知识树：七个分类都在，可学性视图能切', '/learn', [
-    { act: 'assert', expr: "['基础理论','SQL 语言','数据库设计','存储与索引','查询优化','事务与并发','恢复与安全'].every(t => document.body.innerText.includes(t))", timeout: 8000 },
+    { act: 'assert', expr: "['基础理论','SQL 语言','数据库设计','存储与索引','查询优化','事务与并发','恢复与安全'].every(t => document.body.textContent.includes(t))", timeout: 8000 },
     { act: 'click', text: '按可学性' },
-    { act: 'assert', expr: "document.body.innerText.includes('现在可以学的')" },
+    { act: 'assert', expr: "document.body.textContent.includes('现在可以学的')" },
   ]);
 
   await probeCase('知识点详情：正文渲染且标记不漏屏', '/learn/k-groupby', [
@@ -202,7 +207,7 @@ try {
     {
       act: 'assert',
       expr: `(() => {
-        const t = document.querySelector('.prose-doc').innerText;
+        const t = document.querySelector('.prose-doc').textContent;
         return !/\\*\\*/.test(t) && !/\\\`/.test(t) && !/^#{1,6}\\s/m.test(t);
       })()`,
     },
@@ -210,69 +215,69 @@ try {
 
   await probeCase('SQL 实训场：跑查询能出结果', '/lab/sql', [
     { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 8000 },
-    { act: 'assert', expr: "document.body.innerText.includes('表结构')" },
+    { act: 'assert', expr: "document.body.textContent.includes('表结构')" },
     { act: 'fill', sel: 'textarea', value: "SELECT sname, sdept FROM student WHERE sdept = '计算机系';" },
     { act: 'click', text: '运行' },
-    { act: 'assert', expr: "document.body.innerText.includes('张伟')", timeout: 8000 },
-    { act: 'assert', expr: "document.body.innerText.includes('sname')" },
+    { act: 'assert', expr: "document.body.textContent.includes('张伟')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('sname')" },
   ]);
 
   await probeCase('SQL 实训场：错误 SQL 给可读提示', '/lab/sql', [
     { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 8000 },
     { act: 'fill', sel: 'textarea', value: 'SELECT * FROM 不存在的表;' },
     { act: 'click', text: '运行' },
-    { act: 'assert', expr: "/执行出错|不存在/.test(document.body.innerText)", timeout: 10000 },
+    { act: 'assert', expr: "/执行出错|不存在/.test(document.body.textContent)", timeout: 10000 },
   ]);
 
   await probeCase('关卡：错误答案判错、正确答案过关', '/levels/L03', [
-    { act: 'assert', expr: "document.body.innerText.includes('条件筛选')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('条件筛选')", timeout: 8000 },
     { act: 'fill', sel: 'textarea', value: 'SELECT sno FROM student;' },
     { act: 'click', text: '提交答案' },
-    { act: 'assert', expr: "document.body.innerText.includes('还没通过')", timeout: 8000 },
-    { act: 'assert', expr: "document.body.innerText.includes('期望的结果')" },
+    { act: 'assert', expr: "document.body.textContent.includes('还没通过')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('期望的结果')" },
     { act: 'fill', sel: 'textarea', value: "SELECT * FROM student WHERE sdept = '计算机系';" },
     { act: 'click', text: '提交答案' },
-    { act: 'assert', expr: "document.body.innerText.includes('过关')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('过关')", timeout: 8000 },
   ]);
 
   await probeCase('范式实验室：切换题目、提交、看推导', '/normalize', [
-    { act: 'assert', expr: "document.body.innerText.includes('范式实验室')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('范式实验室')", timeout: 8000 },
     { act: 'click', text: '部分依赖' },
-    { act: 'assert', expr: "['1NF','2NF','3NF','BCNF'].every(t => document.body.innerText.includes(t))", timeout: 8000 },
+    { act: 'assert', expr: "['1NF','2NF','3NF','BCNF'].every(t => document.body.textContent.includes(t))", timeout: 8000 },
     { act: 'click', text: '1NF' },
     { act: 'click', text: '提交' },
-    { act: 'assert', expr: "document.body.innerText.includes('正确')", timeout: 10000 },
+    { act: 'assert', expr: "document.body.textContent.includes('正确')", timeout: 10000 },
     { act: 'click', text: '看推导' },
-    { act: 'assert', expr: "document.body.innerText.includes('完整推导')", timeout: 10000 },
+    { act: 'assert', expr: "document.body.textContent.includes('完整推导')", timeout: 10000 },
   ]);
 
   await probeCase('索引实验：展示真实的执行计划', '/lab', [
-    { act: 'assert', expr: "document.body.innerText.includes('要分析的查询')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('要分析的查询')", timeout: 8000 },
     { act: 'click', text: 'CREATE INDEX' },
     { act: 'click', text: '提交判断' },
-    { act: 'assert', expr: "document.body.innerText.includes('数据库自己怎么说')", timeout: 8000 },
-    { act: 'assert', expr: "/SCAN|SEARCH/i.test(document.body.innerText)" },
+    { act: 'assert', expr: "document.body.textContent.includes('数据库自己怎么说')", timeout: 8000 },
+    { act: 'assert', expr: "/SCAN|SEARCH/i.test(document.body.textContent)" },
   ]);
 
   await probeCase('统计页：图表渲染出来了', '/stats', [
-    { act: 'assert', expr: "document.body.innerText.includes('累计作答')", timeout: 8000 },
-    { act: 'assert', expr: "!!document.querySelector('.recharts-surface') || document.body.innerText.includes('还没有作答记录')" },
+    { act: 'assert', expr: "document.body.textContent.includes('累计作答')", timeout: 8000 },
+    { act: 'assert', expr: "!!document.querySelector('.recharts-surface') || document.body.textContent.includes('还没有作答记录')" },
   ]);
 
   await probeCase('教师工作台：六个标签页都在', '/admin', [
-    { act: 'assert', expr: "document.body.innerText.includes('教师工作台')", timeout: 8000 },
-    { act: 'assert', expr: "['总览','学生管理','班级','作业','内容','审计日志'].every(t => document.body.innerText.includes(t))" },
+    { act: 'assert', expr: "document.body.textContent.includes('教师工作台')", timeout: 8000 },
+    { act: 'assert', expr: "['总览','学生管理','班级','作业','内容','审计日志'].every(t => document.body.textContent.includes(t))" },
     { act: 'click', text: '学生管理' },
-    { act: 'assert', expr: "document.body.innerText.includes('批量建号') || document.body.innerText.includes('还没有学生')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('批量建号') || document.body.textContent.includes('还没有学生')", timeout: 8000 },
   ]);
 
   await probeCase('移动端：不出现横向滚动', '/', [
-    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
     { act: 'assert', expr: 'document.documentElement.scrollWidth <= window.innerWidth + 2' },
   ]);
 
   await probeCase('登出后受保护页面会回到登录页', '/', [
-    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 8000 },
+    { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
     { act: 'assert', expr: "fetch('/api/auth/logout', {method:'POST', credentials:'same-origin'}).then(r => r.status === 200)", timeout: 8000 },
     { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 10000 },
   ]);
