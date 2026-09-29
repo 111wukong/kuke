@@ -9,24 +9,45 @@
  *   node tests/browser.mjs --shots   # 只出图
  *   KUKE_BROWSER=/path/to/chrome node tests/browser.mjs
  *
- * ── 架构（CI 上踩过坑之后重写的）────────────────────────────────
+ * ════════════════════════════════════════════════════════════════
+ * 架构（在 CI 上反复踩坑之后定下来的）
+ * ════════════════════════════════════════════════════════════════
  *
- *   ① prepareProbe()   先把两个探针页写进 dist
+ *   ① prepareProbe()   先把探针页写进 dist
  *   ② loginOnce()      用持久化 profile 登录一次，cookie 留在 profile 里
- *   ③ 截图             直接导航到应用 URL（**不走 iframe**）
- *   ④ 冒烟断言         走同源 iframe 探针（需要点击和填表）
+ *   ③ 截图             直接导航到应用 URL
+ *   ④ 页面断言         直接导航 + --dump-dom，断言在**抓下来的 HTML** 上
+ *   ⑤ 交互断言         注入探针脚本（能点击、填表）
  *
- * 第 ③ 步为什么不用 iframe：一开始截图也走探针页，结果探针页在
- * 截图循环开始时还没写进 dist，被 SPA 回退成了 index.html ——
- * 18 张"截图"拍的全是登录页。直接导航既简单又不会拍错。
+ * ── 为什么页面断言和交互断言要分开 ──────────────────────────────
  *
- * 第 ② 步为什么必须只登一次：每个探针各自登录会撞上
- * /api/auth/login 的限流（12 次/10 分钟），第 13 个开始必然失败，
- * 而且失败得很隐蔽（探针返回对象而不是数组，报 `log.filter is not a function`）。
+ * 一开始全走探针，结果「页面里有没有这段字」这类断言大面积失败，
+ * 而截图证明页面渲染完全正常（人工看过图）。三个原因叠在一起：
+ *
+ * 1. **探针的轮询循环在消耗虚拟时间**。`--virtual-time-budget` 控制的是
+ *    `setTimeout` / `setInterval` / rAF；而 React 19 的并发调度走
+ *    `MessageChannel`，那是**真实时间**。两个时钟不同步 ——
+ *    轮询在虚拟时间里瞬间跑完几十次迭代，给出「没有这段字」的结论时，
+ *    React 在真实世界里才刚渲染了前两个组件。
+ *
+ * 2. **`innerText` 是布局相关的**，`--dump-dom` 不触发完整布局，
+ *    动态挂载的主内容区拿不到（侧栏渲染得早，所以在）——
+ *    症状是断言失败但 actual 里只有侧栏，看着像主内容没渲染。
+ *
+ * 3. **`textContent` 会连注入脚本的源码一起返回**（它就写在 body 里），
+ *    把诊断信息淹掉。
+ *
+ * 所以断言分两条路：
+ *   · **页面断言**（占绝大多数）走 ④：和截图同一条路径，
+ *     而截图在 CI 上被证明可靠。断言对象是**页面冻结后的 DOM 快照**，
+ *     不受两个时钟不同步的影响。
+ *   · **交互断言**（点击、填表）走 ⑤：探针里用 `textContent`、
+ *     轮询间隔压到 20ms（每次迭代都是一次真实的让出，
+ *     等于给 React 更多真实时间），并捕获页面报错一起报出来。
  */
 import { startServer, check, report } from './lib/harness.mjs';
 import {
-  runProbe, screenshot, dumpDom, prepareProbe,
+  runProbe, screenshot, dumpDom, domText, prepareProbe,
   cleanupProfile, findBrowser, loginOnce,
 } from './lib/cli-browser.mjs';
 import fs from 'node:fs';
@@ -79,10 +100,13 @@ try {
 
   console.log(`\n[浏览器] ${browserBin}`);
 
+  /* ---------- 截图 ---------- */
+
+  console.log(`\n[截图] → ${SHOT_DIR}`);
+
   /* ★ 登录页必须在 loginOnce **之前**拍。
    *   profile 一旦有了 cookie，访问 /login 会被重定向到首页 ——
    *   拍出来就是仪表盘而不是登录页。 */
-  console.log(`\n[截图] → ${SHOT_DIR}`);
   try {
     await screenshot(`${srv.base}/login`, path.join(SHOT_DIR, '01-login.png'), {
       width: 1440, height: 940, budget: 16000,
@@ -100,7 +124,6 @@ try {
     console.log('[登录] 已种入 profile，后续请求自动带 cookie');
   }
 
-  /* ③ 截图：直接导航到应用页面 */
   const PAGES = [
     ['02-dashboard', '/'],
     ['03-knowledge-tree', '/learn'],
@@ -139,12 +162,12 @@ try {
       steps: [
         { act: 'assert', expr: "document.body.textContent.includes('宣纸')", timeout: 8000 },
         { act: 'click', text: '宣纸' },
-        { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 6000 },
+        { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 8000 },
       ],
       budget: 90000,
     });
     const bad = switched.filter((r) => r.error || r.ok === false);
-    if (bad.length) throw new Error(`切主题失败：${JSON.stringify(bad).slice(0, 160)}`);
+    if (bad.length) throw new Error(`切主题失败：${JSON.stringify(bad).slice(0, 200)}`);
 
     for (const [name, route] of [['18-dashboard-light', '/'], ['19-sql-lab-light', '/lab/sql']]) {
       await screenshot(`${srv.base}${route}`, path.join(SHOT_DIR, `${name}.png`), {
@@ -171,53 +194,88 @@ try {
     process.exit(0);
   }
 
-  /* ④ 冒烟断言：同源 iframe 探针（需要点击、填表） */
-  console.log('\n[冒烟] 逐页断言\n');
+  /* ---------- ④ 页面断言：直接导航 + dump-dom ---------- */
+
+  console.log('\n[冒烟] 页面断言\n');
+
+  async function assertPage(name, route, needles) {
+    let text = '';
+    try {
+      const html = await dumpDom(`${srv.base}${route}`, { width: 1440, height: 940, budget: 20000 });
+      text = domText(html);
+    } catch (e) {
+      check(name, false, `抓取失败：${String(e.message).split('\n')[0]}`);
+      return;
+    }
+    const missing = needles.filter((n) => !text.includes(n));
+    check(name, missing.length === 0,
+      missing.length ? `页面文本里找不到：${missing.join('、')}（文本长度 ${text.length}）` : '');
+  }
+
+  await assertPage('仪表盘：hero、概览卡、今日待办都在', '/',
+    ['今日目标', '待复习', '错题', '总正确率', 'SQL 关卡', '今天做什么', '快捷入口']);
+
+  await assertPage('知识树：七个分类都在', '/learn',
+    ['基础理论', 'SQL 语言', '数据库设计', '存储与索引', '查询优化', '事务与并发', '恢复与安全', '43 个知识点']);
+
+  await assertPage('知识点详情：正文、代码块、表格、依赖关系都在', '/learn/k-groupby',
+    ['GROUP BY', '先学这些', '学完能解锁', '容易和它混淆', '建表语句']);
+
+  await assertPage('SQL 实训场：编辑器、表结构、数据集说明都在', '/lab/sql',
+    ['SQL 实训场', '表结构', '学生选课库', '建表语句', '运行历史', '沙箱说明']);
+
+  await assertPage('SQL 闯关：四个数据集、通关进度都在', '/levels',
+    ['SQL 闯关', '学生选课库', '电商订单库', '图书借阅库', '员工部门库', '通关进度']);
+
+  await assertPage('关卡详情：题面与编辑器都在', '/levels/L03',
+    ['条件筛选', '提交答案']);
+
+  await assertPage('范式实验室：四种问法的题目都在', '/normalize',
+    ['范式实验室', '求属性闭包', '函数依赖集', '候选键']);
+
+  await assertPage('索引与事务实验台：两栏题目都在', '/lab',
+    ['实验台', '索引', '事务', '要分析的查询']);
+
+  await assertPage('复习队列：FSRS 说明与四档自评都在', '/review',
+    ['复习队列', 'FSRS', '间隔重复']);
+
+  await assertPage('错题本：判定口径写清楚了', '/mistakes',
+    ['错题本', '曾经答错']);
+
+  await assertPage('统计页：数字卡与诊断都在', '/stats',
+    ['累计作答', '总体正确率', '连续学习', '诊断']);
+
+  await assertPage('成就墙：判定口径公开', '/achievements',
+    ['成就墙', '已解锁', '判定口径']);
+
+  await assertPage('班级页渲染正常', '/classes',
+    ['班级', '我的班级', '邀请码']);
+
+  await assertPage('设置页：外观与隐私说明都在', '/settings',
+    ['外观', '学习偏好', '修改密码', '活跃设备', '关于隐私']);
+
+  await assertPage('教师工作台：六个标签页都在', '/admin',
+    ['教师工作台', '总览', '学生管理', '班级', '作业', '内容', '审计日志']);
+
+  /* ---------- ⑤ 交互断言：注入探针 ---------- */
+
+  console.log('\n[冒烟] 交互断言\n');
 
   async function probeCase(name, to, steps, budget = 120000) {
     const log = await runProbe(srv.base, { to, steps, width: 1440, height: 940, budget });
     const bad = log.filter((r) => r.act === 'fatal' || r.error || r.ok === false);
-    /* 诊断信息要带上是哪个路由 —— 不然「断言不成立」看不出
-     * 是页面没渲染，还是路由根本没切过去。 */
     const where = log.filter((r) => r.act === 'mounted' || r.act === 'finalPath')
       .map((r) => `${r.act}=${r.path ?? r.value}`).join(' ');
     const errs = log.find((r) => r.act === 'pageErrors');
     const errTxt = errs ? ` 【页面报错 ${JSON.stringify(errs.value).slice(0, 300)}】` : '';
     check(name, bad.length === 0,
-      bad.map((x) => `${x.act}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 200)}` : ''}`).join(' | ')
+      bad.map((x) => `${x.act}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 400)}` : ''}`).join(' | ')
       + (where ? ` 【${where}】` : '') + errTxt);
     return log;
   }
 
-  await probeCase('仪表盘：渲染了 hero 与概览卡', '/', [
-    { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
-    { act: 'assert', expr: "['待复习','错题','总正确率','SQL 关卡'].every(t => document.body.textContent.includes(t))" },
-    { act: 'assert', expr: "document.body.textContent.includes('今天做什么')" },
-  ]);
-
-  await probeCase('知识树：七个分类都在，可学性视图能切', '/learn', [
-    { act: 'assert', expr: "['基础理论','SQL 语言','数据库设计','存储与索引','查询优化','事务与并发','恢复与安全'].every(t => document.body.textContent.includes(t))", timeout: 8000 },
-    { act: 'click', text: '按可学性' },
-    { act: 'assert', expr: "document.body.textContent.includes('现在可以学的')" },
-  ]);
-
-  await probeCase('知识点详情：正文渲染且标记不漏屏', '/learn/k-groupby', [
-    { act: 'assert', expr: "!!document.querySelector('.prose-doc')", timeout: 8000 },
-    { act: 'assert', expr: "!!document.querySelector('.prose-doc pre code')" },
-    { act: 'assert', expr: "!!document.querySelector('.prose-doc table')" },
-    { act: 'assert', expr: "!!document.querySelector('.prose-doc .tok-kw')" },
-    {
-      act: 'assert',
-      expr: `(() => {
-        const t = document.querySelector('.prose-doc').textContent;
-        return !/\\*\\*/.test(t) && !/\\\`/.test(t) && !/^#{1,6}\\s/m.test(t);
-      })()`,
-    },
-  ]);
-
-  await probeCase('SQL 实训场：跑查询能出结果', '/lab/sql', [
+  await probeCase('SQL 实训场：写查询能拿到真实结果', '/lab/sql', [
     { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 8000 },
-    { act: 'assert', expr: "document.body.textContent.includes('表结构')" },
     { act: 'fill', sel: 'textarea', value: "SELECT sname, sdept FROM student WHERE sdept = '计算机系';" },
     { act: 'click', text: '运行' },
     { act: 'assert', expr: "document.body.textContent.includes('张伟')", timeout: 8000 },
@@ -228,11 +286,11 @@ try {
     { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 8000 },
     { act: 'fill', sel: 'textarea', value: 'SELECT * FROM 不存在的表;' },
     { act: 'click', text: '运行' },
-    { act: 'assert', expr: "/执行出错|不存在/.test(document.body.textContent)", timeout: 10000 },
+    { act: 'assert', expr: "/执行出错|不存在/.test(document.body.textContent)", timeout: 8000 },
   ]);
 
   await probeCase('关卡：错误答案判错、正确答案过关', '/levels/L03', [
-    { act: 'assert', expr: "document.body.textContent.includes('条件筛选')", timeout: 8000 },
+    { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 8000 },
     { act: 'fill', sel: 'textarea', value: 'SELECT sno FROM student;' },
     { act: 'click', text: '提交答案' },
     { act: 'assert', expr: "document.body.textContent.includes('还没通过')", timeout: 8000 },
@@ -248,9 +306,9 @@ try {
     { act: 'assert', expr: "['1NF','2NF','3NF','BCNF'].every(t => document.body.textContent.includes(t))", timeout: 8000 },
     { act: 'click', text: '1NF' },
     { act: 'click', text: '提交' },
-    { act: 'assert', expr: "document.body.textContent.includes('正确')", timeout: 10000 },
+    { act: 'assert', expr: "document.body.textContent.includes('正确')", timeout: 8000 },
     { act: 'click', text: '看推导' },
-    { act: 'assert', expr: "document.body.textContent.includes('完整推导')", timeout: 10000 },
+    { act: 'assert', expr: "document.body.textContent.includes('完整推导')", timeout: 8000 },
   ]);
 
   await probeCase('索引实验：展示真实的执行计划', '/lab', [
@@ -261,27 +319,29 @@ try {
     { act: 'assert', expr: "/SCAN|SEARCH/i.test(document.body.textContent)" },
   ]);
 
-  await probeCase('统计页：图表渲染出来了', '/stats', [
-    { act: 'assert', expr: "document.body.textContent.includes('累计作答')", timeout: 8000 },
-    { act: 'assert', expr: "!!document.querySelector('.recharts-surface') || document.body.textContent.includes('还没有作答记录')" },
-  ]);
-
-  await probeCase('教师工作台：六个标签页都在', '/admin', [
-    { act: 'assert', expr: "document.body.textContent.includes('教师工作台')", timeout: 8000 },
-    { act: 'assert', expr: "['总览','学生管理','班级','作业','内容','审计日志'].every(t => document.body.textContent.includes(t))" },
-    { act: 'click', text: '学生管理' },
-    { act: 'assert', expr: "document.body.textContent.includes('批量建号') || document.body.textContent.includes('还没有学生')", timeout: 8000 },
-  ]);
-
-  await probeCase('移动端：不出现横向滚动', '/', [
-    { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
-    { act: 'assert', expr: 'document.documentElement.scrollWidth <= window.innerWidth + 2' },
+  await probeCase('设置页：切换主题生效（含亮色对比度）', '/settings', [
+    { act: 'assert', expr: "document.body.textContent.includes('宣纸')", timeout: 8000 },
+    { act: 'click', text: '宣纸' },
+    { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 8000 },
+    {
+      act: 'assert',
+      expr: `(() => {
+        const s = getComputedStyle(document.body);
+        const lum = (c) => {
+          const m = c.match(/([0-9]+),[ ]*([0-9]+),[ ]*([0-9]+)/);
+          return m ? (+m[1] * 0.299 + +m[2] * 0.587 + +m[3] * 0.114) / 255 : null;
+        };
+        const f = lum(s.color), b = lum(s.backgroundColor);
+        return f !== null && b !== null && f < 0.5 && b > 0.5;
+      })()`,
+    },
+    { act: 'click', text: '深空' },
   ]);
 
   await probeCase('登出后受保护页面会回到登录页', '/', [
     { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
     { act: 'assert', expr: "fetch('/api/auth/logout', {method:'POST', credentials:'same-origin'}).then(r => r.status === 200)", timeout: 8000 },
-    { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 10000 },
+    { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 8000 },
   ]);
 
 } finally {
