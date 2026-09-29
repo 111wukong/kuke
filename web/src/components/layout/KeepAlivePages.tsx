@@ -27,12 +27,43 @@
  * 3. **上限**。访问 200 个页面就渲染 200 个 DOM 树，内存会炸。
  *    超过上限时丢掉最久没访问的那个。
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
 
 export interface PageDef {
   path: string;
   node: ReactNode;
+}
+
+/* ============================================================
+   ★ 路由参数的传递（一个真实缺陷的修复）
+   ============================================================
+   路由保活**绕过了 `<Routes>`** —— 它直接把页面组件渲染出来，
+   而 `useParams()` 的上下文恰恰是 `<Routes>` / `<Route>` 提供的。
+   结果就是：`useParams()` 永远返回 `{}`，
+   所有动态路由的页面都拿不到参数：
+
+     /learn/k-groupby     → kid = undefined → 请求 .../knowledge/undefined → 404
+     /levels/L03          → id  = undefined
+     /assignments/3       → id  = undefined
+     /admin/students/7    → id  = undefined
+
+   症状很隐蔽：页面**渲染正常**，只是显示「知识点不存在」这种空态 ——
+   看起来像数据问题，不像路由问题。是浏览器测试断言页面正文时才暴露的
+   （截图里那一页是一块漂亮的空态卡片）。
+
+   修法：`KeepAlivePages` 本来就在用 `matchPath` 匹配路径，
+   它顺手就能拿到 `params`。把 params 通过 context 往下传，
+   页面改用 `usePageParams()`。
+
+   为什么不改成用 `<Routes>`：那正是保活要绕开的东西 ——
+   `<Routes>` 只渲染匹配的那一条，切走的页面会被卸载。
+   ============================================================ */
+const PageParamsContext = createContext<Record<string, string>>({});
+
+/** 取当前页面的路由参数。替代 `useParams()`。 */
+export function usePageParams<T extends Record<string, string | undefined> = Record<string, string>>(): T {
+  return useContext(PageParamsContext) as T;
 }
 
 const MAX_ALIVE = 12;
@@ -41,6 +72,7 @@ interface Alive {
   key: string;
   path: string;
   node: ReactNode;
+  params: Record<string, string>;
   lastSeen: number;
 }
 
@@ -49,24 +81,32 @@ export function KeepAlivePages({ pages, container }: { pages: PageDef[]; contain
   const [alive, setAlive] = useState<Alive[]>([]);
   const seq = useRef(0);
 
-  /* 找到当前 path 匹配的页面定义。
-   * 用 matchPath 而不是字符串相等 —— /learn/:kid 这种带参数的路由
-   * 必须能匹配上。 */
+  /* 找到当前 path 匹配的页面定义。用 matchPath 而不是字符串相等 ——
+   * /learn/:kid 这种带参数的路由必须能匹配上。
+   *
+   * ★ params 只在 effect 里现算，**不要提到外面当变量**。
+   *   `matchPath` 每次都返回一个新的 params 对象，而它一旦进了 effect
+   *   的依赖数组，就会「effect 跑 → setAlive → 重渲染 → 新对象 →
+   *   effect 又跑」转成无限循环。 */
   const matched = pages.find((p) => matchPath(p.path, location.pathname));
 
   useEffect(() => {
     if (!matched) return;
     const key = location.pathname; // ★ key 用实际路径，不用路由模式
+    const params = (matchPath(matched.path, key)?.params ?? {}) as Record<string, string>;
 
     setAlive((prev) => {
       const exist = prev.find((a) => a.key === key);
       if (exist) {
-        return prev.map((a) => (a.key === key ? { ...a, lastSeen: ++seq.current } : a));
+        /* 参数可能变了（比如从 /learn/a 切到 /learn/b 再切回来），
+           所以每次激活都刷新 params，不能只更新时间戳。 */
+        return prev.map((a) => (a.key === key ? { ...a, params, lastSeen: ++seq.current } : a));
       }
       const next: Alive[] = [...prev, {
         key,
         path: matched.path,
         node: matched.node,
+        params,
         lastSeen: ++seq.current,
       }];
       if (next.length > MAX_ALIVE) {
@@ -125,12 +165,16 @@ export function KeepAlivePages({ pages, container }: { pages: PageDef[]; contain
         return (
           <div
             key={a.key}
-            /* 用 hidden 属性而不是条件渲染 —— 条件渲染等于卸载。
-             * 用 display:none 才能保住子组件的 state 和 DOM。 */
+            /* 用 display:none 而不是条件渲染 —— 条件渲染等于卸载。
+             * 只有这样才能保住子组件的 state 和 DOM。 */
             style={{ display: active ? undefined : 'none' }}
             aria-hidden={!active}
           >
-            {a.node}
+            {/* 每个保活页面拿到**自己的** params，而不是当前路由的 ——
+                否则切到别处时，隐藏页面会用错误的参数重新渲染。 */}
+            <PageParamsContext.Provider value={a.params}>
+              {a.node}
+            </PageParamsContext.Provider>
           </div>
         );
       })}

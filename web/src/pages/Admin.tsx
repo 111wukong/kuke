@@ -12,7 +12,7 @@
  * 停用是可逆的，一步确认即可。
  */
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { usePageParams } from '@/components/layout/KeepAlivePages';
 import {
   ShieldCheck, Users, School, ClipboardList, Database, ScrollText, Search,
   Plus, UserPlus, KeyRound, LogOut, Ban, Trash2, CheckCircle2, AlertTriangle,
@@ -968,7 +968,7 @@ function AuditTab() {
    ============================================================ */
 
 export function StudentDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = usePageParams<{ id: string }>();
   const { toast } = useApp();
   const [tab, setTab] = useState<'overview' | 'sql' | 'nodes' | 'attempts'>('overview');
 

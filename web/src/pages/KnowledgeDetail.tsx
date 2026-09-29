@@ -11,7 +11,7 @@
  * 等于每次都要先划过去一段和当前无关的内容。
  */
 import { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { usePageParams } from '@/components/layout/KeepAlivePages';
 import {
   ArrowLeft, ArrowRight, CircleAlert, Link2, Sigma,
   Play, NotebookPen, Trash2, Plus, Send, Terminal,
@@ -43,7 +43,7 @@ interface KDetail {
 }
 
 export default function KnowledgeDetail() {
-  const { kid } = useParams<{ kid: string }>();
+  const { kid } = usePageParams<{ kid: string }>();
   const { toast } = useApp();
   const [noteText, setNoteText] = useState('');
 

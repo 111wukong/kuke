@@ -101,6 +101,48 @@ for (const f of srcFiles) {
 }
 ok(`全部 ${srcFiles.length} 个源文件语法正确`, syntaxBad === 0, `${syntaxBad} 个文件解析失败`);
 
+/* ---------- 前端路由约定 ----------
+ *
+ * ★ 这条静态检查是为一个真实缺陷加的：路由保活**绕过了 `<Routes>`**
+ *   （那正是它要做的事 —— `<Routes>` 只渲染匹配的一条，切走的页面会被卸载），
+ *   而 `useParams()` 的上下文恰恰由 `<Routes>` 提供。
+ *   所以页面里任何 `useParams()` 都会永远返回 `{}`。
+ *
+ *   症状极其隐蔽：页面渲染正常，只是显示「知识点不存在」这类空态 ——
+ *   看起来像数据问题，不像路由问题。四个页面同时中招
+ *   （知识点详情 / 关卡详情 / 作业详情 / 学生详情），
+ *   而接口测试全绿（它们直接打 API，不经过页面）。
+ *
+ *   是浏览器测试断言页面正文时才暴露的。 */
+const WEB_PAGES = path.resolve(__dirname, '../web/src');
+const pageFiles = walk(WEB_PAGES).concat(
+  fs.existsSync(WEB_PAGES)
+    ? fs.readdirSync(path.join(WEB_PAGES, 'pages'), { withFileTypes: true })
+      .filter((e) => e.isFile() && /\.tsx$/.test(e.name))
+      .map((e) => path.join(WEB_PAGES, 'pages', e.name))
+    : [],
+);
+
+let useParamsOffenders = [];
+for (const f of new Set(pageFiles)) {
+  const src = fs.readFileSync(f, 'utf8');
+  // 只看真正的调用，注释里的说明不算
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  if (/\buseParams\s*[(<]/.test(code)) {
+    useParamsOffenders.push(path.relative(WEB_PAGES, f));
+  }
+}
+ok('★ 页面里没有直接用 useParams（保活绕过了 Routes，它永远返回空对象）',
+  useParamsOffenders.length === 0,
+  `这些文件要改用 usePageParams：${useParamsOffenders.join('、')}`);
+
+/* 反向确认：usePageParams 确实被用到了，否则上面那条会「因为没人用而通过」 */
+const usesPageParams = pageFiles.some((f) => {
+  if (!fs.existsSync(f)) return false;
+  return /usePageParams\s*[(<]/.test(fs.readFileSync(f, 'utf8'));
+});
+ok('★ 至少有一个页面在用 usePageParams（否则上一条是假绿）', usesPageParams);
+
 /* ============================================================
    一、SQL 语句切分与安全闸门
    ============================================================ */

@@ -7,7 +7,7 @@
  * 因为"我能不能管这份作业"是服务端算出来的，前端猜不准。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { usePageParams } from '@/components/layout/KeepAlivePages';
 import {
   ClipboardList, CalendarClock, CheckCircle2, AlertTriangle, Users,
   ArrowLeft, Save, MessageSquare, Terminal, HelpCircle, Sigma, FlaskConical,
@@ -158,7 +158,7 @@ const KIND_ICON: Record<string, any> = {
 };
 
 export function AssignmentDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = usePageParams<{ id: string }>();
   const { toast } = useApp();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);

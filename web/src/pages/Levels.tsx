@@ -7,7 +7,7 @@
  * 视觉上把已通过的标绿、未通过的保持中性，学生自己看得见进度。
  */
 import { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { usePageParams } from '@/components/layout/KeepAlivePages';
 import {
   Flag, CheckCircle2, Circle, ChevronLeft, ChevronRight, Play, Lightbulb,
   Eye, Trophy, Sparkles, AlertTriangle, ArrowLeft,
@@ -149,7 +149,7 @@ interface LevelDetailData {
 }
 
 export function LevelDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = usePageParams<{ id: string }>();
   const { toast } = useApp();
   const [sql, setSql] = useState('');
   const [submitting, setSubmitting] = useState(false);
