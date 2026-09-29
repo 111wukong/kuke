@@ -1,0 +1,729 @@
+@import "tailwindcss";
+
+/* ============================================================
+   库课 · 设计系统
+   ============================================================
+   三层结构，别混：
+     1. 底（--color-ink-*）  ：背景。永远比内容暗（暗色主题）/ 亮（亮色主题）。
+     2. 面（--color-glass-*）：卡片与面板。
+     3. 光谱（--color-cyan 等）：强调色。只用于"需要被看见的东西"。
+
+   纪律：不用高饱和纯色大面积填充；强调色只出现在文字、描边、光晕和
+   小面积填充上。长时间盯着看的东西（正文、列表）一律用低饱和的 fg / ink 系列。
+
+   ── 多主题是怎么实现的 ──────────────────────────────────────────
+   Tailwind v4 的 @theme 会把每个 token 编译成 :root 上的 CSS 变量，
+   工具类则编译成 `color: var(--color-fg)` 这种**间接引用**。
+   所以「换主题」= 在更高优先级的选择器里重定义同一个变量，工具类自动跟着变。
+
+   优先级：:root 是 (0,1,0)，html[data-theme="x"] 是 (0,1,1) —— 后者赢。
+   不需要 !important，也不需要把颜色搬到 JS 里运行时注入。
+
+   代价是：CSS 变量不能出现在 Tailwind 的类名里做条件判断，
+   所以凡是「暗色一套、亮色另一套」的，只能靠变量值本身不同，
+   不能靠 `dark:` 之类的变体。这也是为什么下面几乎每个视觉参数都提成了变量。
+
+   ── 加一个新主题要改三处，缺一处都会静默失效 ────────────────────
+     1. 本文件：复制一份 html[data-theme="新id"] 块，改值；
+     2. web/src/lib/themes.ts：加一条注册表项（含缩略图色板）；
+     3. server/src/lib/themes.js：把 id 加进 THEME_IDS。
+   缺第 1 处 → 选了没样式；缺第 2 处 → 选不到；缺第 3 处 → 保存时被服务端
+   静默收敛回默认。接口冒烟里有一条断言比对第 2、3 处，漏改会红。
+   ============================================================ */
+
+@theme {
+  /* ---- 底：表面阶梯 ---- */
+  --color-ink-1000: #03040a;
+  --color-ink-950: #05060c;
+  --color-ink-900: #080b14;
+  --color-ink-850: #0b0f1a;
+  --color-ink-800: #10151f;
+  --color-ink-700: #171d29;
+  --color-ink-600: #222938;
+
+  /* ---- 叠层色 ----
+   * 语义是「在当前底色上叠一层，让它稍微偏离底色」。
+   * 暗色主题 = 白色叠上去（变亮）；亮色主题 = 黑色叠上去（变暗）。
+   * 所以它是**唯一一个明暗主题取值方向相反**的 token。
+   *
+   * 为什么必须单独有一个：全站「在当前底色上叠一层」的地方都走它。
+   * 原来这些位置写的是 bg-white/5，亮色主题下白叠白 = 完全看不见，
+   * 卡片边界会凭空消失而页面依然"正常渲染"—— 这是最阴的一类缺陷，
+   * 因为没有任何断言能查出来（元素在、颜色对、只是看不见）。 */
+  --color-veil: #ffffff;
+
+  /* ---- 遮罩 ----
+   * 弹窗/抽屉背后的压暗层。**所有主题都用深色** ——
+   * 亮色主题下用白色遮罩，弹窗会像"浮在一片雾上"，层级读不出来。 */
+  --color-scrim: #03040a;
+
+  /* ---- 强调色实心块上的文字 ----
+   * 主按钮是实心渐变。压在上面的字必须是深色，
+   * 否则浅色渐变 + 浅色字 = 看不见。这个角色和 ink-1000 不一样：
+   * ink-1000 在亮色主题里是白的，而这里永远得是深的。 */
+  --color-on-accent: #03040a;
+
+  /* ---- 玻璃 ---- */
+  --color-glass-1: rgba(255, 255, 255, 0.035);
+  --color-glass-2: rgba(255, 255, 255, 0.055);
+  --color-glass-3: rgba(255, 255, 255, 0.08);
+  --color-hairline: rgba(255, 255, 255, 0.075);
+  --color-hairline-strong: rgba(255, 255, 255, 0.13);
+
+  /* ---- 光谱 ---- */
+  --color-cyan: #22d3ee;
+  --color-blue: #3b82f6;
+  --color-violet: #a855f7;
+  --color-magenta: #ec4899;
+  --color-emerald: #34d399;
+  --color-amber: #fbbf24;
+  --color-rose: #fb7185;
+
+  /* ---- 语义色 ----
+   * 对/错在数据库课里用得极多（判题结果），单独提出来，
+   * 免得各处自己挑绿色和红色，深浅不一。 */
+  --color-ok: #34d399;
+  --color-ok-soft: rgba(52, 211, 153, 0.14);
+  --color-bad: #fb7185;
+  --color-bad-soft: rgba(251, 113, 133, 0.14);
+  --color-warn: #fbbf24;
+  --color-warn-soft: rgba(251, 191, 36, 0.14);
+
+  /* ---- 文字 ---- */
+  --color-fg: #e9ebf4;
+  --color-fg-soft: #a8b0c6;
+  --color-fg-mute: #6b7590;
+  --color-fg-faint: #444c63;
+
+  /* ---- 字体 ---- */
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace;
+
+  /* ---- 动效曲线 ---- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   非颜色令牌（默认 = 深空）
+   ============================================================
+   这些不参与 Tailwind 工具类生成，只在 CSS 里用，所以放 :root 不放 @theme。
+   ============================================================ */
+:root {
+  /* 玻璃面板那层"不透明底"。
+   * ⚠️ 不是可选项：背景是会动的透视网格 + 星尘，纯高光压不住它，
+   * 网格线会直接穿过卡片里的正文。 */
+  --glass-sheet: rgba(6, 8, 16, 0.58);
+  --glass-sheet-strong: rgba(8, 11, 20, 0.72);
+  --glass-hi-1: rgba(255, 255, 255, 0.055);
+  --glass-hi-2: rgba(255, 255, 255, 0.022);
+  --glass-edge: rgba(255, 255, 255, 0.05);
+  --glass-shadow: rgba(0, 0, 0, 0.9);
+  --glass-subtle-bg: rgba(255, 255, 255, 0.025);
+
+  /* 光晕：body::before 上那两团色斑 */
+  --halo-1: rgba(34, 211, 238, 0.10);
+  --halo-2: rgba(168, 85, 247, 0.09);
+  /* 静态细网格（WebGL 挂掉时的降级路径，亮色主题的主力） */
+  --mesh: rgba(255, 255, 255, 0.022);
+  --mesh-size: 34px;
+
+  /* 选中态、行内代码、骨架屏 */
+  --sel-bg: rgba(34, 211, 238, 0.22);
+  --code-bg: rgba(255, 255, 255, 0.06);
+  --code-fg: #7dd3fc;
+  --skeleton: rgba(255, 255, 255, 0.05);
+
+  /* SQL 语法高亮的颜色。**必须提成变量** ——
+   * 亮色主题下 #7dd3fc 这种浅色在白底上读不出来。 */
+  --sql-keyword: #c084fc;
+  --sql-string: #6ee7b7;
+  --sql-number: #fbbf24;
+  --sql-comment: #64748b;
+  --sql-func: #38bdf8;
+  --sql-op: #f472b6;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   主题：暗色
+   ============================================================ */
+
+/* ---- 深空（默认）青紫光谱 + 赛博网格地平线 ---- */
+html[data-theme="deep-space"] { /* 即 :root 的默认值，这里显式写一份便于对照 */ }
+
+/* ---- 赛博绿 磷光绿终端。长时间盯屏幕眼睛最不容易累的一套暗色 ---- */
+html[data-theme="cyber-lime"] {
+  --color-ink-1000: #030803;
+  --color-ink-950: #04120a;
+  --color-ink-900: #061a0e;
+  --color-ink-850: #082212;
+  --color-ink-800: #0b2b17;
+  --color-ink-700: #123a20;
+  --color-ink-600: #1a4d2b;
+  --color-glass-1: rgba(163, 230, 53, 0.05);
+  --color-glass-2: rgba(163, 230, 53, 0.07);
+  --color-glass-3: rgba(163, 230, 53, 0.10);
+  --color-hairline: rgba(163, 230, 53, 0.12);
+  --color-hairline-strong: rgba(163, 230, 53, 0.20);
+  --color-cyan: #a3e635;
+  --color-blue: #2dd4bf;
+  --color-violet: #86efac;
+  --color-fg: #e6f5ea;
+  --color-fg-soft: #a7c4b1;
+  --color-fg-mute: #6d8f79;
+  --color-fg-faint: #46604f;
+  --glass-sheet: rgba(4, 18, 10, 0.62);
+  --glass-sheet-strong: rgba(6, 26, 14, 0.76);
+  --glass-hi-1: rgba(163, 230, 53, 0.06);
+  --glass-hi-2: rgba(163, 230, 53, 0.025);
+  --glass-edge: rgba(163, 230, 53, 0.07);
+  --halo-1: rgba(163, 230, 53, 0.10);
+  --halo-2: rgba(45, 212, 191, 0.08);
+  --mesh: rgba(163, 230, 53, 0.025);
+  --sel-bg: rgba(163, 230, 53, 0.22);
+  --code-bg: rgba(163, 230, 53, 0.08);
+  --code-fg: #bef264;
+  --sql-keyword: #a3e635;
+  --sql-string: #5eead4;
+  --sql-number: #fde047;
+  --sql-comment: #52796f;
+  --sql-func: #34d399;
+  --sql-op: #f472b6;
+}
+
+/* ---- 北境 Nord 极地蓝灰。冷、静、低饱和 ---- */
+html[data-theme="nord-frost"] {
+  --color-ink-1000: #1b1f27;
+  --color-ink-950: #22272f;
+  --color-ink-900: #2e3440;
+  --color-ink-850: #343b4a;
+  --color-ink-800: #3b4252;
+  --color-ink-700: #434c5e;
+  --color-ink-600: #4c566a;
+  --color-veil: #d8dee9;
+  --color-glass-1: rgba(216, 222, 233, 0.045);
+  --color-glass-2: rgba(216, 222, 233, 0.07);
+  --color-glass-3: rgba(216, 222, 233, 0.10);
+  --color-hairline: rgba(216, 222, 233, 0.10);
+  --color-hairline-strong: rgba(216, 222, 233, 0.18);
+  --color-cyan: #88c0d0;
+  --color-blue: #81a1c1;
+  --color-violet: #b48ead;
+  --color-magenta: #bf616a;
+  --color-emerald: #a3be8c;
+  --color-amber: #ebcb8b;
+  --color-rose: #bf616a;
+  --color-ok: #a3be8c;
+  --color-ok-soft: rgba(163, 190, 140, 0.16);
+  --color-bad: #bf616a;
+  --color-bad-soft: rgba(191, 97, 106, 0.16);
+  --color-warn: #ebcb8b;
+  --color-warn-soft: rgba(235, 203, 139, 0.16);
+  --color-fg: #eceff4;
+  --color-fg-soft: #c3cad6;
+  --color-fg-mute: #8a93a5;
+  --color-fg-faint: #5d6675;
+  --glass-sheet: rgba(34, 39, 47, 0.66);
+  --glass-sheet-strong: rgba(46, 52, 64, 0.80);
+  --glass-hi-1: rgba(216, 222, 233, 0.06);
+  --glass-hi-2: rgba(216, 222, 233, 0.025);
+  --glass-edge: rgba(216, 222, 233, 0.07);
+  --halo-1: rgba(136, 192, 208, 0.10);
+  --halo-2: rgba(180, 142, 173, 0.08);
+  --mesh: rgba(216, 222, 233, 0.025);
+  --sel-bg: rgba(136, 192, 208, 0.25);
+  --code-bg: rgba(216, 222, 233, 0.07);
+  --code-fg: #88c0d0;
+  --sql-keyword: #b48ead;
+  --sql-string: #a3be8c;
+  --sql-number: #ebcb8b;
+  --sql-comment: #6d7688;
+  --sql-func: #88c0d0;
+  --sql-op: #d08770;
+}
+
+/* ---- 熔岩 暖橙暗底。夜里看书不刺眼 ---- */
+html[data-theme="ember"] {
+  --color-ink-1000: #0a0504;
+  --color-ink-950: #120806;
+  --color-ink-900: #1a0c08;
+  --color-ink-850: #22110c;
+  --color-ink-800: #2f1811;
+  --color-ink-700: #3d2017;
+  --color-ink-600: #4d2a1e;
+  --color-cyan: #fb923c;
+  --color-blue: #f97316;
+  --color-violet: #f43f5e;
+  --color-magenta: #ec4899;
+  --color-emerald: #84cc16;
+  --color-amber: #fbbf24;
+  --color-fg: #f7ece6;
+  --color-fg-soft: #c9a99a;
+  --color-fg-mute: #8f6f60;
+  --color-fg-faint: #5c463c;
+  --glass-sheet: rgba(18, 8, 6, 0.62);
+  --glass-sheet-strong: rgba(26, 12, 8, 0.78);
+  --glass-hi-1: rgba(251, 146, 60, 0.06);
+  --glass-hi-2: rgba(251, 146, 60, 0.025);
+  --glass-edge: rgba(251, 146, 60, 0.07);
+  --halo-1: rgba(251, 146, 60, 0.11);
+  --halo-2: rgba(244, 63, 94, 0.08);
+  --mesh: rgba(251, 146, 60, 0.025);
+  --sel-bg: rgba(251, 146, 60, 0.24);
+  --code-bg: rgba(251, 146, 60, 0.09);
+  --code-fg: #fdba74;
+  --sql-keyword: #fb923c;
+  --sql-string: #a3e635;
+  --sql-number: #fbbf24;
+  --sql-comment: #7a5c4d;
+  --sql-func: #f472b6;
+  --sql-op: #f43f5e;
+}
+
+/* ---- 午夜玫瑰 深紫底 + 品红强调。视觉最重，适合长时间专注块 ---- */
+html[data-theme="midnight-rose"] {
+  --color-ink-1000: #08040d;
+  --color-ink-950: #0d0616;
+  --color-ink-900: #130a1f;
+  --color-ink-850: #1a0f29;
+  --color-ink-800: #1f132e;
+  --color-ink-700: #2b1b40;
+  --color-ink-600: #3a2555;
+  --color-cyan: #e879f9;
+  --color-blue: #a855f7;
+  --color-violet: #8b5cf6;
+  --color-magenta: #f0abfc;
+  --color-fg: #f1e9f7;
+  --color-fg-soft: #b9a6cc;
+  --color-fg-mute: #82709a;
+  --color-fg-faint: #52436a;
+  --glass-sheet: rgba(13, 6, 22, 0.62);
+  --glass-sheet-strong: rgba(19, 10, 31, 0.78);
+  --glass-hi-1: rgba(232, 121, 249, 0.06);
+  --glass-hi-2: rgba(232, 121, 249, 0.025);
+  --glass-edge: rgba(232, 121, 249, 0.07);
+  --halo-1: rgba(232, 121, 249, 0.11);
+  --halo-2: rgba(139, 92, 246, 0.10);
+  --mesh: rgba(232, 121, 249, 0.025);
+  --sel-bg: rgba(232, 121, 249, 0.24);
+  --code-bg: rgba(232, 121, 249, 0.09);
+  --code-fg: #f0abfc;
+  --sql-keyword: #e879f9;
+  --sql-string: #a5b4fc;
+  --sql-number: #fcd34d;
+  --sql-comment: #6d5a85;
+  --sql-func: #c084fc;
+  --sql-op: #f472b6;
+}
+
+/* ============================================================
+   主题：亮色
+   ============================================================
+   ★ 亮色主题必须同时做三件事，缺一件就会"看着能跑但其实坏了"：
+     1. --color-veil 反转成黑色（否则白叠白，卡片边界消失）
+     2. 强调色整体加深一档（深空的 #22d3ee 放白底上对比度只有 1.9:1，读不出来）
+     3. 不挂 WebGL 背景（霓虹网格画在暖白底上会变成一片灰蒙蒙的脏点）
+   ============================================================ */
+
+/* ---- 宣纸 暖白纸面 + 靛蓝。要打印、要投屏、白天窗边用，选它 ---- */
+html[data-theme="paper"] {
+  --color-ink-1000: #faf8f4;
+  --color-ink-950: #f5f2eb;
+  --color-ink-900: #efeae0;
+  --color-ink-850: #e8e2d6;
+  --color-ink-800: #ffffff;
+  --color-ink-700: #f0ece3;
+  --color-ink-600: #e2dbcd;
+  --color-veil: #000000;
+  --color-on-accent: #ffffff;
+  --color-glass-1: rgba(0, 0, 0, 0.020);
+  --color-glass-2: rgba(0, 0, 0, 0.035);
+  --color-glass-3: rgba(0, 0, 0, 0.055);
+  --color-hairline: rgba(0, 0, 0, 0.10);
+  --color-hairline-strong: rgba(0, 0, 0, 0.18);
+  --color-cyan: #0e7490;
+  --color-blue: #4f46e5;
+  --color-violet: #7c3aed;
+  --color-magenta: #be185d;
+  --color-emerald: #047857;
+  --color-amber: #b45309;
+  --color-rose: #be123c;
+  --color-ok: #047857;
+  --color-ok-soft: rgba(4, 120, 87, 0.12);
+  --color-bad: #be123c;
+  --color-bad-soft: rgba(190, 18, 60, 0.10);
+  --color-warn: #b45309;
+  --color-warn-soft: rgba(180, 83, 9, 0.12);
+  --color-fg: #1c1917;
+  --color-fg-soft: #44403c;
+  --color-fg-mute: #78716c;
+  --color-fg-faint: #a8a29e;
+  --glass-sheet: rgba(255, 255, 255, 0.82);
+  --glass-sheet-strong: rgba(255, 255, 255, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.9);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(0, 0, 0, 0.05);
+  --glass-shadow: rgba(28, 25, 23, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+  --halo-1: rgba(79, 70, 229, 0.07);
+  --halo-2: rgba(14, 116, 144, 0.06);
+  --mesh: rgba(28, 25, 23, 0.045);
+  --sel-bg: rgba(79, 70, 229, 0.18);
+  --code-bg: rgba(0, 0, 0, 0.05);
+  --code-fg: #0e7490;
+  --skeleton: rgba(0, 0, 0, 0.05);
+  --sql-keyword: #7c3aed;
+  --sql-string: #047857;
+  --sql-number: #b45309;
+  --sql-comment: #a8a29e;
+  --sql-func: #0e7490;
+  --sql-op: #be185d;
+  color-scheme: light;
+}
+
+/* ---- 薄荷 冷白 + 青绿。比宣纸更清爽，适合夏天和强光环境 ---- */
+html[data-theme="mint"] {
+  --color-ink-1000: #f2f8f6;
+  --color-ink-950: #eaf4f1;
+  --color-ink-900: #e0eeea;
+  --color-ink-850: #d5e8e2;
+  --color-ink-800: #ffffff;
+  --color-ink-700: #e6f2ee;
+  --color-ink-600: #d0e5df;
+  --color-veil: #000000;
+  --color-on-accent: #ffffff;
+  --color-glass-1: rgba(0, 0, 0, 0.020);
+  --color-glass-2: rgba(0, 0, 0, 0.035);
+  --color-glass-3: rgba(0, 0, 0, 0.055);
+  --color-hairline: rgba(6, 60, 55, 0.11);
+  --color-hairline-strong: rgba(6, 60, 55, 0.20);
+  --color-cyan: #0d9488;
+  --color-blue: #0891b2;
+  --color-violet: #7c3aed;
+  --color-magenta: #be185d;
+  --color-emerald: #15803d;
+  --color-amber: #a16207;
+  --color-rose: #be123c;
+  --color-ok: #15803d;
+  --color-ok-soft: rgba(21, 128, 61, 0.12);
+  --color-bad: #be123c;
+  --color-bad-soft: rgba(190, 18, 60, 0.10);
+  --color-warn: #a16207;
+  --color-warn-soft: rgba(161, 98, 7, 0.12);
+  --color-fg: #10201d;
+  --color-fg-soft: #365450;
+  --color-fg-mute: #6b8884;
+  --color-fg-faint: #9db5b1;
+  --glass-sheet: rgba(255, 255, 255, 0.82);
+  --glass-sheet-strong: rgba(255, 255, 255, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.9);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(0, 0, 0, 0.05);
+  --glass-shadow: rgba(16, 32, 29, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+  --halo-1: rgba(13, 148, 136, 0.08);
+  --halo-2: rgba(8, 145, 178, 0.07);
+  --mesh: rgba(16, 32, 29, 0.045);
+  --sel-bg: rgba(13, 148, 136, 0.18);
+  --code-bg: rgba(0, 0, 0, 0.05);
+  --code-fg: #0d9488;
+  --skeleton: rgba(0, 0, 0, 0.05);
+  --sql-keyword: #7c3aed;
+  --sql-string: #15803d;
+  --sql-number: #a16207;
+  --sql-comment: #9db5b1;
+  --sql-func: #0d9488;
+  --sql-op: #be185d;
+  color-scheme: light;
+}
+
+/* ---- 护眼米 Solarized Light 米黄底。公认最省眼的低对比配色 ---- */
+html[data-theme="solarized"] {
+  --color-ink-1000: #fdf6e3;
+  --color-ink-950: #f8f0d8;
+  --color-ink-900: #f0e8cf;
+  --color-ink-850: #e8dfc4;
+  --color-ink-800: #fffdf5;
+  --color-ink-700: #f2ebd6;
+  --color-ink-600: #e2d8bb;
+  --color-veil: #000000;
+  --color-on-accent: #ffffff;
+  --color-glass-1: rgba(0, 0, 0, 0.020);
+  --color-glass-2: rgba(0, 0, 0, 0.035);
+  --color-glass-3: rgba(0, 0, 0, 0.055);
+  --color-hairline: rgba(7, 54, 66, 0.13);
+  --color-hairline-strong: rgba(7, 54, 66, 0.22);
+  --color-cyan: #2aa198;
+  --color-blue: #268bd2;
+  --color-violet: #6c71c4;
+  --color-magenta: #d33682;
+  --color-emerald: #859900;
+  --color-amber: #b58900;
+  --color-rose: #dc322f;
+  --color-ok: #859900;
+  --color-ok-soft: rgba(133, 153, 0, 0.14);
+  --color-bad: #dc322f;
+  --color-bad-soft: rgba(220, 50, 47, 0.11);
+  --color-warn: #b58900;
+  --color-warn-soft: rgba(181, 137, 0, 0.13);
+  --color-fg: #073642;
+  --color-fg-soft: #3a5a63;
+  --color-fg-mute: #657b83;
+  --color-fg-faint: #93a1a1;
+  --glass-sheet: rgba(255, 253, 245, 0.84);
+  --glass-sheet-strong: rgba(255, 253, 245, 0.95);
+  --glass-hi-1: rgba(255, 255, 255, 0.85);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(7, 54, 66, 0.06);
+  --glass-shadow: rgba(7, 54, 66, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+  --halo-1: rgba(38, 139, 210, 0.08);
+  --halo-2: rgba(42, 161, 152, 0.07);
+  --mesh: rgba(7, 54, 66, 0.05);
+  --sel-bg: rgba(38, 139, 210, 0.18);
+  --code-bg: rgba(7, 54, 66, 0.06);
+  --code-fg: #2aa198;
+  --skeleton: rgba(7, 54, 66, 0.05);
+  --sql-keyword: #6c71c4;
+  --sql-string: #859900;
+  --sql-number: #b58900;
+  --sql-comment: #93a1a1;
+  --sql-func: #268bd2;
+  --sql-op: #d33682;
+  color-scheme: light;
+}
+
+/* ============================================================
+   基础样式
+   ============================================================ */
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--color-ink-1000);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  /* 中文字体不需要 letter-spacing —— 汉字本来就是等宽的方块，
+   * 加字距会让整段读起来像被拆开的密码。只有全大写拉丁文才需要。 */
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 背景两团光晕 + 细网格。这是 WebGL 背景的降级路径，
+ * 也是亮色主题的主力（亮色下不挂 WebGL）。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -30;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, var(--halo-1), transparent 65%),
+    radial-gradient(52rem 36rem at 92% 8%, var(--halo-2), transparent 62%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -29;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--mesh) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mesh) 1px, transparent 1px);
+  background-size: var(--mesh-size) var(--mesh-size);
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 25%, transparent 78%);
+}
+
+::selection { background: var(--sel-bg); color: var(--color-fg); }
+
+/* 滚动条。默认的亮色滚动条压在暗色底上会非常刺眼。 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-hairline-strong);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-fg-faint); background-clip: content-box; }
+
+/* 焦点环。★ 必须可见 —— 键盘用户全靠它定位。
+ * 但 outline: none 是很多人的默认写法，所以这里显式给一个。 */
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   组件层
+   ============================================================ */
+
+/* 玻璃面。三层叠加：底色 + 内部斜向高光 + 顶边一像素高光。 */
+.glass {
+  background: var(--glass-sheet);
+  border: 1px solid var(--color-hairline);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 1px 0 0 var(--glass-edge) inset, 0 18px 40px -22px var(--glass-shadow);
+}
+.glass-strong { background: var(--glass-sheet-strong); }
+
+/* 主按钮的实心渐变。文字颜色走 --color-on-accent，
+ * 因为亮色主题下 ink-1000 是白的，压在浅色渐变上会看不见。 */
+.btn-accent {
+  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-blue));
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+.btn-accent:hover { filter: brightness(1.08); }
+.btn-accent:active { filter: brightness(0.96); }
+
+/* 代码块与行内代码 */
+.code-block {
+  background: var(--glass-subtle-bg);
+  border: 1px solid var(--color-hairline);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-x: auto;
+}
+.inline-code {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 0.1em 0.38em;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  white-space: nowrap;
+}
+
+/* SQL 语法高亮 */
+.tok-kw { color: var(--sql-keyword); font-weight: 600; }
+.tok-str { color: var(--sql-string); }
+.tok-num { color: var(--sql-number); }
+.tok-cmt { color: var(--sql-comment); font-style: italic; }
+.tok-fn { color: var(--sql-func); }
+.tok-op { color: var(--sql-op); }
+
+/* Markdown 正文排版 */
+.prose-doc { color: var(--color-fg-soft); font-size: 14.5px; line-height: 1.85; }
+.prose-doc > * + * { margin-top: 0.85em; }
+.prose-doc h1, .prose-doc h2, .prose-doc h3, .prose-doc h4 {
+  color: var(--color-fg); font-weight: 650; line-height: 1.4;
+  margin-top: 1.6em; margin-bottom: 0.6em;
+}
+.prose-doc h1 { font-size: 1.5em; }
+.prose-doc h2 { font-size: 1.24em; }
+.prose-doc h3 { font-size: 1.08em; }
+.prose-doc h4 { font-size: 1em; }
+.prose-doc strong { color: var(--color-fg); font-weight: 650; }
+.prose-doc em { color: var(--color-fg); font-style: italic; }
+.prose-doc a { color: var(--color-cyan); text-decoration: underline; text-underline-offset: 3px; }
+.prose-doc ul, .prose-doc ol { padding-left: 1.5em; }
+.prose-doc li { margin: 0.28em 0; }
+.prose-doc ul > li { list-style: disc; }
+.prose-doc ol > li { list-style: decimal; }
+.prose-doc blockquote {
+  border-left: 3px solid var(--color-cyan);
+  background: var(--glass-subtle-bg);
+  padding: 0.6em 1em;
+  border-radius: 0 8px 8px 0;
+  color: var(--color-fg-soft);
+}
+.prose-doc blockquote > * + * { margin-top: 0.5em; }
+.prose-doc hr { border: none; border-top: 1px solid var(--color-hairline); margin: 1.6em 0; }
+
+/* 表格。★ 必须包一层横向滚动容器 ——
+ * 课程内容里的对照表经常有 5 列以上，窄屏上会把整页撑破。 */
+.prose-doc .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--color-hairline); }
+.prose-doc table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.prose-doc th, .prose-doc td {
+  padding: 0.5em 0.85em;
+  border-bottom: 1px solid var(--color-hairline);
+  text-align: left;
+  vertical-align: top;
+}
+.prose-doc th {
+  background: var(--glass-subtle-bg);
+  color: var(--color-fg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.prose-doc tr:last-child td { border-bottom: none; }
+
+/* 数学（关系代数符号）。用等宽 + 斜体，不引 KaTeX ——
+ * 本课程只用到 σ π ⋈ ρ ÷ × ∪ − ∩ 这些单字符符号，
+ * 引一个 200KB 的排版引擎不划算。 */
+.math { font-family: var(--font-mono); font-style: italic; color: var(--color-fg); }
+
+/* 骨架屏 */
+.skeleton {
+  background: var(--skeleton);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* 入场动画 */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.rise-in { animation: rise-in 0.32s var(--ease-out-expo) both; }
+
+/* 数字滚动 / 进度条 */
+@keyframes sheen {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(220%); }
+}
+.sheen::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-veil), transparent);
+  opacity: 0.07;
+  animation: sheen 2.4s ease-in-out infinite;
+}
+
+/* ============================================================
+   打印
+   ============================================================
+   ★ 这里是最容易出问题的地方：打印时不能沿用屏幕的主题令牌。
+   暗色主题下正文是浅色、纸是白的 —— 直接打印会得到"白底白字"，
+   而且是静默的（屏幕上完全正常）。
+   所以打印时强制切成深色文字 + 白底，并且关掉所有背景特效。 */
+@media print {
+  body::before, body::after { display: none !important; }
+  body { background: #fff !important; color: #111 !important; }
+  .no-print { display: none !important; }
+  .glass {
+    background: #fff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border-color: #ddd !important;
+  }
+  .prose-doc, .prose-doc * { color: #111 !important; }
+  .prose-doc th { background: #f3f3f3 !important; }
+  .inline-code, .code-block {
+    background: #f5f5f5 !important;
+    color: #111 !important;
+    border-color: #ddd !important;
+  }
+  /* 语法高亮在纸上没有意义，统一成黑色 */
+  .tok-kw, .tok-str, .tok-num, .tok-cmt, .tok-fn, .tok-op { color: #111 !important; }
+}
+
+/* 尊重系统的"减少动效"设置 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

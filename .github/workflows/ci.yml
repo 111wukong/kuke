@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # better-sqlite3 v13 自带全平台预编译产物，不需要编译工具链
+      - name: 安装依赖
+        run: npm install --no-audit --no-fund
+
+      - name: 类型检查
+        run: npm run typecheck
+
+      - name: 构建前端
+        run: npm run build
+
+      # 内容自检排在最前 —— 它最快（0.1s），而且它失败说明
+      # 是内容配错了（比如某关的参考答案跑不通），不是代码问题。
+      # 这类错误如果留到后面几组才暴露，会被淹没在一堆失败里。
+      - name: 内容自检
+        run: npm run test:content
+
+      - name: 单元测试
+        run: npm run test:unit
+
+      - name: 接口冒烟
+        run: npm run test:api
+
+      - name: 加固回归
+        run: npm run test:hardening
+
+      # 浏览器测试在 CI 上跑 Ubuntu 的 Chrome，和本机不是同一个内核 ——
+      # 所以它**单独一个 job**，失败不影响上面的结论，
+      # 但会在 PR 上明确标红，避免「本机绿、CI 红」被忽略。
+      - name: 上传构建产物（供 browser job 使用）
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 1
+
+  browser:
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装依赖
+        run: npm install --no-audit --no-fund
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      # Ubuntu runner 自带 Chrome。显式钉住路径，
+      # 避免"本机和 CI 解析到不同内核"导致的诡异差异。
+      - name: 浏览器冒烟 + 截图
+        env:
+          KUKE_BROWSER: /usr/bin/google-chrome
+        run: npm run test:browser
+
+      - name: 上传截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots
+          retention-days: 7
+          if-no-files-found: ignore

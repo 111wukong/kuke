@@ -1,0 +1,30 @@
+{
+  "name": "kuke",
+  "version": "1.0.0",
+  "private": true,
+  "description": "库课 · 数据库课程学习平台（教师 + 学生）",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm -w server run dev",
+    "dev:web": "npm -w web run dev",
+    "build": "npm -w web run build",
+    "typecheck": "npm -w web run typecheck",
+    "check": "npm run typecheck && npm run build",
+    "test": "node tests/run-all.mjs",
+    "test:unit": "node tests/unit.mjs",
+    "test:api": "node tests/api.mjs",
+    "test:hardening": "node tests/hardening.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "shots": "node tests/browser.mjs --shots",
+    "start": "npm -w server run start",
+    "seed": "npm -w server run seed",
+    "test:content": "node tests/content.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

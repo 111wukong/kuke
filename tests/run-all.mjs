@@ -1,0 +1,67 @@
+/* 测试总入口
+ *
+ * 四组，从快到慢、从纯到集成：
+ *   1. content    内容自检 —— 每道题的参考答案都真跑一遍
+ *   2. unit       单元测试 —— 纯函数（判题 / 范式 / FSRS / 图谱 / 渲染器）
+ *   3. api        接口冒烟 —— 起真服务跑完整业务流程
+ *   4. hardening  加固回归 —— 安全头 / 限流 / 沙箱逃逸 / 权限边界
+ *   5. browser    浏览器冒烟 + 截图（需要能跑无头浏览器的环境，跑不了会明确跳过）
+ *
+ * ── 为什么 content 要单独一组 ───────────────────────────────────
+ * 它检查的不是代码，是**内容**：45 个关卡的参考答案、15 道范式题、
+ * 9 个实验台、74 道客观题。这类错误的症状是"学生写对了却被判错"，
+ * 而代码测试一条都查不出来。所以必须有一组专门跑内容。
+ */
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const SUITES = [
+  { name: '内容自检', file: 'content.mjs', desc: '每道题的参考答案都真跑一遍' },
+  { name: '单元测试', file: 'unit.mjs', desc: '判题 / 范式算法 / FSRS / 图谱 / 渲染器' },
+  { name: '接口冒烟', file: 'api.mjs', desc: '起真服务跑完整业务流程' },
+  { name: '加固回归', file: 'hardening.mjs', desc: '安全头 / 限流 / 沙箱逃逸 / 权限边界' },
+  { name: '浏览器冒烟', file: 'browser.mjs', desc: '真浏览器逐页断言 + 截图（跑不了会跳过）' },
+];
+
+function run(file) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [path.join(__dirname, file)], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+    child.on('exit', (code) => resolve(code ?? 1));
+  });
+}
+
+const only = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+const suites = only.length
+  ? SUITES.filter((s) => only.some((o) => s.file.includes(o) || s.name.includes(o)))
+  : SUITES;
+
+console.log('库课 · 测试');
+console.log('═'.repeat(64));
+
+const summary = [];
+for (const s of suites) {
+  console.log(`\n▶ ${s.name}  —— ${s.desc}`);
+  const t0 = Date.now();
+  const code = await run(s.file);
+  summary.push({ ...s, code, ms: Date.now() - t0 });
+}
+
+console.log('\n' + '═'.repeat(64));
+console.log('汇总');
+for (const s of summary) {
+  const mark = s.code === 0 ? '✓' : '✗';
+  console.log(`  ${mark} ${s.name.padEnd(12, '　')} ${(s.ms / 1000).toFixed(1)}s`);
+}
+
+const failed = summary.filter((s) => s.code !== 0);
+if (failed.length) {
+  console.log(`\n${failed.length} 组失败：${failed.map((s) => s.name).join('、')}`);
+  process.exit(1);
+}
+console.log('\n全部通过。');
