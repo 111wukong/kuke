@@ -179,6 +179,20 @@ function probeScript() {
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
+  /* ★ 每次迭代额外让出一帧。
+   *
+   *   原因：--virtual-time-budget 只控制 setTimeout —— 虚拟时间不为
+   *   fetch 暂停，所以 setTimeout 链在**真实时间**里几乎瞬间就跑完了
+   *   （400 次迭代可能只花几毫秒真实时间），而应用的数据请求还没回来。
+   *   症状就是：第 1 步断言「找不到 textarea」失败，但截图里页面明明
+   *   渲染得好好的 —— 因为那一屏当时还是骨架屏。
+   *
+   *   requestAnimationFrame 会强制一次真实的渲染帧，代价是真实时间。
+   *   每次迭代加一帧之后，轮询的「虚拟耗时」不变，但真实耗时涨了几百倍。 */
+  function nextFrame() {
+    return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
+  }
+
   function waitFor(fn, tries, gap) {
     var i = 0;
     return new Promise(function (resolve) {
@@ -189,7 +203,10 @@ function probeScript() {
         if (++i >= (tries || 400)) return resolve(null);
         setTimeout(tick, gap || 50);
       }
-      tick();
+      /* 先让一帧，再进定时器循环 —— 两者都保留：
+         定时器推进虚拟时间（保证 dump 最终会发生），
+         rAF 提供真实时间（让应用把数据请求跑完）。 */
+      nextFrame().then(function () { tick(); });
     });
   }
 
@@ -277,6 +294,7 @@ function probeScript() {
         log.push(rec);
         flush();
         await sleep(st.wait === undefined ? 200 : st.wait);
+        await nextFrame();
       }
 
       log.push({ act: 'finalText', value: pageText().slice(0, 2000) });
