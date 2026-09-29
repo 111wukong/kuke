@@ -79,12 +79,22 @@ let canRun = false;
 let skipReason = '';
 
 try {
-  /* 能力探测：浏览器到底能不能跑 */
-  try {
-    const r = await dumpDom(`${srv.base}/api/health`, { budget: 3000, timeout: 15000 });
-    canRun = r.includes('ok');
-  } catch (e) {
-    skipReason = String(e.message).split('\n')[0];
+  /* 能力探测：浏览器到底能不能跑。
+   *
+   * ★ 超时给宽一点，并且重试一次。CI runner 上 Chrome 第一次启动
+   *   （新建 profile、写缓存）可能要十几秒 —— 15 秒的超时会导致
+   *   「测试静默跳过」，而跳过的 job 是**绿的**，看起来像通过。
+   *   实测踩过：一次 CI 因为探测超时跳过，报告 success，
+   *   而那次改动根本没被验证。 */
+  for (let attempt = 1; attempt <= 2 && !canRun; attempt++) {
+    try {
+      const r = await dumpDom(`${srv.base}/api/health`, { budget: 5000, timeout: 60000 });
+      canRun = r.includes('ok');
+      if (!canRun) skipReason = 'health 接口返回的内容里没有 ok';
+    } catch (e) {
+      skipReason = String(e.message).split('\n')[0];
+      if (attempt === 1) console.log(`[探测] 第 1 次失败（${skipReason}），重试一次…`);
+    }
   }
 
   if (!canRun) {
