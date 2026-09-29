@@ -141,6 +141,36 @@ function probeScript() {
      而等 DOMContentLoaded 会有一个窗口期 —— 如果 --dump-dom 恰好
      在那个窗口里触发，页面上就没有 #probe-result，
      调用方拿到的是"探针页没有输出结果"，看起来像文件没被正确提供。 */
+  /* ★ 捕获页面里的报错。
+     「断言不成立」可能是超时，也可能是页面真的抛异常了 ——
+     两者的修法完全相反（一个是给更多时间，一个是改代码），
+     不区分就只能靠猜。 */
+  var pageErrors = [];
+  window.addEventListener('error', function (e) {
+    pageErrors.push('error: ' + (e.message || (e.error && e.error.message) || '?'));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    pageErrors.push('rejection: ' + ((e.reason && e.reason.message) || e.reason || '?'));
+  });
+  var _ce = console.error;
+  console.error = function () {
+    pageErrors.push('console.error: ' + [].slice.call(arguments).map(function (a) {
+      return (a && a.message) || String(a);
+    }).join(' ').slice(0, 200));
+    _ce.apply(console, arguments);
+  };
+
+  /* 干净的页面文本：去掉 script/style，否则我自己的注入脚本源码
+     会混进 textContent，把诊断信息淹掉。 */
+  function pageText() {
+    try {
+      var c = document.body.cloneNode(true);
+      var junk = c.querySelectorAll('script, style');
+      for (var i = 0; i < junk.length; i++) junk[i].parentNode.removeChild(junk[i]);
+      return c.textContent || '';
+    } catch (e) { return ''; }
+  }
+
   var out = document.createElement('pre');
   out.id = 'probe-result';
   out.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre';
@@ -186,7 +216,7 @@ function probeScript() {
       var mounted = await waitFor(function () {
         var root = document.getElementById('root');
         return root && root.children.length > 0 ? true : null;
-      }, 200, 50);
+      }, 600, 20);
 
       if (!mounted) { done([{ act: 'fatal', error: '应用在 10 秒（虚拟）内没有挂载，#root 一直是空的' }]); return; }
 
@@ -219,23 +249,23 @@ function probeScript() {
           } else if (st.act === 'wait' || st.act === 'assert') {
             var ok = await waitFor(function () {
               try { return Function('return (' + st.expr + ')')() || null; } catch (e) { return null; }
-            }, Math.ceil((st.timeout || 6000) / 100), 100);
+            }, Math.ceil((st.timeout || 6000) / 20), 20);
             rec.ok = !!ok;
             /* ★ 用 textContent 而不是 innerText：innerText 是**布局相关**的，
                *   只返回已渲染的内容。--dump-dom 不触发完整布局，
                *   动态挂载的主内容区会拿不到 —— 而侧栏渲染得早，所以在。
                *   症状就是断言失败但 actual 里只有侧栏，看着像主内容没渲染。 */
-            if (!rec.ok && st.act === 'assert') rec.actual = (document.body.textContent || '').slice(0, 1200);
+            if (!rec.ok && st.act === 'assert') rec.actual = pageText().slice(0, 1200);
           } else if (st.act === 'read') {
             rec.value = st.expr
               ? Function('return (' + st.expr + ')')()
-              : (document.body.textContent || '').slice(0, 4000);
+              : pageText().slice(0, 4000);
           } else if (st.act === 'clickNav') {
             var nav = findClickable(st.text);
             if (!nav) { rec.error = '找不到导航项：' + st.text; }
             else {
               nav.click();
-              var moved = await waitFor(function () { return location.pathname === st.expect ? true : null; }, 120, 50);
+              var moved = await waitFor(function () { return location.pathname === st.expect ? true : null; }, 200, 20);
               rec.ok = !!moved;
               rec.path = location.pathname;
             }
@@ -246,8 +276,9 @@ function probeScript() {
         await sleep(st.wait === undefined ? 200 : st.wait);
       }
 
-      log.push({ act: 'finalText', value: (document.body.textContent || '').slice(0, 2000) });
+      log.push({ act: 'finalText', value: pageText().slice(0, 2000) });
       log.push({ act: 'finalPath', value: location.pathname });
+      if (pageErrors.length) log.push({ act: 'pageErrors', value: pageErrors.slice(0, 8) });
       done(log);
     } catch (e) {
       log.push({ act: 'fatal', error: String((e && e.message) || e) });

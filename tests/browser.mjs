@@ -181,9 +181,11 @@ try {
      * 是页面没渲染，还是路由根本没切过去。 */
     const where = log.filter((r) => r.act === 'mounted' || r.act === 'finalPath')
       .map((r) => `${r.act}=${r.path ?? r.value}`).join(' ');
+    const errs = log.find((r) => r.act === 'pageErrors');
+    const errTxt = errs ? ` 【页面报错 ${JSON.stringify(errs.value).slice(0, 300)}】` : '';
     check(name, bad.length === 0,
       bad.map((x) => `${x.act}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 200)}` : ''}`).join(' | ')
-      + (where ? ` 【${where}】` : ''));
+      + (where ? ` 【${where}】` : '') + errTxt);
     return log;
   }
 
