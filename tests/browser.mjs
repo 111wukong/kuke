@@ -1,19 +1,34 @@
 /* 浏览器冒烟 + 截图
  *
- * ⚠️ 这个脚本需要**能跑起无头浏览器**的环境。
- *    本机沙箱里跑不了 —— Chrome 的进程沙箱初始化失败（Operation not permitted），
- *    加 --no-sandbox 之后进程又会被外层以 SIGTERM 杀掉；
- *    CDP 的页面级 WebSocket 通道也被阻断（浏览器级能连，页面级握手后立刻 1006）。
- *    三条路都试过，所以这里**检测到跑不了就明确跳过**，而不是假装通过。
- *    在有真实桌面环境的机器或 CI 上，它会正常出图并断言。
+ * ⚠️ 需要**能跑起无头浏览器**的环境。
+ *    WorkBuddy 沙箱里跑不了（Chrome 进程被拦，退出码 137）——
+ *    脚本检测到会明确跳过，不假装通过。CI（Ubuntu + Chrome）上正常。
  *
  * 用法：
- *   node tests/browser.mjs           # 跑冒烟 + 出图
+ *   node tests/browser.mjs           # 截图 + 冒烟断言
  *   node tests/browser.mjs --shots   # 只出图
  *   KUKE_BROWSER=/path/to/chrome node tests/browser.mjs
+ *
+ * ── 架构（CI 上踩过坑之后重写的）────────────────────────────────
+ *
+ *   ① prepareProbe()   先把两个探针页写进 dist
+ *   ② loginOnce()      用持久化 profile 登录一次，cookie 留在 profile 里
+ *   ③ 截图             直接导航到应用 URL（**不走 iframe**）
+ *   ④ 冒烟断言         走同源 iframe 探针（需要点击和填表）
+ *
+ * 第 ③ 步为什么不用 iframe：一开始截图也走探针页，结果探针页在
+ * 截图循环开始时还没写进 dist，被 SPA 回退成了 index.html ——
+ * 18 张"截图"拍的全是登录页。直接导航既简单又不会拍错。
+ *
+ * 第 ② 步为什么必须只登一次：每个探针各自登录会撞上
+ * /api/auth/login 的限流（12 次/10 分钟），第 13 个开始必然失败，
+ * 而且失败得很隐蔽（探针返回对象而不是数组，报 `log.filter is not a function`）。
  */
 import { startServer, check, report } from './lib/harness.mjs';
-import { runProbe, screenshot, dumpDom, domText, cleanupProfile, findBrowser } from './lib/cli-browser.mjs';
+import {
+  runProbe, screenshot, dumpDom, prepareProbe,
+  cleanupProfile, findBrowser, loginOnce,
+} from './lib/cli-browser.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -33,220 +48,240 @@ if (!browserBin) {
   process.exit(0);
 }
 
-/* ---------- 先探一次：浏览器能不能真的跑起来 ---------- */
+const LOGIN = 'teacher@test.local:Teacher123';
+
+/* ① 探针页必须在任何调用之前写进 dist */
+const probe = prepareProbe(DIST);
+
 const srv = await startServer();
 let canRun = false;
+let skipReason = '';
+
 try {
-  /* 短超时 + 立刻放弃：这个环境里 Chrome 要么起不来要么被外层杀掉，
-   * 探测阶段必须快，不能把整个测试入口拖死。 */
-  const probe = await dumpDom(`${srv.base}/api/health`, { budget: 3000, timeout: 15000 });
-  canRun = probe.includes('"ok"') || probe.includes('ok');
-} catch (e) {
-  console.log('\n⚠ 无头浏览器在这个环境里跑不起来，跳过。');
-  console.log(`  原因：${String(e.message).split('\n')[0]}`);
-  console.log('  这是环境限制（沙箱拦了 Chrome 的进程），不是项目的问题。');
-  await srv.stop();
-  cleanupProfile();
-  process.exit(0);
-}
-
-const LOGIN = 'teacher@test.local:Teacher123';
-const results = [];
-
-/* ============================================================
-   截图：逐页拍
-   ============================================================ */
-const PAGES = [
-  ['02-dashboard', '/', '今日进度'],
-  ['03-knowledge-tree', '/learn', '基础理论'],
-  ['04-knowledge-detail', '/learn/k-groupby', 'GROUP BY'],
-  ['05-sql-lab', '/lab/sql', '表结构'],
-  ['06-levels', '/levels', '通关进度'],
-  ['07-level-detail', '/levels/L03', '条件筛选'],
-  ['08-normalize', '/normalize', '范式实验室'],
-  ['09-index-lab', '/lab', '实验台'],
-  ['10-review', '/review', '复习队列'],
-  ['11-mistakes', '/mistakes', '错题本'],
-  ['12-stats', '/stats', '累计作答'],
-  ['13-achievements', '/achievements', '成就墙'],
-  ['14-assignments', '/assignments', '作业'],
-  ['15-classes', '/classes', '班级'],
-  ['16-settings', '/settings', '外观'],
-  ['17-admin', '/admin', '教师工作台'],
-];
-
-console.log(`\n[浏览器] ${browserBin}`);
-console.log(`[截图] 输出到 ${SHOT_DIR}\n`);
-
-for (const [name, route, expect] of PAGES) {
+  /* 能力探测：浏览器到底能不能跑 */
   try {
-    await screenshot(
-      `${srv.base}/__probe.html?login=${encodeURIComponent(LOGIN)}&to=${encodeURIComponent(route)}`,
-      path.join(SHOT_DIR, `${name}.png`),
-      { width: 1440, height: 940, budget: 16000 },
-    );
-    console.log(`  ✓ ${name}`);
+    const r = await dumpDom(`${srv.base}/api/health`, { budget: 3000, timeout: 15000 });
+    canRun = r.includes('ok');
   } catch (e) {
-    console.log(`  ✗ ${name} —— ${String(e.message).split('\n')[0]}`);
+    skipReason = String(e.message).split('\n')[0];
   }
-}
 
-/* 亮色主题各来一张 */
-for (const [name, route] of [['18-dashboard-light', '/'], ['19-sql-lab-light', '/lab/sql']]) {
+  if (!canRun) {
+    console.log('\n⚠ 无头浏览器在这个环境里跑不起来，跳过。');
+    console.log(`  原因：${skipReason}`);
+    console.log('  这是环境限制（沙箱拦了 Chrome 的进程），不是项目的问题。');
+    console.log('  在有桌面环境的机器或 CI 上会正常出图并断言。');
+    await srv.stop();
+    probe.cleanup();
+    cleanupProfile();
+    process.exit(0);
+  }
+
+  console.log(`\n[浏览器] ${browserBin}`);
+
+  /* ★ 登录页必须在 loginOnce **之前**拍。
+   *   profile 一旦有了 cookie，访问 /login 会被重定向到首页 ——
+   *   拍出来就是仪表盘而不是登录页。 */
+  console.log(`\n[截图] → ${SHOT_DIR}`);
   try {
-    await screenshot(
-      `${srv.base}/__probe.html?login=${encodeURIComponent(LOGIN)}&to=${encodeURIComponent(route)}&theme=paper`,
-      path.join(SHOT_DIR, `${name}.png`),
-      { width: 1440, height: 940, budget: 16000 },
-    );
-    console.log(`  ✓ ${name}`);
-  } catch { /* 忽略 */ }
-}
-
-if (shotsOnly) {
-  await srv.stop();
-  cleanupProfile();
-  console.log(`\n截图完成 → ${SHOT_DIR}`);
-  process.exit(0);
-}
-
-/* ============================================================
-   冒烟：用同源 iframe 探针驱动交互
-   ============================================================ */
-console.log('\n[冒烟] 逐页断言\n');
-
-async function probe(name, to, steps) {
-  try {
-    const log = await runProbe(DIST, {
-      base: srv.base, login: LOGIN, to, steps,
-      width: 1440, height: 940, budget: 24000,
+    await screenshot(`${srv.base}/login`, path.join(SHOT_DIR, '01-login.png'), {
+      width: 1440, height: 940, budget: 10000,
     });
+    console.log('  ✓ 01-login');
+  } catch (e) {
+    console.log(`  ✗ 01-login —— ${String(e.message).split('\n')[0]}`);
+  }
+
+  /* ② 登录一次，cookie 留在共享 profile 里 */
+  const li = await loginOnce(srv.base, LOGIN);
+  if (!li.ok) {
+    console.log(`\n✗ 登录失败（HTTP ${li.status}）—— 后面的断言会全部失败，先查这个。`);
+  } else {
+    console.log('[登录] 已种入 profile，后续请求自动带 cookie');
+  }
+
+  /* ③ 截图：直接导航到应用页面 */
+  const PAGES = [
+    ['02-dashboard', '/'],
+    ['03-knowledge-tree', '/learn'],
+    ['04-knowledge-detail', '/learn/k-groupby'],
+    ['05-sql-lab', '/lab/sql'],
+    ['06-levels', '/levels'],
+    ['07-level-detail', '/levels/L03'],
+    ['08-normalize', '/normalize'],
+    ['09-index-lab', '/lab'],
+    ['10-review', '/review'],
+    ['11-mistakes', '/mistakes'],
+    ['12-stats', '/stats'],
+    ['13-achievements', '/achievements'],
+    ['14-assignments', '/assignments'],
+    ['15-classes', '/classes'],
+    ['16-settings', '/settings'],
+    ['17-admin', '/admin'],
+  ];
+
+  for (const [name, route] of PAGES) {
+    try {
+      await screenshot(`${srv.base}${route}`, path.join(SHOT_DIR, `${name}.png`), {
+        width: 1440, height: 940, budget: 12000,
+      });
+      console.log(`  ✓ ${name}`);
+    } catch (e) {
+      console.log(`  ✗ ${name} —— ${String(e.message).split('\n')[0]}`);
+    }
+  }
+
+  /* 亮色主题各来一张。主题存在 localStorage，URL 参数改不了 ——
+   * 所以先用探针把它切了，再拍。同一个 profile，localStorage 会留着。 */
+  try {
+    const switched = await runProbe(srv.base, {
+      to: '/settings',
+      steps: [
+        { act: 'assert', expr: "document.body.innerText.includes('宣纸')", timeout: 12000 },
+        { act: 'click', text: '宣纸' },
+        { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 6000 },
+      ],
+      budget: 22000,
+    });
+    const bad = switched.filter((r) => r.error || r.ok === false);
+    if (bad.length) throw new Error(`切主题失败：${JSON.stringify(bad).slice(0, 160)}`);
+
+    for (const [name, route] of [['18-dashboard-light', '/'], ['19-sql-lab-light', '/lab/sql']]) {
+      await screenshot(`${srv.base}${route}`, path.join(SHOT_DIR, `${name}.png`), {
+        width: 1440, height: 940, budget: 12000,
+      });
+      console.log(`  ✓ ${name}`);
+    }
+    // 切回深色，免得影响后面的断言
+    await runProbe(srv.base, {
+      to: '/settings',
+      steps: [{ act: 'click', text: '深空' }],
+      budget: 18000,
+    });
+  } catch (e) {
+    console.log(`  ✗ 亮色主题截图 —— ${String(e.message).split('\n')[0]}`);
+  }
+
+  if (shotsOnly) {
+    await srv.stop();
+    probe.cleanup();
+    cleanupProfile();
+    const n = fs.existsSync(SHOT_DIR) ? fs.readdirSync(SHOT_DIR).filter((f) => f.endsWith('.png')).length : 0;
+    console.log(`\n截图 ${n} 张 → ${SHOT_DIR}`);
+    process.exit(0);
+  }
+
+  /* ④ 冒烟断言：同源 iframe 探针（需要点击、填表） */
+  console.log('\n[冒烟] 逐页断言\n');
+
+  async function probeCase(name, to, steps, budget = 28000) {
+    const log = await runProbe(srv.base, { to, steps, width: 1440, height: 940, budget });
     const bad = log.filter((r) => r.act === 'fatal' || r.error || r.ok === false);
     check(name, bad.length === 0,
-      bad.map((b) => `${b.act}: ${b.error || '断言不成立'}${b.actual ? ` 实际=${String(b.actual).slice(0, 120)}` : ''}`).join(' | '));
+      bad.map((b) => `${b.act}: ${b.error || '断言不成立'}${b.actual ? ` 实际=${String(b.actual).slice(0, 140)}` : ''}`).join(' | '));
     return log;
-  } catch (e) {
-    check(name, false, String(e.message).split('\n')[0]);
-    return [];
   }
+
+  await probeCase('仪表盘：渲染了 hero 与概览卡', '/', [
+    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 12000 },
+    { act: 'assert', expr: "['待复习','错题','总正确率','SQL 关卡'].every(t => document.body.innerText.includes(t))" },
+    { act: 'assert', expr: "document.body.innerText.includes('今天做什么')" },
+  ]);
+
+  await probeCase('知识树：七个分类都在，可学性视图能切', '/learn', [
+    { act: 'assert', expr: "['基础理论','SQL 语言','数据库设计','存储与索引','查询优化','事务与并发','恢复与安全'].every(t => document.body.innerText.includes(t))", timeout: 12000 },
+    { act: 'click', text: '按可学性' },
+    { act: 'assert', expr: "document.body.innerText.includes('现在可以学的')" },
+  ]);
+
+  await probeCase('知识点详情：正文渲染且标记不漏屏', '/learn/k-groupby', [
+    { act: 'assert', expr: "!!document.querySelector('.prose-doc')", timeout: 12000 },
+    { act: 'assert', expr: "!!document.querySelector('.prose-doc pre code')" },
+    { act: 'assert', expr: "!!document.querySelector('.prose-doc table')" },
+    { act: 'assert', expr: "!!document.querySelector('.prose-doc .tok-kw')" },
+    {
+      act: 'assert',
+      expr: `(() => {
+        const t = document.querySelector('.prose-doc').innerText;
+        return !/\\*\\*/.test(t) && !/\\\`/.test(t) && !/^#{1,6}\\s/m.test(t);
+      })()`,
+    },
+  ]);
+
+  await probeCase('SQL 实训场：跑查询能出结果', '/lab/sql', [
+    { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 12000 },
+    { act: 'assert', expr: "document.body.innerText.includes('表结构')" },
+    { act: 'fill', sel: 'textarea', value: "SELECT sname, sdept FROM student WHERE sdept = '计算机系';" },
+    { act: 'click', text: '运行' },
+    { act: 'assert', expr: "document.body.innerText.includes('张伟')", timeout: 12000 },
+    { act: 'assert', expr: "document.body.innerText.includes('sname')" },
+  ]);
+
+  await probeCase('SQL 实训场：错误 SQL 给可读提示', '/lab/sql', [
+    { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 12000 },
+    { act: 'fill', sel: 'textarea', value: 'SELECT * FROM 不存在的表;' },
+    { act: 'click', text: '运行' },
+    { act: 'assert', expr: "/执行出错|不存在/.test(document.body.innerText)", timeout: 10000 },
+  ]);
+
+  await probeCase('关卡：错误答案判错、正确答案过关', '/levels/L03', [
+    { act: 'assert', expr: "document.body.innerText.includes('条件筛选')", timeout: 12000 },
+    { act: 'fill', sel: 'textarea', value: 'SELECT sno FROM student;' },
+    { act: 'click', text: '提交答案' },
+    { act: 'assert', expr: "document.body.innerText.includes('还没通过')", timeout: 12000 },
+    { act: 'assert', expr: "document.body.innerText.includes('期望的结果')" },
+    { act: 'fill', sel: 'textarea', value: "SELECT * FROM student WHERE sdept = '计算机系';" },
+    { act: 'click', text: '提交答案' },
+    { act: 'assert', expr: "document.body.innerText.includes('过关')", timeout: 12000 },
+  ]);
+
+  await probeCase('范式实验室：切换题目、提交、看推导', '/normalize', [
+    { act: 'assert', expr: "document.body.innerText.includes('范式实验室')", timeout: 12000 },
+    { act: 'click', text: '部分依赖' },
+    { act: 'assert', expr: "['1NF','2NF','3NF','BCNF'].every(t => document.body.innerText.includes(t))", timeout: 8000 },
+    { act: 'click', text: '1NF' },
+    { act: 'click', text: '提交' },
+    { act: 'assert', expr: "document.body.innerText.includes('正确')", timeout: 10000 },
+    { act: 'click', text: '看推导' },
+    { act: 'assert', expr: "document.body.innerText.includes('完整推导')", timeout: 10000 },
+  ]);
+
+  await probeCase('索引实验：展示真实的执行计划', '/lab', [
+    { act: 'assert', expr: "document.body.innerText.includes('要分析的查询')", timeout: 12000 },
+    { act: 'click', text: 'CREATE INDEX' },
+    { act: 'click', text: '提交判断' },
+    { act: 'assert', expr: "document.body.innerText.includes('数据库自己怎么说')", timeout: 12000 },
+    { act: 'assert', expr: "/SCAN|SEARCH/i.test(document.body.innerText)" },
+  ]);
+
+  await probeCase('统计页：图表渲染出来了', '/stats', [
+    { act: 'assert', expr: "document.body.innerText.includes('累计作答')", timeout: 12000 },
+    { act: 'assert', expr: "!!document.querySelector('.recharts-surface') || document.body.innerText.includes('还没有作答记录')" },
+  ]);
+
+  await probeCase('教师工作台：六个标签页都在', '/admin', [
+    { act: 'assert', expr: "document.body.innerText.includes('教师工作台')", timeout: 12000 },
+    { act: 'assert', expr: "['总览','学生管理','班级','作业','内容','审计日志'].every(t => document.body.innerText.includes(t))" },
+    { act: 'click', text: '学生管理' },
+    { act: 'assert', expr: "document.body.innerText.includes('批量建号') || document.body.innerText.includes('还没有学生')", timeout: 8000 },
+  ]);
+
+  await probeCase('移动端：不出现横向滚动', '/', [
+    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 12000 },
+    { act: 'assert', expr: 'document.documentElement.scrollWidth <= window.innerWidth + 2' },
+  ]);
+
+  await probeCase('登出后受保护页面会回到登录页', '/', [
+    { act: 'assert', expr: "document.body.innerText.includes('今日目标')", timeout: 12000 },
+    { act: 'assert', expr: "fetch('/api/auth/logout', {method:'POST', credentials:'same-origin'}).then(r => r.status === 200)", timeout: 8000 },
+    { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 10000 },
+  ]);
+
+} finally {
+  await srv.stop();
+  probe.cleanup();
+  cleanupProfile();
 }
-
-await probe('仪表盘：渲染了今日进度与概览卡', '/', [
-  { act: 'assert', expr: "document.body.innerText.includes('今日进度')", timeout: 12000 },
-  { act: 'assert', expr: "['待复习','错题','总正确率','SQL 关卡'].every(t => document.body.innerText.includes(t))" },
-]);
-
-await probe('知识树：七个分类都在', '/learn', [
-  { act: 'assert', expr: "['基础理论','SQL 语言','数据库设计','存储与索引','查询优化','事务与并发','恢复与安全'].every(t => document.body.innerText.includes(t))", timeout: 12000 },
-  { act: 'click', text: '按可学性' },
-  { act: 'assert', expr: "document.body.innerText.includes('现在可以学的')" },
-]);
-
-await probe('知识点详情：正文渲染且标记不漏屏', '/learn/k-groupby', [
-  { act: 'assert', expr: "!!document.querySelector('.prose-doc')", timeout: 12000 },
-  { act: 'assert', expr: "!!document.querySelector('.prose-doc pre code')" },
-  { act: 'assert', expr: "!!document.querySelector('.prose-doc table')" },
-  { act: 'assert', expr: "!!document.querySelector('.prose-doc .tok-kw')" },
-  {
-    act: 'assert',
-    expr: `(() => {
-      const t = document.querySelector('.prose-doc').innerText;
-      return !/\\*\\*/.test(t) && !/\\\`/.test(t) && !/^#{1,6}\\s/m.test(t);
-    })()`,
-  },
-]);
-
-await probe('SQL 实训场：跑查询能出结果', '/lab/sql', [
-  { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 12000 },
-  { act: 'assert', expr: "document.body.innerText.includes('表结构')" },
-  {
-    act: 'fill', sel: 'textarea',
-    value: "SELECT sname, sdept FROM student WHERE sdept = '计算机系';",
-  },
-  { act: 'click', text: '运行' },
-  { act: 'assert', expr: "document.body.innerText.includes('张伟')", timeout: 12000 },
-  { act: 'assert', expr: "document.body.innerText.includes('sname')" },
-]);
-
-await probe('SQL 实训场：错误 SQL 给可读提示', '/lab/sql', [
-  { act: 'assert', expr: "!!document.querySelector('textarea')", timeout: 12000 },
-  { act: 'fill', sel: 'textarea', value: 'SELECT * FROM 不存在的表;' },
-  { act: 'click', text: '运行' },
-  { act: 'assert', expr: "/执行出错|不存在/.test(document.body.innerText)", timeout: 10000 },
-]);
-
-await probe('关卡：错误答案判错、正确答案过关', '/levels/L03', [
-  { act: 'assert', expr: "document.body.innerText.includes('条件筛选')", timeout: 12000 },
-  { act: 'fill', sel: 'textarea', value: 'SELECT sno FROM student;' },
-  { act: 'click', text: '提交答案' },
-  { act: 'assert', expr: "document.body.innerText.includes('还没通过')", timeout: 12000 },
-  { act: 'assert', expr: "document.body.innerText.includes('期望的结果')" },
-  { act: 'fill', sel: 'textarea', value: "SELECT * FROM student WHERE sdept = '计算机系';" },
-  { act: 'click', text: '提交答案' },
-  { act: 'assert', expr: "document.body.innerText.includes('过关')", timeout: 12000 },
-]);
-
-await probe('范式实验室：切换题目并提交答案', '/normalize', [
-  { act: 'assert', expr: "document.body.innerText.includes('范式实验室')", timeout: 12000 },
-  { act: 'click', text: '部分依赖' },
-  { act: 'assert', expr: "['1NF','2NF','3NF','BCNF'].every(t => document.body.innerText.includes(t))", timeout: 8000 },
-  { act: 'click', text: '1NF' },
-  { act: 'click', text: '提交' },
-  { act: 'assert', expr: "document.body.innerText.includes('正确')", timeout: 10000 },
-  { act: 'click', text: '看推导' },
-  { act: 'assert', expr: "document.body.innerText.includes('完整推导')", timeout: 10000 },
-]);
-
-await probe('索引实验：展示真实的执行计划', '/lab', [
-  { act: 'assert', expr: "document.body.innerText.includes('要分析的查询')", timeout: 12000 },
-  { act: 'click', text: 'CREATE INDEX' },
-  { act: 'click', text: '提交判断' },
-  { act: 'assert', expr: "document.body.innerText.includes('数据库自己怎么说')", timeout: 12000 },
-  { act: 'assert', expr: "/SCAN|SEARCH/i.test(document.body.innerText)" },
-]);
-
-await probe('统计页：图表渲染出来了', '/stats', [
-  { act: 'assert', expr: "document.body.innerText.includes('累计作答')", timeout: 12000 },
-  { act: 'assert', expr: "!!document.querySelector('.recharts-surface') || document.body.innerText.includes('还没有作答记录')" },
-]);
-
-await probe('设置页：切换主题生效', '/settings', [
-  { act: 'assert', expr: "document.body.innerText.includes('外观')", timeout: 12000 },
-  { act: 'assert', expr: "document.body.innerText.includes('宣纸')" },
-  { act: 'click', text: '宣纸' },
-  { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 6000 },
-  {
-    act: 'assert',
-    expr: `(() => {
-      const s = getComputedStyle(document.body);
-      const lum = (c) => { const m = c.match(/(\\d+),\\s*(\\d+),\\s*(\\d+)/); return m ? (+m[1]*0.299 + +m[2]*0.587 + +m[3]*0.114) / 255 : null; };
-      const f = lum(s.color), b = lum(s.backgroundColor);
-      return f !== null && b !== null && f < 0.5 && b > 0.5;
-    })()`,
-  },
-]);
-
-await probe('教师工作台：六个标签页都在', '/admin', [
-  { act: 'assert', expr: "document.body.innerText.includes('教师工作台')", timeout: 12000 },
-  { act: 'assert', expr: "['总览','学生管理','班级','作业','内容','审计日志'].every(t => document.body.innerText.includes(t))" },
-  { act: 'click', text: '学生管理' },
-  { act: 'assert', expr: "document.body.innerText.includes('批量建号') || document.body.innerText.includes('还没有学生')", timeout: 8000 },
-]);
-
-await probe('移动端：不出现横向滚动', '/', [
-  { act: 'assert', expr: "document.body.innerText.includes('今日进度')", timeout: 12000 },
-  { act: 'assert', expr: 'document.documentElement.scrollWidth <= window.innerWidth + 2' },
-]);
-
-await probe('登出后受保护页面会回到登录页', '/', [
-  { act: 'assert', expr: "document.body.innerText.includes('今日进度')", timeout: 12000 },
-  { act: 'assert', expr: "fetch('/api/auth/logout', {method:'POST', credentials:'same-origin'}).then(r => r.status === 200)", timeout: 8000 },
-  { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 10000 },
-]);
-
-/* ---------- 清理 ---------- */
-await srv.stop();
-cleanupProfile();
 
 const shots = fs.existsSync(SHOT_DIR) ? fs.readdirSync(SHOT_DIR).filter((f) => f.endsWith('.png')) : [];
 console.log(`\n截图 ${shots.length} 张 → ${SHOT_DIR}`);

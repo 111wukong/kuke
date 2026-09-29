@@ -12,6 +12,7 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Loader2, AlertTriangle, CheckCircle2, Info, XCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCountUp } from '@/lib/hooks';
 
 /* ============ 按钮 ============ */
 
@@ -53,26 +54,61 @@ export function Button({
 /* ============ 卡片 / 面板 ============ */
 
 export function Card({
-  className, children, padded = true, strong,
-}: { className?: string; children: ReactNode; padded?: boolean; strong?: boolean }) {
+  className, children, padded = true, strong, hover, grad, noise, style,
+}: {
+  className?: string;
+  children: ReactNode;
+  padded?: boolean;
+  strong?: boolean;
+  /** 可点击的卡片：悬停抬起 + 强调色描边 */
+  hover?: boolean;
+  /** 渐变描边的卡片。用在需要"被看见"的那一张上（首屏主卡、当前选中项） */
+  grad?: boolean;
+  /** 叠一层噪点。大面积卡片加一点会让玻璃面更像材质 */
+  noise?: boolean;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div className={cn('glass rounded-xl', strong && 'glass-strong', padded && 'p-4 sm:p-5', className)}>
+    <div
+      style={style}
+      className={cn(
+        grad ? 'card-grad' : 'glass',
+        'rounded-xl',
+        strong && !grad && 'glass-strong',
+        hover && 'card-hover',
+        noise && 'noise',
+        padded && 'p-4 sm:p-5',
+        className,
+      )}
+    >
       {children}
     </div>
   );
 }
 
 export function SectionTitle({
-  title, desc, right, icon,
-}: { title: string; desc?: string; right?: ReactNode; icon?: ReactNode }) {
+  title, desc, right, icon, accent,
+}: {
+  title: string; desc?: string; right?: ReactNode; icon?: ReactNode;
+  /** 给标题加一道强调色竖条。用在页面的主要区块上，和次级区块区分开 */
+  accent?: boolean;
+}) {
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold text-fg">
-          {icon}
-          {title}
-        </h2>
-        {desc && <p className="mt-0.5 text-[12.5px] leading-relaxed text-fg-mute">{desc}</p>}
+      <div className="flex min-w-0 gap-2.5">
+        {accent && (
+          <span
+            className="mt-[3px] h-[18px] w-[3px] shrink-0 rounded-full"
+            style={{ backgroundImage: 'var(--grad-accent)' }}
+          />
+        )}
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-fg">
+            {icon}
+            {title}
+          </h2>
+          {desc && <p className="mt-0.5 text-[12.5px] leading-relaxed text-fg-mute">{desc}</p>}
+        </div>
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>
@@ -187,24 +223,133 @@ export function DifficultyDots({ value, max = 5 }: { value: number; max?: number
 /* ============ 进度 ============ */
 
 export function Progress({
-  value, className, tone = 'accent', showLabel,
-}: { value: number; className?: string; tone?: 'accent' | 'ok' | 'warn' | 'bad'; showLabel?: boolean }) {
+  value, className, tone = 'accent', showLabel, flowing,
+}: {
+  value: number;
+  className?: string;
+  tone?: 'accent' | 'ok' | 'warn' | 'bad';
+  showLabel?: boolean;
+  /** 进行中：加一层流光。**完成态不要开** ——
+   *  完成了还在流动会让人以为还没结束。 */
+  flowing?: boolean;
+}) {
   const v = Math.max(0, Math.min(1, value));
-  const color = {
-    accent: 'bg-gradient-to-r from-cyan to-blue',
-    ok: 'bg-ok',
-    warn: 'bg-warn',
-    bad: 'bg-bad',
+  const grad = {
+    accent: 'linear-gradient(90deg, var(--color-cyan), var(--color-blue))',
+    ok: 'linear-gradient(90deg, var(--color-emerald), var(--color-cyan))',
+    warn: 'linear-gradient(90deg, var(--color-amber), var(--color-rose))',
+    bad: 'var(--grad-bad)',
   }[tone];
+
   return (
     <span className={cn('flex items-center gap-2', className)}>
       <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-veil/10">
         <span
-          className={cn('absolute inset-y-0 left-0 rounded-full transition-[width] duration-500', color)}
-          style={{ width: `${v * 100}%` }}
-        />
+          className="absolute inset-y-0 left-0 overflow-hidden rounded-full transition-[width] duration-700"
+          style={{ width: `${v * 100}%`, backgroundImage: grad, transitionTimingFunction: 'var(--ease-out-expo)' }}
+        >
+          {flowing && v < 1 && <span className="flow absolute inset-0" />}
+        </span>
       </span>
-      {showLabel && <span className="w-9 text-right text-[11px] tabular-nums text-fg-mute">{Math.round(v * 100)}%</span>}
+      {showLabel && (
+        <span className="w-9 text-right text-[11px] tabular-nums text-fg-mute">
+          {Math.round(v * 100)}%
+        </span>
+      )}
+    </span>
+  );
+}
+
+/* ============ 统计卡片 ============ */
+
+export function Stat({
+  label, value, sub, tone, icon, grad, sparkline,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: string;
+  tone?: 'ok' | 'bad' | 'warn' | 'accent';
+  icon?: ReactNode;
+  /** 数值用渐变文字。用在首屏最重要的那一两个数字上 */
+  grad?: boolean;
+  /** 右下角的迷你趋势线（0..1 的数组） */
+  sparkline?: number[];
+}) {
+  const toneColor = tone === 'ok' ? 'text-ok' : tone === 'bad' ? 'text-bad'
+    : tone === 'warn' ? 'text-warn' : tone === 'accent' ? 'text-cyan' : 'text-fg';
+
+  return (
+    <div className="glass card-hover relative overflow-hidden rounded-xl p-3.5">
+      <div className="flex items-center gap-1.5 text-[11.5px] font-medium uppercase tracking-wide text-fg-mute">
+        {icon}
+        {label}
+      </div>
+      <div className={cn(
+        'mt-1.5 text-[26px] font-semibold leading-none tabular-nums',
+        grad ? 'grad-text' : toneColor,
+      )}>
+        {value}
+      </div>
+      {sub && <div className="mt-1.5 text-[11.5px] text-fg-faint">{sub}</div>}
+      {sparkline && sparkline.length > 1 && (
+        <Sparkline data={sparkline} className="mt-2" />
+      )}
+    </div>
+  );
+}
+
+/** 迷你趋势线。纯 SVG，不引图表库 —— 十几个点的折线用不上 recharts。 */
+export function Sparkline({
+  data, className, height = 22,
+}: { data: number[]; className?: string; height?: number }) {
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const W = 100;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const id = `spark-${data.length}-${Math.round(max)}`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${height}`}
+      preserveAspectRatio="none"
+      className={cn('w-full', className)}
+      style={{ height }}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--color-cyan)" stopOpacity="0.32" />
+          <stop offset="100%" stopColor="var(--color-cyan)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${height} ${pts.join(' ')} ${W},${height}`} fill={`url(#${id})`} />
+      <polyline
+        points={pts.join(' ')}
+        fill="none"
+        stroke="var(--color-cyan)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+/** 会滚动的大数字。用在小屏也要看清的关键指标上。 */
+export function CountUp({
+  value, suffix = '', decimals = 0, grad,
+}: { value: number; suffix?: string; decimals?: number; grad?: boolean }) {
+  const v = useCountUp(value);
+  return (
+    <span className={cn('tabular-nums', grad && 'grad-text')}>
+      {v.toFixed(decimals)}
+      {suffix}
     </span>
   );
 }
@@ -228,12 +373,32 @@ export function Empty({
   title, desc, action, icon,
 }: { title: string; desc?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-      <div className="text-fg-faint">{icon || <Info size={26} />}</div>
-      <div className="text-[14px] font-medium text-fg-soft">{title}</div>
+    <div className="flex flex-col items-center justify-center gap-2.5 py-12 text-center">
+      {/* 图标垫在一个渐变光环里。空态是"什么都没有"的页面，
+          给它一个视觉落点，比一行灰字要让人愿意停下来读。 */}
+      <div className="relative grid h-14 w-14 place-items-center rounded-2xl">
+        <span
+          className="absolute inset-0 rounded-2xl opacity-40 blur-md"
+          style={{ backgroundImage: 'var(--grad-spectrum)' }}
+          aria-hidden="true"
+        />
+        <span className="glass relative grid h-14 w-14 place-items-center rounded-2xl text-cyan">
+          {icon || <Info size={22} />}
+        </span>
+      </div>
+      <div className="mt-1 text-[14px] font-medium text-fg-soft">{title}</div>
       {desc && <div className="max-w-md text-[12.5px] leading-relaxed text-fg-mute">{desc}</div>}
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className="mt-2.5">{action}</div>}
     </div>
+  );
+}
+
+/** 键位提示。比一行说明文字更容易被记住，也更省空间。 */
+export function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border border-hairline bg-veil/6 px-1 font-mono text-[10.5px] text-fg-mute">
+      {children}
+    </kbd>
   );
 }
 
@@ -254,25 +419,6 @@ export function ErrorBox({ error, onRetry }: { error: any; onRetry?: () => void 
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ============ 统计卡片 ============ */
-
-export function Stat({
-  label, value, sub, tone, icon,
-}: { label: string; value: ReactNode; sub?: string; tone?: 'ok' | 'bad' | 'warn' | 'accent'; icon?: ReactNode }) {
-  const color = tone === 'ok' ? 'text-ok' : tone === 'bad' ? 'text-bad'
-    : tone === 'warn' ? 'text-warn' : tone === 'accent' ? 'text-cyan' : 'text-fg';
-  return (
-    <div className="glass rounded-xl p-3.5">
-      <div className="flex items-center gap-1.5 text-[11.5px] font-medium uppercase tracking-wide text-fg-mute">
-        {icon}
-        {label}
-      </div>
-      <div className={cn('mt-1 text-[24px] font-semibold leading-none tabular-nums', color)}>{value}</div>
-      {sub && <div className="mt-1 text-[11.5px] text-fg-faint">{sub}</div>}
     </div>
   );
 }

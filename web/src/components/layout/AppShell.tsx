@@ -25,6 +25,7 @@ import { AppNavLink } from '@/lib/links';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/stores/theme';
+import { useCountUp } from '@/lib/hooks';
 import { cn, avatarStyle } from '@/lib/utils';
 
 interface NavItem { to: string; icon: any; label: string; badge?: 'due' | 'wrong' }
@@ -186,11 +187,20 @@ export function AppShell() {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5 px-4 py-4">
-      <span className="grid h-9 w-9 place-items-center rounded-lg border border-cyan/30 bg-cyan/10 text-cyan">
-        <Database size={18} />
+      {/* 图标垫在一层渐变光晕上，让它在侧栏顶部有个视觉重心。
+          纯色方块太"平"，和下面的玻璃卡片不在一个语言里。 */}
+      <span className="relative grid h-9 w-9 place-items-center">
+        <span
+          className="absolute inset-0 rounded-xl opacity-55 blur-[7px]"
+          style={{ backgroundImage: 'var(--grad-spectrum)' }}
+          aria-hidden="true"
+        />
+        <span className="glass relative grid h-9 w-9 place-items-center rounded-xl text-cyan">
+          <Database size={18} />
+        </span>
       </span>
       <div className="min-w-0">
-        <div className="text-[15px] font-semibold leading-tight text-fg">库课</div>
+        <div className="text-[15px] font-semibold leading-tight tracking-tight text-fg">库课</div>
         <div className="truncate text-[10.5px] text-fg-faint">数据库课程学习平台</div>
       </div>
     </div>
@@ -205,13 +215,13 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
       to={to}
       end={to === '/'}
       className={({ isActive }: { isActive: boolean }) => cn(
-        'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors',
+        'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-all duration-200',
         isActive
-          ? 'bg-cyan/12 font-medium text-cyan'
+          ? 'nav-active-bar bg-cyan/12 font-medium text-cyan shadow-[var(--glow-accent-soft)]'
           : 'text-fg-soft hover:bg-veil/6 hover:text-fg',
       )}
     >
-      <Icon size={16} className="shrink-0" />
+      <Icon size={16} className="shrink-0 transition-transform duration-200 group-hover:scale-[1.08]" />
       <span className="truncate">{label}</span>
       {badgeCount > 0 && (
         <span className="ml-auto shrink-0 rounded-full bg-rose/20 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-rose">
@@ -235,20 +245,23 @@ function SideFooter() {
   const need = snapshot?.levelInfo?.need ?? 100;
   const streak = snapshot?.streak ?? 0;
   const progress = need ? into / need : 0;
+  const xp = useCountUp(snapshot?.xp ?? 0);
 
   return (
     <div className="border-t border-hairline p-2.5">
-      <div className="glass rounded-lg p-2.5">
+      <div className="glass relative overflow-hidden rounded-lg p-2.5">
         <div className="flex items-center gap-2">
           <span
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white shadow-[var(--glow-accent-soft)]"
             style={avatarStyle(user.avatarHue)}
           >
             {lv}
           </span>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12px] font-medium text-fg">{title}</div>
-            <div className="text-[10.5px] tabular-nums text-fg-faint">{into} / {need} XP</div>
+            <div className="text-[10.5px] tabular-nums text-fg-faint">
+              {into} / {need} XP
+            </div>
           </div>
           {streak > 0 && (
             <span
@@ -262,9 +275,16 @@ function SideFooter() {
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-veil/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan to-violet transition-[width] duration-700"
-            style={{ width: `${Math.min(100, progress * 100)}%` }}
+            className="h-full rounded-full transition-[width] duration-700"
+            style={{
+              width: `${Math.min(100, progress * 100)}%`,
+              backgroundImage: 'var(--grad-spectrum)',
+              transitionTimingFunction: 'var(--ease-out-expo)',
+            }}
           />
+        </div>
+        <div className="mt-1 text-right text-[10px] tabular-nums text-fg-faint">
+          总 {Math.round(xp)} XP
         </div>
       </div>
 
@@ -330,36 +350,41 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   }, [location.pathname]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-13 items-center gap-3 border-b border-hairline bg-ink-1000/70 px-4 py-2 backdrop-blur-xl sm:px-6 lg:px-8">
-      <button
-        onClick={onMenu}
-        className="rounded-md p-1.5 text-fg-soft hover:bg-veil/8 lg:hidden"
-        aria-label="打开导航"
-      >
-        <Menu size={18} />
-      </button>
+    <header className="sticky top-0 z-30 border-b border-hairline bg-ink-1000/72 backdrop-blur-xl">
+      <div className="flex h-13 items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
+        <button
+          onClick={onMenu}
+          className="rounded-md p-1.5 text-fg-soft transition-colors hover:bg-veil/8 lg:hidden"
+          aria-label="打开导航"
+        >
+          <Menu size={18} />
+        </button>
 
-      <h1 className="truncate text-[14.5px] font-semibold text-fg">{crumb}</h1>
+        <h1 className="truncate text-[14.5px] font-semibold text-fg">{crumb}</h1>
 
-      <div className="ml-auto flex items-center gap-2">
-        {snapshot && snapshot.combo >= 3 && (
-          <span className="hidden items-center gap-1 rounded-md border border-amber/30 bg-warn-soft px-2 py-1 text-[11.5px] font-semibold text-amber sm:flex">
-            <Zap size={12} />
-            连对 {snapshot.combo}
-          </span>
-        )}
-        {snapshot && (
-          <span className="hidden items-center gap-1 text-[11.5px] tabular-nums text-fg-mute sm:flex">
-            今日 {snapshot.today.attempts} 题
-          </span>
-        )}
-        <ThemePicker compact />
-        {user?.role === 'admin' && (
-          <span className="hidden rounded-md border border-violet/30 bg-violet/10 px-1.5 py-0.5 text-[10.5px] font-medium text-violet sm:inline">
-            管理员
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {snapshot && snapshot.combo >= 3 && (
+            <span className="glow-pulse hidden items-center gap-1 rounded-md border border-amber/30 bg-warn-soft px-2 py-1 text-[11.5px] font-semibold text-amber sm:flex">
+              <Zap size={12} />
+              连对 {snapshot.combo}
+            </span>
+          )}
+          {snapshot && (
+            <span className="hidden items-center gap-1 text-[11.5px] tabular-nums text-fg-mute sm:flex">
+              今日 {snapshot.today.attempts} 题
+            </span>
+          )}
+          <ThemePicker compact />
+          {user?.role === 'admin' && (
+            <span className="hidden rounded-md border border-violet/30 bg-violet/10 px-1.5 py-0.5 text-[10.5px] font-medium text-violet sm:inline">
+              管理员
+            </span>
+          )}
+        </div>
       </div>
+      {/* 底边一道两端淡出的渐变线。比纯 border 更有"接缝"感 ——
+          它把顶栏和内容区分开，而不是让两者糊在一起。 */}
+      <div className="hairline-fade" aria-hidden="true" />
     </header>
   );
 }

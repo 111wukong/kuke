@@ -13,7 +13,7 @@ import {
   Flame, Zap, Target, TrendingUp, CircleAlert, RotateCcw, Sparkles,
   ArrowRight, BookOpen, Terminal, Flag, Sigma,
 } from 'lucide-react';
-import { Card, SectionTitle, Stat, Badge, Progress, Button, Skeleton, Empty, ListRow } from '@/components/ui/Primitives';
+import { Card, SectionTitle, Stat, Badge, Progress, Button, Skeleton, Empty, ListRow, CountUp } from '@/components/ui/Primitives';
 import { Heatmap } from '@/components/ui/Toaster';
 import { AppLink } from '@/lib/links';
 import { useAsync } from '@/lib/hooks';
@@ -97,76 +97,112 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      {/* ---------- 欢迎 + 今日进度 ---------- */}
-      <Card className="relative overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* ---------- Hero：今天的状态 ---------- */}
+      <div className="card-grad noise relative overflow-hidden rounded-2xl p-5 sm:p-6">
+        {/* 右上角一团柔光。给这张主卡一个光源方向，
+            比纯平底色有纵深。overflow-hidden + blur 保证它不溢出卡片。 */}
+        <span
+          className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full opacity-[0.22] blur-3xl"
+          style={{ backgroundImage: 'var(--grad-spectrum)' }}
+          aria-hidden="true"
+        />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <div className="text-[19px] font-semibold text-fg">
-              {greeting}，{user?.username}
+            <div className="text-[11.5px] font-medium uppercase tracking-[0.14em] text-fg-faint">
+              {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}
             </div>
-            <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-fg-soft">
+            <h1 className="mt-1.5 text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+              {greeting}，{user?.username}
+            </h1>
+            <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-fg-soft">
               {plan?.summary || '开始今天的学习吧。'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {s && s.streak > 0 && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber/30 bg-warn-soft px-3 py-2">
-                <Flame size={16} className="text-amber" />
-                <div className="leading-tight">
-                  <div className="text-[16px] font-semibold tabular-nums text-amber">{s.streak}</div>
-                  <div className="text-[10px] text-fg-mute">连续天数</div>
+          {/* 等级环。用 conic-gradient 画进度弧，
+              比 SVG 少一半代码，而且颜色能直接吃 CSS 变量。 */}
+          {s && (
+            <div className="flex items-center gap-4">
+              <div className="relative grid h-[76px] w-[76px] place-items-center">
+                <span
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: `conic-gradient(var(--color-cyan) ${goalProgress * 360}deg, color-mix(in srgb, var(--color-veil) 10%, transparent) 0)`,
+                    mask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px))',
+                    WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px))',
+                  }}
+                  aria-hidden="true"
+                />
+                <div className="text-center leading-none">
+                  <div className="text-[20px] font-semibold tabular-nums text-fg">
+                    {Math.round(goalProgress * 100)}
+                    <span className="text-[11px] text-fg-mute">%</span>
+                  </div>
+                  <div className="mt-0.5 text-[9.5px] text-fg-faint">今日目标</div>
                 </div>
               </div>
-            )}
-            {s && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2">
-                <Zap size={16} className="text-cyan" />
-                <div className="leading-tight">
-                  <div className="text-[16px] font-semibold tabular-nums text-cyan">Lv.{s.level}</div>
-                  <div className="text-[10px] text-fg-mute">{s.levelTitle}</div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="grad-text text-[30px] font-semibold leading-none tabular-nums">
+                    <CountUp value={s.level} />
+                  </span>
+                  <span className="text-[11px] text-fg-mute">级</span>
                 </div>
+                <div className="text-[11.5px] text-fg-soft">{s.levelTitle}</div>
+                {s.streak > 0 && (
+                  <div className="flex items-center gap-1 text-[11.5px] font-medium text-amber">
+                    <Flame size={12} />
+                    连续 {s.streak} 天
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex-1">
-            <div className="mb-1.5 flex items-baseline justify-between text-[12px]">
-              <span className="text-fg-soft">今日进度</span>
-              <span className="tabular-nums text-fg-mute">
-                {plan?.done ?? 0} / {plan?.goal ?? 20} 题
-              </span>
-            </div>
-            <Progress value={goalProgress} tone={goalProgress >= 1 ? 'ok' : 'accent'} />
-          </div>
-          {goalProgress >= 1 && <Badge tone="ok">今日目标已达成</Badge>}
+        {/* 今日进度条 */}
+        <div className="relative mt-4 flex items-center gap-3">
+          <Progress value={goalProgress} tone={goalProgress >= 1 ? 'ok' : 'accent'} flowing={goalProgress < 1} />
+          <span className="shrink-0 text-[12px] tabular-nums text-fg-mute">
+            {plan?.done ?? 0} / {plan?.goal ?? 20} 题
+          </span>
+          {goalProgress >= 1 && <Badge tone="ok">已达成</Badge>}
         </div>
-      </Card>
+      </div>
 
       {/* ---------- 四张概览卡 ---------- */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="待复习" icon={<RotateCcw size={12} />} tone={s?.dueCount ? 'warn' : undefined}
-          value={s?.dueCount ?? 0}
-          sub={s?.dueCount ? '间隔重复队列里到期了' : '队列已清空'}
-        />
-        <Stat
-          label="错题" icon={<CircleAlert size={12} />} tone={s?.wrong ? 'bad' : undefined}
-          value={s?.wrong ?? 0}
-          sub={s?.wrong ? '曾经答错且还没答对过' : '没有遗留错题'}
-        />
-        <Stat
-          label="总正确率" icon={<Target size={12} />} tone="accent"
-          value={`${s?.totals.accuracy ?? 0}%`}
-          sub={`累计 ${s?.totals.attempts ?? 0} 题 · ${s?.totals.activeDays ?? 0} 天`}
-        />
-        <Stat
-          label="SQL 关卡" icon={<Flag size={12} />} tone="ok"
-          value={`${s?.levels.passed ?? 0}/${s?.levels.total ?? 45}`}
-          sub="通过 / 总数"
-        />
+      <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div style={{ '--i': 0 } as React.CSSProperties}>
+          <Stat
+            label="待复习" icon={<RotateCcw size={12} />} tone={s?.dueCount ? 'warn' : undefined}
+            value={<CountUp value={s?.dueCount ?? 0} />}
+            sub={s?.dueCount ? '间隔重复队列里到期了' : '队列已清空'}
+          />
+        </div>
+        <div style={{ '--i': 1 } as React.CSSProperties}>
+          <Stat
+            label="错题" icon={<CircleAlert size={12} />} tone={s?.wrong ? 'bad' : undefined}
+            value={<CountUp value={s?.wrong ?? 0} />}
+            sub={s?.wrong ? '曾经答错且还没答对过' : '没有遗留错题'}
+          />
+        </div>
+        <div style={{ '--i': 2 } as React.CSSProperties}>
+          <Stat
+            label="总正确率" icon={<Target size={12} />} tone="accent" grad
+            value={<CountUp value={s?.totals.accuracy ?? 0} suffix="%" />}
+            sub={`累计 ${s?.totals.attempts ?? 0} 题 · ${s?.totals.activeDays ?? 0} 天`}
+            sparkline={s?.heatmap?.slice(-14).map((h) => h.n)}
+          />
+        </div>
+        <div style={{ '--i': 3 } as React.CSSProperties}>
+          <Stat
+            label="SQL 关卡" icon={<Flag size={12} />} tone="ok"
+            value={<CountUp value={s?.levels.passed ?? 0} />}
+            sub={`共 ${s?.levels.total ?? 45} 关`}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">

@@ -7,7 +7,7 @@
  */
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Database, Mail, Lock, User as UserIcon, Ticket, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Database, Mail, Lock, User as UserIcon, Ticket, ArrowRight, ShieldCheck, Terminal, Sigma, FlaskConical, Users } from 'lucide-react';
 import { Button, Field, Input, Callout } from '@/components/ui/Primitives';
 import { ThemePicker } from '@/components/ui/Toaster';
 import { useAuth } from '@/stores/auth';
@@ -18,44 +18,70 @@ function AuthShell({ title, subtitle, children, footer }: {
   title: string; subtitle: string; children: ReactNode; footer: ReactNode;
 }) {
   return (
-    <div className="relative grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+    <div className="relative grid min-h-dvh lg:grid-cols-[1.08fr_1fr]">
+      {/* 背景光斑。三团缓慢漂移的色块，给整个页面一个"活"的底色。
+          它们只负责氛围，不承载信息，所以 aria-hidden + 不吃指针事件。 */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <span
+          className="absolute -left-[12%] top-[-18%] h-[46rem] w-[46rem] rounded-full opacity-[0.16] blur-[110px]"
+          style={{ background: 'var(--color-cyan)', animation: 'drift 26s ease-in-out infinite' }}
+        />
+        <span
+          className="absolute right-[-10%] top-[24%] h-[38rem] w-[38rem] rounded-full opacity-[0.15] blur-[110px]"
+          style={{ background: 'var(--color-violet)', animation: 'drift 32s ease-in-out infinite reverse' }}
+        />
+        <span
+          className="absolute bottom-[-24%] left-[32%] h-[34rem] w-[34rem] rounded-full opacity-[0.10] blur-[110px]"
+          style={{ background: 'var(--color-magenta)', animation: 'drift 38s ease-in-out infinite' }}
+        />
+      </div>
+
       {/* 左侧品牌区。窄屏隐藏 —— 手机上那点空间应该全给表单。 */}
-      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-hairline p-10 lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-hairline p-10 lg:flex xl:p-14">
         <div className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-xl border border-cyan/30 bg-cyan/10 text-cyan">
-            <Database size={20} />
+          <span className="relative grid h-10 w-10 place-items-center">
+            <span
+              className="absolute inset-0 rounded-xl opacity-60 blur-[9px]"
+              style={{ backgroundImage: 'var(--grad-spectrum)' }}
+              aria-hidden="true"
+            />
+            <span className="glass relative grid h-10 w-10 place-items-center rounded-xl text-cyan">
+              <Database size={20} />
+            </span>
           </span>
           <div>
-            <div className="text-[17px] font-semibold text-fg">库课</div>
+            <div className="text-[17px] font-semibold tracking-tight text-fg">库课</div>
             <div className="text-[11px] text-fg-faint">数据库课程学习平台</div>
           </div>
         </div>
 
-        <div className="max-w-md">
-          <h1 className="text-[30px] font-semibold leading-snug text-fg">
+        <div className="max-w-lg">
+          <h1 className="text-[32px] font-semibold leading-[1.22] tracking-tight text-fg xl:text-[38px]">
             数据库这门课，
             <br />
-            光看是学不会的。
+            <span className="grad-text">光看是学不会的。</span>
           </h1>
-          <p className="mt-4 text-[13.5px] leading-relaxed text-fg-soft">
+          <p className="mt-5 text-[14px] leading-relaxed text-fg-soft">
             所以这里不是一份讲义，是一个能动手的环境。
             写完的 SQL 立刻执行、立刻判分；
             范式题给算法验算，不比对答案；索引有没有生效，
             由数据库自己的执行计划说了算。
           </p>
 
-          <ul className="mt-7 space-y-2.5 text-[13px] text-fg-soft">
+          <ul className="mt-8 space-y-3.5">
             {[
-              ['SQL 实训场', '4 套教学库、45 道关卡，判题靠跑结果集而不是比对文本'],
-              ['范式实验室', '闭包、候选键、范式判定、无损分解，全部自动验算'],
-              ['索引与事务实验台', '结论来自 EXPLAIN 和优先图，不是来自我写的注释'],
-              ['教师工作台', '建班、建号、布置作业、看学情根因，全流程闭环'],
-            ].map(([t, d]) => (
-              <li key={t} className="flex gap-2.5">
-                <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-cyan" />
-                <span>
-                  <b className="font-medium text-fg">{t}</b>
-                  <span className="text-fg-mute"> —— {d}</span>
+              ['SQL 实训场', '4 套教学库、45 道关卡，判题靠跑结果集而不是比对文本', Terminal],
+              ['范式实验室', '闭包、候选键、范式判定、无损分解，全部算法验算', Sigma],
+              ['索引与事务实验台', '结论来自 EXPLAIN 和优先图，不是来自我写的注释', FlaskConical],
+              ['教师工作台', '建班、建号、布置作业、看学情根因，全流程闭环', Users],
+            ].map(([t, d, Icon]: any, i) => (
+              <li key={t} className="stagger flex gap-3" style={{ '--i': i } as React.CSSProperties}>
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-hairline bg-veil/5 text-cyan">
+                  <Icon size={14} />
+                </span>
+                <span className="min-w-0">
+                  <b className="text-[13.5px] font-medium text-fg">{t}</b>
+                  <span className="block text-[12.5px] leading-relaxed text-fg-mute">{d}</span>
                 </span>
               </li>
             ))}
@@ -69,23 +95,25 @@ function AuthShell({ title, subtitle, children, footer }: {
       </div>
 
       {/* 右侧表单区 */}
-      <div className="flex flex-col">
+      <div className="relative flex flex-col">
         <div className="flex items-center justify-between p-4 lg:justify-end">
           <div className="flex items-center gap-2 lg:hidden">
-            <span className="grid h-8 w-8 place-items-center rounded-lg border border-cyan/30 bg-cyan/10 text-cyan">
+            <span className="glass grid h-8 w-8 place-items-center rounded-lg text-cyan">
               <Database size={16} />
             </span>
-            <span className="text-[15px] font-semibold text-fg">库课</span>
+            <span className="text-[15px] font-semibold tracking-tight text-fg">库课</span>
           </div>
           <ThemePicker compact />
         </div>
 
         <div className="flex flex-1 items-center justify-center px-5 pb-10">
-          <div className="w-full max-w-[380px]">
-            <h2 className="text-[22px] font-semibold text-fg">{title}</h2>
-            <p className="mt-1 text-[13px] text-fg-mute">{subtitle}</p>
-            <div className="mt-6">{children}</div>
-            <div className="mt-5 text-center text-[12.5px] text-fg-mute">{footer}</div>
+          <div className="w-full max-w-[390px]">
+            <div className="rise-in">
+              <h2 className="text-[24px] font-semibold tracking-tight text-fg">{title}</h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-fg-mute">{subtitle}</p>
+              <div className="mt-7">{children}</div>
+              <div className="mt-6 text-center text-[12.5px] text-fg-mute">{footer}</div>
+            </div>
           </div>
         </div>
       </div>

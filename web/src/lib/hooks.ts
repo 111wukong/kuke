@@ -188,4 +188,86 @@ export async function once<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
+/* ============================================================
+   数值滚动
+   ============================================================ */
+
+/**
+ * 让数字从旧值滚到新值。
+ *
+ * ── 三个必须处理的细节 ──────────────────────────────────────────
+ *
+ * 1. **首屏不要从 0 滚**。第一次拿到数据时直接显示终值。
+ *    否则页面一进来所有数字一起从 0 往上跳，看起来像在"加载"，
+ *    而不是"数据到了"。
+ *
+ * 2. **用 rAF 而不是 setInterval**。后者在切到后台标签页时会被
+ *    浏览器降频，回来时数字会"跳一下"。
+ *
+ * 3. **尊重 prefers-reduced-motion**。开了这个设置的用户
+ *    （前庭功能敏感）会因为数字滚动而不适。直接给终值。
+ *
+ * @param target  目标值
+ * @param duration 动画时长（毫秒）
+ */
+export function useCountUp(target: number, duration = 700): number {
+  const [display, setDisplay] = useState(target);
+  const fromRef = useRef(target);
+  const rafRef = useRef(0);
+  const seenRef = useRef(false);
+
+  useEffect(() => {
+    // 首屏：直接落到终值，不滚
+    if (!seenRef.current) {
+      seenRef.current = true;
+      fromRef.current = target;
+      setDisplay(target);
+      return;
+    }
+
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !Number.isFinite(target)) {
+      fromRef.current = target;
+      setDisplay(target);
+      return;
+    }
+
+    const from = fromRef.current;
+    if (from === target) return;
+
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / duration);
+      // easeOutExpo：开头快、结尾慢，比线性更"停得住"
+      const eased = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
+      const v = from + (target - from) * eased;
+      setDisplay(v);
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return display;
+}
+
+/** 窗口宽度是否小于某个断点。用于少数需要按屏宽改布局的地方
+ *  （CSS 能做的都用 CSS 做，这个只给 canvas / 图表这类需要真实数值的场景）。 */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  ));
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setMatches(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, [query]);
+  return matches;
+}
+
+
 export { api };

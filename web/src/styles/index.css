@@ -143,6 +143,46 @@
   --sql-func: #38bdf8;
   --sql-op: #f472b6;
 
+  /* ── 以下这一批全部**由现有令牌派生**，所以自动跟着主题走 ──────
+   *
+   * 这是这次升级里最省事的一个决定：与其为 8 套主题各写一遍光晕和
+   * 渐变，不如用 color-mix() 引用 --color-cyan / --color-violet。
+   * CSS 自定义属性是在**使用处**按计算值替换的，所以只要 --color-cyan
+   * 被主题覆盖了，派生出来的光晕也就跟着变了 —— 不需要额外维护。
+   *
+   * 反过来说：如果这里写死 rgba(34,211,238,.4)，切到「熔岩」主题时
+   * 光晕还是青色的，会出现"强调色变了、光晕没变"的半截生效。
+   */
+
+  /* 高程：三层阴影。暗色主题下阴影要重一点才有层次，
+   * 亮色主题下要轻（见下面亮色主题块里的覆盖）。 */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.28), 0 3px 10px -5px rgba(0, 0, 0, 0.42);
+  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.32), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
+  --elev-3: 0 6px 18px rgba(0, 0, 0, 0.36), 0 28px 60px -26px rgba(0, 0, 0, 0.62);
+
+  /* 强调光晕。用在：主按钮、选中态、激活的导航项、关键数字。 */
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 24%, transparent),
+                 0 10px 34px -12px color-mix(in srgb, var(--color-cyan) 52%, transparent);
+  --glow-accent-soft: 0 0 22px -6px color-mix(in srgb, var(--color-cyan) 38%, transparent);
+  --glow-violet: 0 0 26px -8px color-mix(in srgb, var(--color-violet) 46%, transparent);
+
+  /* 渐变。--grad-accent 是主按钮和关键数字用的斜向渐变。 */
+  --grad-accent: linear-gradient(135deg, var(--color-cyan), var(--color-blue));
+  --grad-spectrum: linear-gradient(115deg, var(--color-cyan), var(--color-violet) 52%, var(--color-magenta));
+  --grad-ok: linear-gradient(135deg, var(--color-emerald), var(--color-cyan));
+  --grad-bad: linear-gradient(135deg, var(--color-rose), var(--color-magenta));
+
+  /* 卡片顶边的细高光。让"面"有一点体积感，而不是一张贴纸。 */
+  --card-sheen: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-veil) 7%, transparent),
+    transparent 42%);
+
+  /* 噪点。纯色大面积铺开会有色带（banding），叠一层极淡的噪点能压掉，
+   * 也让玻璃面看起来更像"材质"而不是"滤镜"。
+   * 用 SVG feTurbulence 内联生成，零请求。 */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+  --noise-opacity: 0.028;
+
   color-scheme: dark;
 }
 
@@ -496,6 +536,31 @@ html[data-theme="solarized"] {
 }
 
 /* ============================================================
+   亮色主题的公共覆盖
+   ============================================================
+   ★ 用一条合并选择器，而不是在三个亮色主题块里各抄一遍。
+   抄三遍的后果是：改了一处忘了另两处，然后「宣纸正常、薄荷不对」。
+   这类"部分主题坏掉"的问题最难发现，因为默认主题（深空）永远是对的。
+
+   亮色下要压三样东西：
+     1. 阴影 —— 暗色的重阴影在白底上会变成脏兮兮的灰块
+     2. 光晕 —— 同样的透明度在浅底上会糊成一片
+     3. 噪点 —— 白底上噪点很显眼，要更淡
+   ============================================================ */
+html[data-theme="paper"],
+html[data-theme="mint"],
+html[data-theme="solarized"] {
+  --elev-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px -4px rgba(15, 23, 42, 0.10);
+  --elev-2: 0 1px 3px rgba(15, 23, 42, 0.07), 0 10px 24px -12px rgba(15, 23, 42, 0.16);
+  --elev-3: 0 3px 10px rgba(15, 23, 42, 0.08), 0 22px 48px -22px rgba(15, 23, 42, 0.20);
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 30%, transparent),
+                 0 8px 26px -12px color-mix(in srgb, var(--color-cyan) 40%, transparent);
+  --glow-accent-soft: 0 0 18px -6px color-mix(in srgb, var(--color-cyan) 26%, transparent);
+  --glow-violet: 0 0 22px -8px color-mix(in srgb, var(--color-violet) 30%, transparent);
+  --noise-opacity: 0.016;
+}
+
+/* ============================================================
    基础样式
    ============================================================ */
 * { box-sizing: border-box; }
@@ -564,25 +629,141 @@ body::after {
    组件层
    ============================================================ */
 
-/* 玻璃面。三层叠加：底色 + 内部斜向高光 + 顶边一像素高光。 */
+/* 玻璃面。四层叠加：
+ *   ① 半透明底（--glass-sheet）
+ *   ② 顶部细高光（--card-sheen）—— 让"面"有体积感，而不是一张贴纸
+ *   ③ 顶边一像素内高光（--glass-edge）
+ *   ④ 外投影（--elev-*）
+ * 少第 ②③ 层的话，卡片在纯色背景上会"浮"不起来，
+ * 看起来像一块颜色不同的区域而不是一张卡。 */
 .glass {
+  position: relative;
   background: var(--glass-sheet);
   border: 1px solid var(--color-hairline);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: 0 1px 0 0 var(--glass-edge) inset, 0 18px 40px -22px var(--glass-shadow);
+  box-shadow:
+    0 1px 0 0 var(--glass-edge) inset,
+    var(--elev-2);
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--card-sheen);
+  pointer-events: none;
 }
 .glass-strong { background: var(--glass-sheet-strong); }
+
+/* 可交互的卡片：悬停时抬起 + 强调色描边。
+ * ★ 只做 translateY(-1px) 而不是放大：放大在密集列表里会让相邻卡片
+ *   互相挤压，视觉上"抖"。位移 1px 足够传达"可以点"。 */
+.card-hover {
+  transition: transform 0.22s var(--ease-out-expo),
+              border-color 0.22s ease,
+              box-shadow 0.22s ease;
+}
+.card-hover:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-cyan) 42%, var(--color-hairline));
+  box-shadow:
+    0 1px 0 0 var(--glass-edge) inset,
+    var(--elev-3),
+    var(--glow-accent-soft);
+}
+
+/* 渐变描边的卡片。用两层背景做：内层是面，外层是渐变边框。
+ * 比 border-image 好用的地方是它支持 border-radius。 */
+.card-grad {
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--glass-sheet-strong), var(--glass-sheet-strong)) padding-box,
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--color-cyan) 55%, transparent),
+      color-mix(in srgb, var(--color-violet) 45%, transparent)) border-box;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--elev-2);
+}
+
+/* 噪点叠层。加在任何容器上，用 ::after 铺一层极淡的噪点。 */
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--noise);
+  opacity: var(--noise-opacity);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
 
 /* 主按钮的实心渐变。文字颜色走 --color-on-accent，
  * 因为亮色主题下 ink-1000 是白的，压在浅色渐变上会看不见。 */
 .btn-accent {
-  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-blue));
+  position: relative;
+  overflow: hidden;
+  background-image: var(--grad-accent);
   color: var(--color-on-accent);
   font-weight: 600;
+  box-shadow: var(--glow-accent);
+  transition: filter 0.18s ease, box-shadow 0.24s ease, transform 0.14s ease;
 }
 .btn-accent:hover { filter: brightness(1.08); }
-.btn-accent:active { filter: brightness(0.96); }
+.btn-accent:active { filter: brightness(0.96); transform: translateY(1px); }
+/* 掠过式高光。比单纯的 hover 变亮更有"质感"，而且是纯 CSS，零成本。 */
+.btn-accent::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  left: -50%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+}
+.btn-accent:hover::after {
+  animation: btn-sweep 0.72s var(--ease-out-expo);
+}
+
+/* 渐变文字。用在关键数字和大标题上。
+ * ★ 必须同时给 -webkit-background-clip 和 background-clip，
+ *   只写前者在 Firefox 上会变成一整块色块（文字看不见）。 */
+.grad-text {
+  background-image: var(--grad-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 侧栏导航的激活指示器：左侧一根发光的竖条。
+ * 比"整块变色"更克制，而且在密集的导航列表里更容易定位。 */
+.nav-active-bar::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px;
+  height: 16px;
+  border-radius: 99px;
+  background-image: var(--grad-accent);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--color-cyan) 62%, transparent);
+}
+
+/* 分隔线：两端淡出，比一根实线更"轻"。 */
+.hairline-fade {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--color-hairline-strong) 18%,
+    var(--color-hairline-strong) 82%,
+    transparent);
+}
 
 /* 代码块与行内代码 */
 .code-block {
@@ -663,33 +844,105 @@ body::after {
  * 引一个 200KB 的排版引擎不划算。 */
 .math { font-family: var(--font-mono); font-style: italic; color: var(--color-fg); }
 
-/* 骨架屏 */
+/* 骨架屏。用"掠过式微光"而不是呼吸式明暗 ——
+ * 后者会让整页一起明暗，看起来像页面在闪；前者只动一道光，
+ * 安静得多，也更符合"正在加载"这个语义。 */
 .skeleton {
+  position: relative;
+  overflow: hidden;
   background: var(--skeleton);
   border-radius: 6px;
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
-@keyframes skeleton-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--color-veil) 9%, transparent),
+    transparent);
+  animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  to { transform: translateX(100%); }
+}
 
-/* 入场动画 */
+/* 入场动画。 */
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 .rise-in { animation: rise-in 0.32s var(--ease-out-expo) both; }
 
-/* 数字滚动 / 进度条 */
-@keyframes sheen {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(220%); }
+/* 卡片逐个入场。用 --i 传序号做阶梯延迟，
+ * 比给每个元素写死 animation-delay 好维护（列表长度是动态的）。
+ * 上限 8 档 —— 超过之后延迟会变得很明显，用户会觉得"卡"。 */
+.stagger > * {
+  animation: rise-in 0.42s var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 42ms);
 }
-.sheen::after {
-  content: "";
-  position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, var(--color-veil), transparent);
-  opacity: 0.07;
-  animation: sheen 2.4s ease-in-out infinite;
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+.fade-in { animation: fade-in 0.3s ease both; }
+
+/* 按钮上的掠过式高光。 */
+@keyframes btn-sweep {
+  from { left: -50%; }
+  to { left: 130%; }
+}
+
+/* 强调呼吸。用在"当前该做的事"这类需要被注意、但不该太吵的元素上。
+ * 幅度刻意做得很小（0.45 → 0.75），否则会变成页面上的一个闪烁点。 */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: var(--glow-accent-soft); }
+  50% { box-shadow: var(--glow-accent); }
+}
+.glow-pulse { animation: glow-pulse 3.2s ease-in-out infinite; }
+
+/* 缓慢漂移。给登录页背景光斑用。 */
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(2.5%, -2%, 0) scale(1.06); }
+  66% { transform: translate3d(-2%, 2.5%, 0) scale(0.96); }
+}
+
+/* 进度条上的流光。只在"进行中"用，完成态不加 —— 
+ * 完成了还在流动会让人以为还没结束。 */
+@keyframes flow {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+.flow {
+  background-image: linear-gradient(100deg,
+    color-mix(in srgb, var(--color-veil) 0%, transparent) 0%,
+    color-mix(in srgb, var(--color-veil) 22%, transparent) 50%,
+    color-mix(in srgb, var(--color-veil) 0%, transparent) 100%);
+  background-size: 28px 100%;
+  animation: flow 0.9s linear infinite;
+}
+
+/* 打字机光标。给"正在生成/正在执行"的状态用。 */
+@keyframes caret {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+.caret::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--color-cyan);
+  animation: caret 1.05s steps(1) infinite;
+}
+
+/* 数字变化的轻微上浮。给 Stat 的数值用。 */
+@keyframes num-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+.num-in { animation: num-in 0.5s var(--ease-out-expo) both; }
 
 /* ============================================================
    打印
