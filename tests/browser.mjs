@@ -269,7 +269,7 @@ try {
     const errs = log.find((r) => r.act === 'pageErrors');
     const errTxt = errs ? ` 【页面报错 ${JSON.stringify(errs.value).slice(0, 300)}】` : '';
     check(name, bad.length === 0,
-      bad.map((x) => `${x.act}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 400)}` : ''}`).join(' | ')
+      bad.map((x) => `第${(x.i ?? 0) + 1}步 ${x.act}${x.expr ? `(${x.expr})` : x.text ? `(点击「${x.text}」)` : ''}: ${x.error || '断言不成立'}${x.actual ? ` 实际=${String(x.actual).slice(0, 300)}` : ''}`).join(' | ')
       + (where ? ` 【${where}】` : '') + errTxt);
     return log;
   }

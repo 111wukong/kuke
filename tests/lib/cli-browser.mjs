@@ -231,7 +231,10 @@ function probeScript() {
 
       for (var n = 0; n < steps.length; n++) {
         var st = steps[n];
-        var rec = { act: st.act };
+        var rec = { i: n, act: st.act };
+        if (st.expr) rec.expr = String(st.expr).slice(0, 120);
+        if (st.text) rec.text = st.text;
+        if (st.sel) rec.sel = st.sel;
         try {
           if (st.act === 'fill') {
             var el = document.querySelector(st.sel);
