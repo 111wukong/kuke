@@ -27,6 +27,12 @@ const SYM: Record<string, string> = {
   cup: '∪', cap: '∩', emptyset: '∅', forall: '∀', exists: '∃',
   partial: '∂', nabla: '∇', prime: '′',
   ldots: '…', cdots: '⋯', dots: '…', quad: ' ', qquad: '　',
+  /* ★ 这三个键是从 wenxue 那份 JS 移植过来时**漏掉**的。
+   *   漏掉的后果：`\{A \to B\}` 里的花括号原样留在屏幕上
+   *   （`\to` 转了、花括号没转，看起来像「转了一半」）。
+   *   范式题的题干全是 `$$F = \{A \to B\}$$` 这个形状，整屏都是。
+   *   教训：移植一张**表**的时候，要按 key 逐个对，别只看有没有这个变量。 */
+  '{': '{', '}': '}', '\\': ' ',
 };
 
 export function escapeHtml(s: unknown): string {
@@ -95,11 +101,11 @@ export function renderLatexUnsafe(escapedSrc: unknown): string {
   return s;
 }
 
-/** 行内公式。用于正文里 `$...$` 混排。
+/* ── 这个文件**只负责把一小段 LaTeX 变成 HTML** ──────────────────
  *
- * ★ 顺序是「先整体转义，再渲染公式」，不能反过来：
- *   反过来的话公式外那段会被转义两遍，`a < b` 会显示成 `a &lt; b`。 */
-export function renderInline(src: unknown): string {
-  const e = escapeHtml(src);
-  return e.replace(/\$([^$\n]+)\$/g, (_m, tex) => `<span class="lx">${renderLatexUnsafe(tex)}</span>`);
-}
+ * ★ 它**不负责**把一整段正文（含 Markdown）变成 HTML。
+ *   那个职责在 `lib/markdown.tsx` 里 —— 它会在正确的时机调用这里的
+ *   `renderLatex()`。别在这个文件里再长出一个"顺带处理 Markdown"的
+ *   行内渲染器：曾经有过一个（只认 $...$、不认 Markdown），
+ *   结果是气泡里漏出裸露的 `**` 和 `-`，而页面不报错、测试全绿。
+ */

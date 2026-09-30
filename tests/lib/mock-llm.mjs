@@ -144,7 +144,19 @@ export function defaultRoute(body) {
         { name: 'write_steps', args: { title: 'WHERE 与 HAVING', steps: ['FROM：先确定数据源', 'WHERE：在分组前过滤行', 'GROUP BY：分组', 'HAVING：在分组后过滤组'] } },
       ], '', 3);
     }
-    return textDeltas('(focus)\n\n我先不往下讲。你想想，如果 SQL 里没有 WHERE，会出什么问题？');
+    /* ★ 老师台词里**必须**带 Markdown 和公式 —— 否则「标记漏屏」这类
+     *   缺陷根本测不到（页面不报错、测试全绿，只有肉眼看得见）。
+     *   这里刻意用上：粗体、公式、列表、行内代码。 */
+    return textDeltas([
+      '(focus)\n\n',
+      '我先不往下讲。你想想，**如果 SQL 里没有 WHERE**，会出什么问题？\n\n',
+      '看这条：`SELECT * FROM student WHERE sage > 20`，',
+      '它对应关系代数里的 $\\sigma_{sage>20}(student)$。\n\n',
+      '要点：\n',
+      '- WHERE 在**分组前**过滤行\n',
+      '- HAVING 在**分组后**过滤组\n',
+      '- 复杂度是 2 * 3 * 4 的量级\n',
+    ].join(''));
   }
   return textDeltas('（mock 默认回复）');
 }

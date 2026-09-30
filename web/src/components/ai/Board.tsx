@@ -28,7 +28,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ResultTable, type ResultSet } from '@/components/sql/SqlParts';
 import { highlightSql } from '@/lib/sqlHighlight';
 import { compile, samplePoints } from '@/lib/expr';
-import { renderLatex, renderInline } from '@/lib/latex';
+import { renderLatex } from '@/lib/latex';
+import { InlineMarkdown } from '@/lib/markdown';
 import { cn } from '@/lib/utils';
 
 export interface BoardItem {
@@ -242,7 +243,7 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
               <span className="absolute left-0 top-1.5 grid h-[19px] w-[19px] place-items-center rounded-md bg-gradient-to-br from-amber to-amber/70 font-mono text-[10px] font-bold text-scrim">
                 {i + 1}
               </span>
-              <span dangerouslySetInnerHTML={{ __html: renderInline(s) }} />
+              <InlineMarkdown text={s} />
             </li>
           ))}
         </ol>

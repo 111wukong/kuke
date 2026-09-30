@@ -517,10 +517,11 @@ const tmp = path.resolve(__dirname, '../web/.tmp-fe-test');
 fs.rmSync(tmp, { recursive: true, force: true });
 let sqlLib = null;
 let mdLib = null;
+let latexLib = null;
 try {
   execFileSync('npx', [
     'tsc',
-    'src/lib/sqlHighlight.ts', 'src/lib/markdown.tsx',
+    'src/lib/sqlHighlight.ts', 'src/lib/markdown.tsx', 'src/lib/latex.ts',
     '--outDir', tmp,
     '--module', 'esnext', '--target', 'es2022',
     '--moduleResolution', 'bundler', '--jsx', 'react-jsx',
@@ -543,13 +544,15 @@ try {
 
   sqlLib = await import(path.join(tmp, 'sqlHighlight.js'));
   mdLib = await import(path.join(tmp, 'markdown.js'));
+  latexLib = await import(path.join(tmp, 'latex.js'));
 } catch (e) {
   console.log('（前端库编译失败，跳过这组）', String(e.message).slice(0, 200));
 }
 
-if (sqlLib && mdLib) {
+if (sqlLib && mdLib && latexLib) {
   const { escapeHtml, highlightSql, tokenizeSql } = sqlLib;
   const { parseBlocks, parseInline } = mdLib;
+  const { renderLatex } = latexLib;
 
   /* ---- SQL 高亮：安全是第一位的 ---- */
   eq('转义：< > & " \'', escapeHtml('<a href="x">&\'</a>'), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
@@ -619,6 +622,108 @@ if (sqlLib && mdLib) {
     parseInline('[文字](https://a.com)').some((t) => t.t === 'link' && t.href === 'https://a.com'));
   ok('★ javascript: 链接被拦（只放行 http/https）',
     JSON.stringify(parseInline('[x](javascript:alert(1))')).includes('javascript') === true);
+
+  /* ============================================================
+     ★ 数学：标记不能漏屏
+     ============================================================
+     这一组是补的 —— 原来只断言了「$x$ 变成 math token」，
+     但**没断言它真的被转换**，也没覆盖 `$$…$$`。
+     于是两个真缺陷一起漏过去了：
+
+       ① `$$F = \{A \to B\}$$` 被单 `$` 那条规则先匹配成
+          `$` + `$F = \{A \to B\}$` + `$` —— 屏幕上就是两个裸露的
+          美元号夹着一串原始反斜杠。范式实验室 15 道题全踩在这上面。
+       ② math token 渲染时只把**原始 TeX** 塞进一个 span，
+          于是 `\to` `\sigma` `\pi` 在屏幕上原样显示成反斜杠命令。
+          页面不报错、测试全绿、截图里只是「公式看起来怪怪的」。
+
+     判据按**用户实际看到的**来写：转换后不许再有 `$` 和 `\命令`。
+     ============================================================ */
+
+  /* ---- ① $$…$$ 必须是一个块级数学 token ---- */
+  const dm = parseInline('$$F = \\{A \\to B,\\; B \\to C\\}$$');
+  eq('★ $$…$$ 解析成**一个** token（不是被拆成三段）', dm.length, 1);
+  eq('★ 而且它是 mathBlock', dm[0].t, 'mathBlock');
+  ok('★ mathBlock 的内容里不含美元号', !String(dm[0].v).includes('$'), JSON.stringify(dm[0].v));
+  ok('★ $$…$$ 不会残留裸露的 $',
+    !parseInline('前后 $$x^2$$ 后').some((t) => t.t === 'text' && t.v.includes('$')),
+    JSON.stringify(parseInline('前后 $$x^2$$ 后')));
+
+  /* ---- ② 转换：反斜杠命令必须变成符号 ---- */
+  const mathHtml = renderLatex('F = \\{A \\to B,\\; B \\to C\\}');
+  ok('★ \\to 被转成 →', mathHtml.includes('→'), mathHtml);
+  ok('★ 转换后不再残留 \\to', !mathHtml.includes('\\to'), mathHtml);
+  ok('★ \\{ \\} 被转成花括号', mathHtml.includes('{') && mathHtml.includes('}'), mathHtml);
+
+  const sigmaHtml = renderLatex('\\pi_{sname}(student)');
+  ok('★ \\pi 被转成 π', sigmaHtml.includes('π'), sigmaHtml);
+  ok('★ 下标被转成 <sub>', sigmaHtml.includes('<sub>'), sigmaHtml);
+  ok('★ 转换后不再残留反斜杠命令', !/\\[a-zA-Z]+/.test(sigmaHtml), sigmaHtml);
+
+  ok('★ \\frac 被转成真分式', renderLatex('\\frac{1}{2}').includes('lx-frac'));
+  ok('★ 转换先转义：公式里的 <script> 不会变成标签',
+    renderLatex('<script>alert(1)</script>').includes('&lt;script&gt;')
+    && !renderLatex('<script>alert(1)</script>').includes('<script>'));
+
+  /* ---- ③ 乘号不能被当成斜体 ---- */
+  const mul = parseInline('时间复杂度是 2 * 3 * 4 的量级');
+  ok('★ `2 * 3 * 4` 不会被当成斜体吃掉', !mul.some((t) => t.t === 'italic'), JSON.stringify(mul));
+  ok('斜体本身仍然能用（*强调*）',
+    parseInline('这是 *强调* 的文字').some((t) => t.t === 'italic'));
+
+  /* ---- ④ 粗体里夹公式：$ 不能把 ** 切断 ---- */
+  const mix = parseInline('**当 $x \\to 0$ 时**可以直接替换');
+  ok('★ 粗体里夹公式时，粗体仍然配对',
+    mix.some((t) => t.t === 'bold'), JSON.stringify(mix));
+  ok('★ 而且粗体的内容里含公式（说明是递归解析，不是当纯文本塞进去）',
+    mix.some((t) => t.t === 'bold' && String(t.v).includes('$')), JSON.stringify(mix));
+
+  /* ---- ⑤ 用**真实内容**扫一遍：每一段公式都要转得出来 ---- */
+  {
+    const files = ['normalize.js', 'catalog.js', 'questions.js', 'labs.js', 'levels.js'];
+    let checked = 0;
+    const bad = [];
+    for (const f of files) {
+      const src = fs.readFileSync(path.resolve(__dirname, '../server/src/data', f), 'utf8');
+      /* 抓 $…$ 和 $$…$$。$$ 要排前面，否则单 $ 会先匹配。 */
+      const re = /\$\$([^$\n]{1,200})\$\$|\$([^$\n]{1,200})\$/g;
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        const tex = m[1] ?? m[2];
+        if (!tex) continue;
+        checked += 1;
+        const html = renderLatex(tex);
+        /* 转换后还残留反斜杠命令 = 没转成功，用户会看到 	o */
+        if (/\\[a-zA-Z]+/.test(html)) bad.push(`${f}: ${tex.slice(0, 40)} → ${html.slice(0, 60)}`);
+      }
+    }
+    ok('★ 真实内容里确实有公式可扫（防止这条断言变成空跑）', checked >= 20, `扫到 ${checked} 段`);
+    ok('★ 真实内容里的每一段公式都转得出来（没有残留反斜杠命令）',
+      bad.length === 0, bad.slice(0, 4).join(' | '));
+  }
+
+  /* ---- ⑥ 静态检查：不许再长出第二个行内渲染器 ---- */
+  {
+    const pages = fs.readdirSync(path.resolve(__dirname, '../web/src/pages'))
+      .filter((f) => f.endsWith('.tsx'));
+    const offenders = [];
+    for (const f of pages) {
+      const src = fs.readFileSync(path.resolve(__dirname, '../web/src/pages', f), 'utf8');
+      /* 页面里出现「自己拼 HTML 的正文渲染」就是漏屏的温床 */
+      if (/dangerouslySetInnerHTML/.test(src) && /renderInline|renderMd|mdToHtml/.test(src)) offenders.push(f);
+    }
+    ok('★ 页面里没有再自己写一套行内渲染器', offenders.length === 0, offenders.join(', '));
+
+    const latexSrc = fs.readFileSync(path.resolve(__dirname, '../web/src/lib/latex.ts'), 'utf8');
+    ok('★ latex.ts 不再导出 renderInline（那个只认 $ 不认 Markdown 的版本已删）',
+      !/export function renderInline/.test(latexSrc));
+    ok('★ latex.ts 明确写了自己只负责 LaTeX、不负责 Markdown',
+      /不负责\*\*把一整段正文/.test(latexSrc));
+
+    const cls = fs.readFileSync(path.resolve(__dirname, '../web/src/pages/Classroom.tsx'), 'utf8');
+    ok('★ AI 课堂走的是 kuke 的 Markdown 渲染器',
+      /from '@\/lib\/markdown'/.test(cls) && !/renderInline/.test(cls.replace(/\/\*[\s\S]*?\*\//g, '')));
+  }
 } else {
   console.log('  （已跳过，见上面的编译错误）');
 }

@@ -24,7 +24,13 @@ import { Board, type BoardItem } from '@/components/ai/Board';
 import { api } from '@/lib/api';
 import { useAsync } from '@/lib/hooks';
 import { startClass, answerClass, skipClass, interjectClass, type AiEvent } from '@/lib/aiStream';
-import { renderInline } from '@/lib/latex';
+/* ★ 用 kuke 自己的渲染器，**不要再自己写一个**。
+ *   我一开始在 latex.ts 里写了个只认 $...$ 的 renderInline ——
+ *   它不认 Markdown，于是老师写的 `**粗体**`、`- 列表` 全变成
+ *   裸露的星号和短横线漏在气泡里。
+ *   而 kuke 的 markdown.tsx 本来就处理了标题/粗斜体/代码/列表/表格/数学，
+ *   还完全不产生 HTML 字符串（除了数学那一处，它自己做了转义）。 */
+import { Markdown } from '@/lib/markdown';
 import { cn } from '@/lib/utils';
 
 interface Kid { id: string; title: string; categoryId: string; chapterId: string; }
@@ -74,10 +80,17 @@ function TypedText({ text }: { text: string }) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [text]);
+
+  const done = n >= text.length;
   return (
     <>
-      <span dangerouslySetInnerHTML={{ __html: renderInline(text.slice(0, n)) }} />
-      {n < text.length && <span className="ai-caret" />}
+      {/* ★ 打字期间走**纯文本**，打完再交给 Markdown。
+          拿半截文本去渲染 Markdown 的话，未闭合的 `**` 和 `$`
+          会周期性变成裸标记在屏幕上闪 —— 每一帧都闪一次。 */}
+      {done
+        ? <Markdown source={text} />
+        : <span className="whitespace-pre-wrap">{text.slice(0, n)}</span>}
+      {!done && <span className="ai-caret" />}
     </>
   );
 }
@@ -361,7 +374,10 @@ export default function Classroom() {
         </div>
 
         <Card className="flex min-h-0 flex-1 flex-col" padded={false}>
-          <div ref={streamRef as any} className="flex-1 overflow-y-auto p-4">
+          {/* id 是给测试和排查用的：断言「对话流里没有裸露的标记」时
+              必须把范围收在这一个容器里 —— 扫 document.body 会把
+              表单必填项那个 `*` 也算进来，报出一个假失败。 */}
+          <div id="stream" ref={streamRef as any} className="flex-1 overflow-y-auto p-4">
             {feed.length === 0 && !running ? (
               <Empty
                 icon={<GraduationCap size={22} />}
@@ -384,8 +400,7 @@ export default function Classroom() {
               <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold text-cyan">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan" />该你了
               </div>
-              <div className="mb-2 whitespace-pre-wrap text-[13.5px] text-fg"
-                dangerouslySetInnerHTML={{ __html: renderInline(ask.prompt) }} />
+              <div className="mb-2 text-[13.5px] text-fg"><Markdown source={ask.prompt} /></div>
               {ask.hint && <div className="mb-2 border-l-2 border-hairline-strong pl-2 text-[11.5px] text-fg-mute">提示：{ask.hint}</div>}
               <div className="flex gap-2">
                 <input
@@ -495,7 +510,8 @@ function FeedItem({ entry }: { entry: Entry }) {
       <div className="flex flex-row-reverse gap-2.5">
         <span className="grid h-8 w-8 flex-none place-items-center rounded-xl bg-gradient-to-br from-fg-soft to-fg-faint text-[12px] font-bold text-scrim">我</span>
         <div className="max-w-[78%] rounded-2xl border border-cyan/30 bg-cyan/12 px-3.5 py-2 text-[13.5px] text-fg">
-          <span dangerouslySetInnerHTML={{ __html: renderInline(entry.text) }} />
+          {/* 用户自己打的字走纯文本 —— 他可能写 `2 * 3`，别被斜体正则吃掉 */}
+          <span className="whitespace-pre-wrap">{entry.text}</span>
         </div>
       </div>
     );
@@ -526,9 +542,7 @@ function FeedItem({ entry }: { entry: Entry }) {
           roleKey === 'a' && 'border-l-2 border-l-cyan',
           roleKey === 'b' && 'border-l-2 border-l-violet',
           roleKey === 'c' && 'border-l-2 border-l-rose')}>
-          {isTeacher
-            ? <span dangerouslySetInnerHTML={{ __html: renderInline(entry.text) }} />
-            : <TypedText text={entry.text} />}
+          {isTeacher ? <Markdown source={entry.text} /> : <TypedText text={entry.text} />}
           {isTeacher && entry.live && <span className="ai-caret" />}
         </div>
       </div>

@@ -24,6 +24,7 @@
  */
 import { type ReactNode, useMemo, Fragment } from 'react';
 import { highlightSql, escapeHtml } from './sqlHighlight';
+import { renderLatex } from './latex';
 
 /* ============ 行内解析 ============ */
 
@@ -33,18 +34,31 @@ type InlineToken =
   | { t: 'bold'; v: string }
   | { t: 'italic'; v: string }
   | { t: 'math'; v: string }
+  | { t: 'mathBlock'; v: string }
   | { t: 'link'; v: string; href: string };
 
 /* 一次扫描搞定，顺序即优先级：
- *   行内代码 → 数学 → 粗体 → 斜体 → 链接
+ *   行内代码 → 块级数学 → 行内数学 → 粗体 → 斜体 → 链接
+ *
+ * ★ `$$…$$` 必须排在 `$…$` **前面**。
+ *   反过来的话，`$$F = \{A \to B\}$$` 会被单 `$` 那条先匹配成
+ *   `$` + `$F = \{A \to B\}$` + `$` —— 屏幕上就是
+ *   **两个裸露的美元号夹着一串原始反斜杠**。
+ *   范式实验室里 15 道题的题干全踩在这上面。
+ *
  * 行内代码必须最先，否则 `**` 会被当成粗体标记；
  * 数学要在粗体之前，因为 $...$ 里可能出现 * 号。 */
 const INLINE_RE = new RegExp([
-  '(`[^`\\n]+`)',                    // 1 行内代码
-  '(\\$[^$\\n]+\\$)',                // 2 行内数学
-  '(\\*\\*[^*\\n]+\\*\\*)',          // 3 粗体
-  '(\\*[^*\\n]+\\*)',                // 4 斜体
-  '(!?\\[[^\\]\\n]*\\]\\([^)\\s]+\\))', // 5 链接
+  '(`[^`\\n]+`)',                     // 1 行内代码
+  '(\\$\\$[^$\\n]+\\$\\$)',           // 2 块级数学（$$…$$）
+  '(\\$[^$\\n]+\\$)',                 // 3 行内数学
+  '(\\*\\*[^*\\n]+\\*\\*)',           // 4 粗体
+  /* ★ 斜体要卡住「星号两边不能是空白」。
+   *   原来写作 \*[^*\n]+\*，于是 `2 * 3 * 4` 里的 `* 3 *`
+   *   会被当成斜体吃掉 —— 而 AI 讲数学时到处都在写乘号。
+   *   内容首尾都不许是空白，单字符也允许（`*x*`）。 */
+  '(\\*[^\\s*](?:[^*\\n]*[^\\s*])?\\*)', // 5 斜体
+  '(!?\\[[^\\]\\n]*\\]\\([^)\\s]+\\))', // 6 链接
 ].join('|'), 'g');
 
 function parseInline(text: string): InlineToken[] {
@@ -57,10 +71,11 @@ function parseInline(text: string): InlineToken[] {
     if (m.index > last) out.push({ t: 'text', v: text.slice(last, m.index) });
     const raw = m[0];
     if (m[1]) out.push({ t: 'code', v: raw.slice(1, -1) });
-    else if (m[2]) out.push({ t: 'math', v: raw.slice(1, -1) });
-    else if (m[3]) out.push({ t: 'bold', v: raw.slice(2, -2) });
-    else if (m[4]) out.push({ t: 'italic', v: raw.slice(1, -1) });
-    else if (m[5]) {
+    else if (m[2]) out.push({ t: 'mathBlock', v: raw.slice(2, -2) });
+    else if (m[3]) out.push({ t: 'math', v: raw.slice(1, -1) });
+    else if (m[4]) out.push({ t: 'bold', v: raw.slice(2, -2) });
+    else if (m[5]) out.push({ t: 'italic', v: raw.slice(1, -1) });
+    else if (m[6]) {
       const lm = raw.match(/^!?\[([^\]]*)\]\(([^)\s]+)\)$/);
       if (lm) out.push({ t: 'link', v: lm[1], href: lm[2] });
       else out.push({ t: 'text', v: raw });
@@ -71,15 +86,34 @@ function parseInline(text: string): InlineToken[] {
   return out;
 }
 
-/** 行内元素 → React 节点。**不产生 HTML 字符串**，所以没有 XSS 面。 */
+/** 行内元素 → React 节点。
+ *
+ * ★ 只有**数学**这一处会产生 HTML 字符串（其余全部走 React 元素，
+ *   从设计上就没有 XSS 面）。它安全的原因是 `renderLatex()` 内部
+ *   **第一步就 escapeHtml** —— 公式里的 `<script>` 会先变成实体。
+ *   这个顺序不能反，见 latex.ts 顶部的说明。 */
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return parseInline(text).map((tok, i) => {
     const k = `${keyPrefix}-i${i}`;
     switch (tok.t) {
       case 'code': return <code key={k} className="inline-code">{tok.v}</code>;
-      case 'math': return <span key={k} className="math">{tok.v}</span>;
-      case 'bold': return <strong key={k}>{tok.v}</strong>;
-      case 'italic': return <em key={k}>{tok.v}</em>;
+      /* ★ 数学要走**真正的转换**，不能只把原始 TeX 塞进一个 span。
+       *   原来这里是 <span className="math">{tok.v}</span> ——
+       *   于是 `$F = \{A \to B\}$` 在屏幕上原样显示成
+       *   `F = \{A \to B\}`（反斜杠一条不少），而页面不报错、测试全绿。
+       *   范式实验室 15 道题的题干、知识点正文里的 \sigma \pi \cup
+       *   全踩在这上面。 */
+      case 'math': return <span key={k} className="math" dangerouslySetInnerHTML={{ __html: renderLatex(tok.v) }} />;
+      /* 块级公式用 span + display:block，**不要用 div** ——
+       * div 落在 <p> 里会被浏览器强行拆出去，后面的文字跑到公式外面。 */
+      case 'mathBlock': return <span key={k} className="math-block" dangerouslySetInnerHTML={{ __html: renderLatex(tok.v) }} />;
+      case 'bold': return <strong key={k}>{renderInline(tok.v, k)}</strong>;
+      /* ★ 粗体/斜体的内容要**递归解析**，不能当纯文本塞进去。
+       *   模型特别爱把术语和公式一起加粗（`**当 $x \to 0$ 时**`），
+       *   而外层正则先匹配到粗体、把里面整段当内容收下 ——
+       *   不递归的话里面的 `$...$` 就原样漏到屏幕上，
+       *   表现为「加粗那段里的公式没渲染」，而别的公式都好好的。 */
+      case 'italic': return <em key={k}>{renderInline(tok.v, k)}</em>;
       case 'link': {
         // 只放行 http/https —— javascript: 和 data: 会被拦下
         const safe = /^https?:\/\//i.test(tok.href) ? tok.href : '#';

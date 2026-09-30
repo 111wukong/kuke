@@ -842,7 +842,19 @@ body::after {
 /* 数学（关系代数符号）。用等宽 + 斜体，不引 KaTeX ——
  * 本课程只用到 σ π ⋈ ρ ÷ × ∪ − ∩ 这些单字符符号，
  * 引一个 200KB 的排版引擎不划算。 */
-.math { font-family: var(--font-mono); font-style: italic; color: var(--color-fg); }
+/* 数学。
+ * ★ 原来是 `font-family: mono; font-style: italic` —— 那是在「数学 = 原始 TeX」
+ *   的前提下写的。现在 $...$ 会真的被转成符号（\to → →、\frac → 真分式），
+ *   等宽斜体反而会把转换结果弄歪（汉字斜体尤其难看）。
+ *   具体的排版交给 latex.ts 产出的 .lx-* 类。 */
+.math { font-style: normal; color: inherit; }
+.math-block {
+  display: block;
+  margin: 0.7em 0;
+  text-align: center;
+  font-size: 1.06em;
+  overflow-x: auto;
+}
 
 /* 骨架屏。用"掠过式微光"而不是呼吸式明暗 ——
  * 后者会让整页一起明暗，看起来像页面在闪；前者只动一道光，

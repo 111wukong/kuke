@@ -74,6 +74,12 @@ const CLASS_STEPS = [
   /* 读一下黑板 */
   { act: 'read', expr: "JSON.stringify({ blocks: document.querySelectorAll('[data-kind]').length, sql: document.querySelectorAll('[data-kind=sql]').length, steps: document.querySelectorAll('[data-kind=steps]').length, attrs: (function(){var b=document.querySelector('[data-blocks]');return b?{blocks:b.getAttribute('data-blocks'),clear:b.getAttribute('data-clear'),page:b.getAttribute('data-page')}:null;})() })" },
 
+  /* ★★ 标记不能漏屏。
+   *   判据按**用户实际看到的**来写：对话流里不该出现裸露的
+   *   `**` / `$` / `\命令`。mock 的老师台词刻意带上了这几种格式，
+   *   所以这条能真的抓到「渲染器不认 Markdown」那个缺陷。 */
+  { act: 'read', expr: "(function(){var s=document.querySelector('#stream')||document.body;var t=s.textContent||'';return JSON.stringify({hasStar:t.indexOf('**')>=0,hasDollar:t.indexOf('$')>=0,hasBackslashCmd:/\\\\[a-zA-Z]+/.test(t),hasBold:!!document.querySelector('strong'),hasMath:!!document.querySelector('.math'),hasList:!!document.querySelector('.prose-doc ul, .prose-doc ol'),sample:t.slice(0,160)})})()" },
+
   /* 答「还是没懂」→ 答疑轮 */
   { act: 'click', text: '还是没懂', wait: 400 },
   { act: 'wait', expr: "document.body.textContent.indexOf('答疑重讲') >= 0", timeout: 60000 },
@@ -159,6 +165,18 @@ try {
         firstBoard.attrs && Number(firstBoard.attrs.blocks) === firstBoard.blocks, JSON.stringify(firstBoard.attrs));
     } else {
       check('★ 黑板上出现了块', false, '没读到黑板信息');
+    }
+
+    const markRead = reads.find((r) => r && 'hasStar' in r);
+    if (markRead) {
+      check('★★ 对话流里没有裸露的 ** 标记', !markRead.hasStar, JSON.stringify(markRead));
+      check('★★ 对话流里没有裸露的 $ 标记', !markRead.hasDollar, JSON.stringify(markRead));
+      check('★★ 对话流里没有残留的 \\命令（公式真的转了）', !markRead.hasBackslashCmd, JSON.stringify(markRead));
+      check('★ 粗体确实渲染成了 <strong>', markRead.hasBold, JSON.stringify(markRead));
+      check('★ 公式确实渲染成了 .math 元素', markRead.hasMath, JSON.stringify(markRead));
+      check('★ 列表确实渲染成了 <ul>/<ol>', markRead.hasList, JSON.stringify(markRead));
+    } else {
+      check('★ 读到了标记检查的结果', false, '探针没返回 hasStar 字段');
     }
 
     const lastRead = reads[reads.length - 1];
