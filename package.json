@@ -26,7 +26,9 @@
     "test:ai-unit": "node tests/ai-unit.mjs",
     "test:ai-e2e": "node tests/ai.mjs",
     "test:ai": "node tests/ai-unit.mjs && node tests/ai.mjs",
-    "test:browser:ai": "node tests/browser-ai.mjs"
+    "test:browser:ai": "node tests/browser-ai.mjs",
+    "smoke:ai": "node scripts/smoke-ai.mjs",
+    "reset-password": "node scripts/reset-password.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

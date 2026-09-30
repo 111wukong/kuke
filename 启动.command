@@ -1,53 +1,43 @@
 #!/bin/bash
-# 库课 · 一键启动（macOS 双击运行）
+# 库课 · 双击启动
 #
-# 做的事：装依赖 → 构建前端 → 起服务 → 打开浏览器
+# 首次使用需要先装依赖并构建前端（各一次）：
+#   npm install && npm run build
 #
-# 为什么要先构建：后端只托管 web/dist。没有它，
-# 打开首页会看到 404，而服务本身是正常的 —— 很容易误以为装错了。
+# 之后双击这个文件就能起服务并打开浏览器。
 
 cd "$(dirname "$0")" || exit 1
 
-echo "━".repeat 2>/dev/null || true
-echo "════════════════════════════════════════════════"
-echo "  库课 · 数据库课程学习平台"
-echo "════════════════════════════════════════════════"
-echo
+PORT="${PORT:-5180}"
 
-# 找一个可用的 Node
-if command -v node >/dev/null 2>&1; then
-  NODE=node
-elif [ -x "$HOME/.workbuddy-ai/binaries/node/versions/22.22.2-3/bin/node" ]; then
-  NODE="$HOME/.workbuddy-ai/binaries/node/versions/22.22.2-3/bin/node"
-  export PATH="$(dirname "$NODE"):$PATH"
-else
-  echo "✗ 找不到 Node.js。请先安装 Node 20 或更高版本：https://nodejs.org"
-  read -r -p "按回车键退出…" _
+if [ ! -d node_modules ]; then
+  echo "还没有装依赖，先跑："
+  echo "  npm install"
   exit 1
 fi
 
-echo "· Node 版本：$($NODE -v)"
-
-if [ ! -d node_modules ]; then
-  echo "· 安装依赖（第一次会慢一点）…"
-  npm install --no-audit --no-fund || { echo "✗ 依赖安装失败"; read -r -p "按回车键退出…" _; exit 1; }
-fi
-
 if [ ! -f web/dist/index.html ]; then
-  echo "· 构建前端…"
-  # CODEBUDDY_SAFE_DELETE_ENABLED=0：构建时会清空 dist/assets，
-  # 在某些环境里会被批量删除护栏拦下。只对这条命令生效。
-  CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build || { echo "✗ 构建失败"; read -r -p "按回车键退出…" _; exit 1; }
+  echo "前端还没构建，先跑："
+  echo "  npm run build"
+  exit 1
 fi
 
-PORT="${PORT:-5180}"
-echo
-echo "· 启动服务：http://127.0.0.1:$PORT"
-echo "· 首次启动会在日志里打印教师账号的初始密码，注意看下面的输出"
-echo "· 按 Ctrl+C 停止"
-echo
+if [ ! -f .env ]; then
+  echo "提示：还没有 .env，AI 课堂会用不了（其余功能正常）。"
+  echo "      要开 AI：cp .env.example .env，把 DEEPSEEK_API_KEY 填进去。"
+fi
 
-# 等端口起来再开浏览器
-( sleep 3; open "http://127.0.0.1:$PORT" ) &
+# 等端口起来再开浏览器，别让用户看到一个「无法连接」
+(
+  for _ in $(seq 1 40); do
+    if curl -s -o /dev/null "http://127.0.0.1:${PORT}/api/health"; then
+      open "http://127.0.0.1:${PORT}" 2>/dev/null
+      exit 0
+    fi
+    sleep 0.5
+  done
+) &
 
-npm start
+echo "库课启动中 · http://127.0.0.1:${PORT}"
+echo "（Ctrl+C 停止）"
+PORT="$PORT" node server/src/index.js
