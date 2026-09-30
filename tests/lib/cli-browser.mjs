@@ -267,9 +267,24 @@ function probeScript() {
     return v;
   }
 
+  /* ★ 先找**文字完全相等**的，再退到「包含」。
+   *
+   *   真踩过：想点「运行」按钮，indexOf('运行') >= 0 命中了排在前面的
+   *   **「运行历史」**—— 于是点错了元素，查询压根没跑。
+   *   而失败信息指向的是**下一步**的断言（「页面里没有『张伟』」），
+   *   一路去查 SQL 和数据，离真正的原因（点错了按钮）很远。
+   *
+   *   顺序：精确匹配（去掉首尾空白）→ 包含匹配。 */
   function findClickable(text) {
     var els = [].slice.call(document.querySelectorAll('button, a, [role=button]'));
-    return els.filter(function (el) { return (el.textContent || '').indexOf(text) >= 0; })[0];
+    var want = String(text).trim();
+    for (var i = 0; i < els.length; i++) {
+      if ((els[i].textContent || '').trim() === want) return els[i];
+    }
+    for (var j = 0; j < els.length; j++) {
+      if ((els[j].textContent || '').indexOf(want) >= 0) return els[j];
+    }
+    return undefined;
   }
 
   /* ★ 每走一步就写一次结果。
