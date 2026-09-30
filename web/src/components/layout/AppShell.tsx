@@ -15,7 +15,7 @@ import { useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Network, Terminal, Flag, PenLine, Sigma, FlaskConical,
   CircleAlert, RotateCcw, ChartNoAxesColumn, Trophy, Settings,
-  ClipboardList, Users, ShieldCheck, Menu, Flame, Zap, Database,
+  ClipboardList, Users, ShieldCheck, Menu, Flame, Zap, Database, GraduationCap,
 } from 'lucide-react';
 import { CyberGrid, Starfield } from '@/components/fx/Background';
 import { Toaster, ThemePicker } from '@/components/ui/Toaster';
@@ -37,6 +37,7 @@ function navGroups(role: string | undefined): { group: string; items: NavItem[] 
       items: [
         { to: '/', icon: LayoutDashboard, label: '仪表盘' },
         { to: '/learn', icon: Network, label: '知识树' },
+        { to: '/classroom', icon: GraduationCap, label: 'AI 课堂' },
         { to: '/lab/sql', icon: Terminal, label: 'SQL 实训场' },
         { to: '/levels', icon: Flag, label: 'SQL 闯关' },
         { to: '/practice', icon: PenLine, label: '每日一练' },

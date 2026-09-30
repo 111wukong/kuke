@@ -20,6 +20,7 @@ import { Levels, LevelDetail } from '@/pages/Levels';
 import Practice from '@/pages/Practice';
 import Normalize from '@/pages/Normalize';
 import Labs from '@/pages/Labs';
+import Classroom from '@/pages/Classroom';
 import Mistakes from '@/pages/Mistakes';
 import Review from '@/pages/Review';
 import Stats from '@/pages/Stats';
@@ -39,6 +40,7 @@ export const APP_PAGES: PageDef[] = [
   { path: '/practice', node: <Practice /> },
   { path: '/normalize', node: <Normalize /> },
   { path: '/lab', node: <Labs /> },
+  { path: '/classroom', node: <Classroom /> },
   { path: '/review', node: <Review /> },
   { path: '/mistakes', node: <Mistakes /> },
   { path: '/stats', node: <Stats /> },
@@ -63,6 +65,7 @@ export const PAGE_NAMES: Record<string, string> = {
   '/practice': '每日一练',
   '/normalize': '范式实验室',
   '/lab': '索引与事务',
+  '/classroom': 'AI 课堂',
   '/review': '复习队列',
   '/mistakes': '错题本',
   '/stats': '学习统计',

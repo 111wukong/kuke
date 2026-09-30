@@ -5,6 +5,13 @@
  *   其它    → 生产环境托管 web/dist（SPA fallback 到 index.html）
  * 开发时前端跑在 Vite（5173），/api 反向代理到这里。
  */
+/* ★ 这个 import 必须排在最前面。
+ *   它在模块加载时就把 .env 装进 process.env 了，而下面每一行
+ *   读 process.env 的代码都依赖这件事 —— 顺序一乱，读到的就是空的。
+ *   规则见 lib/env.js：凭据类以 .env 为准，其余以环境变量为准。 */
+import { warnShadowed } from './lib/env.js';
+import { aiHealth } from './ai/llm.js';
+
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +35,7 @@ import classRoutes from './routes/classes.js';
 import assignmentRoutes from './routes/assignments.js';
 import adminRoutes from './routes/admin.js';
 import miscRoutes from './routes/misc.js';
+import aiRoutes from './routes/ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -213,6 +221,7 @@ await app.register(classRoutes);
 await app.register(assignmentRoutes);
 await app.register(adminRoutes);
 await app.register(miscRoutes);
+await app.register(aiRoutes);
 
 /* ---------- 静态托管 ----------
  * ★ web/dist 是构建产物、不在仓库里。
@@ -271,6 +280,20 @@ try {
   if (!fs.existsSync(WEB_DIST)) {
     app.log.warn('前端未构建，现在只有 API 可用。开发时请另开一个终端跑 npm run dev:web。');
   }
+
+  /* ★ AI 那一块的状态单独报一行。
+   *   没配 key 时不说的话，用户会以为「AI 功能坏了」——
+   *   而实际上只是少了一行配置。 */
+  const ai = aiHealth();
+  if (!ai.hasKey) {
+    app.log.warn('AI 功能未启用：没有配置 DEEPSEEK_API_KEY。'
+      + '在项目根目录执行 cp .env.example .env，填上 key 再重启。');
+  } else {
+    app.log.info(`AI 已配置 · 模型 ${ai.model} · 密钥来自 ${ai.keySource === 'env-file' ? '.env' : '环境变量'}`);
+  }
+  /* 被遮蔽的环境变量要**大声**说：静默用错 key 是最难查的一类问题
+   * （健康检查说「已配置」，每条消息却 401）。 */
+  warnShadowed((line) => app.log.warn(line));
 } catch (err) {
   app.log.error(err);
   process.exit(1);

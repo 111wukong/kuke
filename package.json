@@ -22,7 +22,9 @@
     "shots": "node tests/browser.mjs --shots",
     "start": "npm -w server run start",
     "seed": "npm -w server run seed",
-    "test:content": "node tests/content.mjs"
+    "test:content": "node tests/content.mjs",
+    "test:ai": "node tests/ai-unit.mjs && node tests/ai.mjs",
+    "test:browser:ai": "node tests/browser-ai.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

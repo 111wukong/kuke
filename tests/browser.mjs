@@ -295,7 +295,7 @@ try {
 
   console.log('\n[冒烟] 交互断言\n');
 
-  async function probeCase(name, to, steps, budget = 120000) {
+  async function probeCase(name, to, steps, budget = 400000) {
     const log = await runProbe(srv.base, { to, steps, width: 1440, height: 940, budget });
     const bad = log.filter((r) => r.act === 'fatal' || r.error || r.ok === false);
     const where = log.filter((r) => r.act === 'mounted' || r.act === 'finalPath')
@@ -379,8 +379,12 @@ try {
 
   await probeCase('登出后受保护页面会回到登录页', '/', [
     { act: 'assert', expr: "document.body.textContent.includes('今日目标')", timeout: 8000 },
-    { act: 'assert', expr: "fetch('/api/auth/logout', {method:'POST', credentials:'same-origin'}).then(r => r.status === 200)", timeout: 8000 },
-    { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 8000 },
+    /* ★ 点**界面上的退出按钮**，不要直接调 logout 接口。
+     *   直接调接口只清了服务端的会话，前端的 auth store 并不知道 ——
+     *   而「登出后要跳登录页」这件事靠的正是前端状态变化。
+     *   直接调接口等于绕开了要测的那条链。 */
+    { act: 'click', text: '退出', wait: 400 },
+    { act: 'assert', expr: "!!document.querySelector('input[type=email]')", timeout: 10000 },
   ]);
 
 } finally {

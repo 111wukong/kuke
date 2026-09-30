@@ -37,6 +37,15 @@ import path from 'node:path';
 export function findBrowser() {
   if (process.env.KUKE_BROWSER) return process.env.KUKE_BROWSER;
   const candidates = [
+    /* ★ chrome-headless-shell 是**另一个二进制**，不是 Chrome 主程序。
+     *   在 WorkBuddy 沙箱里 Chrome 主程序会被外层 SIGTERM 掉（退出码 137），
+     *   而 headless-shell 能正常出图 —— 它本来就是为无头场景打包的，
+     *   不需要显示器，也不受那套进程限制。
+     *   放在最前面：能跑的那个优先。
+     *   （它接受 --headless=new，只是忽略掉，所以参数不用改。） */
+    path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-arm64/chrome-headless-shell'),
+    path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-x64/chrome-headless-shell'),
+    path.join(os.homedir(), '.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell'),
     path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium-1223/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'),
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
@@ -189,36 +198,73 @@ function probeScript() {
    *
    *   requestAnimationFrame 会强制一次真实的渲染帧，代价是真实时间。
    *   每次迭代加一帧之后，轮询的「虚拟耗时」不变，但真实耗时涨了几百倍。 */
+  /* ★ 用 MessageChannel 让出，**不用 requestAnimationFrame**。
+   *
+   *   rAF 会推进 --virtual-time-budget 的虚拟时钟，而虚拟预算是有上限的。
+   *   症状极具迷惑性：**某一步之后，后面的步骤再也不执行** ——
+   *   而且预算调得越大，能跑的步数反而越少（因为 rAF 跑得更多）。
+   *   实测：wait:0 能过、wait:1 就过不去；同样两步，select 后能跑、click 后就停。
+   *
+   *   MessageChannel 是宏任务但**不是定时器**，不推进虚拟时钟 ——
+   *   循环可以一直转，把真实时间留给网络。这样预算只被 setTimeout 消耗，
+   *   而 setTimeout 是应用自己的进度需要，不是探针在空转。 */
+  var _mc = new MessageChannel();
+  var _yieldResolve = null;
+  _mc.port1.onmessage = function () { var r = _yieldResolve; _yieldResolve = null; if (r) r(); };
+  _mc.port1.start();
   function nextFrame() {
-    return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
+    return new Promise(function (r) { _yieldResolve = r; _mc.port2.postMessage(0); });
   }
 
   function waitFor(fn, tries, gap) {
     var i = 0;
     return new Promise(function (resolve) {
+      function next() {
+        if (++i >= (tries || 400)) return resolve(null);
+        setTimeout(function () { nextFrame().then(check); }, gap || 50);
+      }
       function check() {
         var v = null;
         try { v = fn(); } catch (e) {}
+        /* ★ 表达式可能返回 Promise（探针里直接调 fetch 就会）。
+         *   不 await 的话 Promise 对象**永远是 truthy** ——
+         *   断言当场「通过」，而它等的那件事还没发生。
+         *   症状极具迷惑性：**下一步立刻失败**，失败信息指向下一步，
+         *   完全看不出是上一步没等。 */
+        if (v && typeof v.then === 'function') {
+          v.then(function (r) { if (r) resolve(r); else next(); },
+                 function () { next(); });
+          return;
+        }
         if (v) return resolve(v);
-        if (++i >= (tries || 400)) return resolve(null);
-        /* ★ **每一次迭代**都要让出一帧，不是只在开头让一次。
-         *
-         *   这是这一串排查里最后一个坑：只在开头让一帧的话，
-         *   循环本身仍然是纯 setTimeout —— 而虚拟时间不为 fetch 暂停，
-         *   所以 400 次迭代在真实时间里几毫秒就跑完了，
-         *   此时页面还停在骨架屏上。
-         *
-         *   症状极具迷惑性：**每条剧本都只在第 1 步失败，后面全过**。
-         *   因为第 1 步紧跟挂载（还在加载数据），
-         *   而第 2 步之前的 200ms 睡眠 + 一帧恰好给了应用时间。
-         *
-         *   rAF 会强制一次真实渲染帧，代价是真实时间：
-         *   400 次迭代 × 一帧 ≈ 6 秒真实时间，足够任何本地请求跑完。
-         *   虚拟时间那边只是从 8000ms 涨到约 14000ms，预算 120000 完全够。 */
-        setTimeout(function () { nextFrame().then(check); }, gap || 50);
+        next();
       }
       check();
     });
+  }
+
+  /* ★ 用注入内联 <script> 求值，**不用 Function / eval**。
+   *
+   *   库课的 CSP 是 script-src 'self' 'unsafe-inline'，**没有 unsafe-eval**。
+   *   所以 Function('return (' + expr + ')')() 会被 CSP 直接拦掉，
+   *   报错是「Evaluating a string as JavaScript violates ... 'unsafe-eval' is not an allowed source」。
+   *
+   *   症状极具迷惑性：**每条 expr 断言都失败**，但页面本身完全正常
+   *   （截图里什么都对）。而且因为 waitFor 会吞掉异常，
+   *   失败表现为「超时」而不是「被 CSP 拦了」——
+   *   一路排查到「是不是选择器写错了」，离真正的原因很远。
+   *
+   *   注入的内联脚本走的是 'unsafe-inline'，是放行的；而且是**同步执行**，
+   *   插进去就能读到结果，不需要 await。
+   */
+  function evalExpr(expr) {
+    var s = document.createElement('script');
+    s.textContent = 'window.__probeVal=(function(){try{return (' + expr + ');}catch(e){return null;}})();';
+    document.documentElement.appendChild(s);
+    if (s.parentNode) s.parentNode.removeChild(s);
+    var v = window.__probeVal;
+    try { window.__probeVal = undefined; } catch (e) { /* 清不掉也无所谓 */ }
+    return v;
   }
 
   function findClickable(text) {
@@ -273,13 +319,27 @@ function probeScript() {
               el.dispatchEvent(new Event('input', { bubbles: true }));
               rec.ok = true;
             }
+          } else if (st.act === 'select') {
+            /* ★ 下拉框要单独一个动作。
+             *   用 fill 的话走的是 HTMLInputElement 的 value setter，
+             *   而 <select> 的 value 在 HTMLSelectElement 上 ——
+             *   设不进去，而且 React 的 onChange 在 select 上挂的是
+             *   change 事件（不是 input）。两处都不对，表现是
+             *   「填了但没生效」，而步骤记录里 ok:true，看着像成功了。 */
+            var sel = document.querySelector(st.sel);
+            if (!sel) { rec.error = '找不到元素 ' + st.sel; }
+            else {
+              Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(sel, st.value);
+              sel.dispatchEvent(new Event('change', { bubbles: true }));
+              rec.ok = true;
+            }
           } else if (st.act === 'click') {
             var c = st.sel ? document.querySelector(st.sel) : findClickable(st.text);
             if (!c) { rec.error = '找不到可点击元素：' + (st.text || st.sel); }
             else { c.click(); rec.ok = true; rec.text = (c.textContent || '').trim().slice(0, 40); }
           } else if (st.act === 'wait' || st.act === 'assert') {
             var ok = await waitFor(function () {
-              try { return Function('return (' + st.expr + ')')() || null; } catch (e) { return null; }
+              try { return evalExpr(st.expr) || null; } catch (e) { return null; }
             }, Math.ceil((st.timeout || 6000) / 20), 20);
             rec.ok = !!ok;
             /* ★ 用 textContent 而不是 innerText：innerText 是**布局相关**的，
@@ -288,9 +348,7 @@ function probeScript() {
                *   症状就是断言失败但 actual 里只有侧栏，看着像主内容没渲染。 */
             if (!rec.ok && st.act === 'assert') rec.actual = pageText().slice(0, 1200);
           } else if (st.act === 'read') {
-            rec.value = st.expr
-              ? Function('return (' + st.expr + ')')()
-              : pageText().slice(0, 4000);
+            rec.value = st.expr ? evalExpr(st.expr) : pageText().slice(0, 4000);
           } else if (st.act === 'clickNav') {
             var nav = findClickable(st.text);
             if (!nav) { rec.error = '找不到导航项：' + st.text; }
@@ -460,14 +518,14 @@ export async function loginOnce(base, cred) {
  * cookie 由 `loginOnce()` 一次性种进共享 profile。每个探针各登一次
  * 会撞上 /api/auth/login 的限流（12 次/10 分钟）。
  */
-export async function runProbe(base, { to, steps, width, height, budget } = {}) {
+export async function runProbe(base, { to, steps, width, height, budget, timeout } = {}) {
   const url = `${base}/__probe.html`
     + `?to=${encodeURIComponent(to || '/')}`
     + `&steps=${encodeURIComponent(JSON.stringify(steps || []))}`;
 
   let dom;
   try {
-    dom = await dumpDom(url, { width, height, budget });
+    dom = await dumpDom(url, { width, height, budget, ...(timeout ? { timeout } : {}) });
   } catch (e) {
     return [{ act: 'fatal', error: String(e.message).split('\n')[0] }];
   }
