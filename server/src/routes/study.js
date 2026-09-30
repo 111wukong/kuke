@@ -10,6 +10,7 @@ import { diagnose } from '../lib/diagnose.js';
 import { snapshot, dailyPlan, addXp, updateCombo, checkin, refreshAchievements, myAchievements, achievementStats } from '../lib/progress.js';
 import { todayLocal } from '../lib/dates.js';
 import { xpFor } from '../lib/game.js';
+import { rl } from '../lib/rateLimit.js';
 
 const parseJson = (s, fallback) => {
   if (s == null) return fallback;
@@ -31,7 +32,7 @@ export default async function studyRoutes(fastify) {
   /* ============ 提交客观题 ============ */
   fastify.post('/api/study/answer', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 120, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(120, '1 minute') },
     schema: {
       body: {
         type: 'object',
@@ -127,7 +128,7 @@ export default async function studyRoutes(fastify) {
   /* ============ 提交范式题 ============ */
   fastify.post('/api/study/normalize/:id', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(60, '1 minute') },
     schema: {
       body: {
         type: 'object',

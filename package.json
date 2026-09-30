@@ -28,7 +28,11 @@
     "test:ai": "node tests/ai-unit.mjs && node tests/ai.mjs",
     "test:browser:ai": "node tests/browser-ai.mjs",
     "smoke:ai": "node scripts/smoke-ai.mjs",
-    "reset-password": "node scripts/reset-password.mjs"
+    "reset-password": "node scripts/reset-password.mjs",
+    "backup": "node scripts/backup.mjs",
+    "bench:session": "node bench/run.mjs session --c 300 --dur 60 --ip same",
+    "bench:login": "node bench/run.mjs login --c 300 --ip same",
+    "bench:submit": "node bench/bench-submit.mjs submit --c 300 --dur 20 --level L01"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

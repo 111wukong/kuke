@@ -1,0 +1,85 @@
+# ══════════════════════════════════════════════════════════════
+# 库课 · systemd 服务单元
+#
+# 不用 Docker 时用这个。安装：
+#   sudo cp deploy/kuke.service /etc/systemd/system/kuke.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kuke
+#   journalctl -u kuke -f          # 看日志
+#
+# 环境变量放 /etc/kuke/env（systemd 的 EnvironmentFile 格式，
+# 不要写 export，不要加引号）：
+#   NODE_ENV=production
+#   HOST=127.0.0.1
+#   PORT=5180
+#   KUKE_DB=/var/lib/kuke/kuke.db
+#   TRUST_PROXY=127.0.0.1
+#   KUKE_ALLOW_REGISTER=0
+#   KUKE_EMAIL=teacher@your-school.edu
+#   KUKE_PASSWORD=一个强密码
+#   KUKE_USERNAME=张老师
+# 权限：sudo chmod 600 /etc/kuke/env && sudo chown root:root /etc/kuke/env
+# ══════════════════════════════════════════════════════════════
+[Unit]
+Description=库课 · 数据库课程学习平台
+Documentation=https://github.com/111wukong/kuke
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kuke
+Group=kuke
+WorkingDirectory=/opt/kuke
+
+# ★ 环境变量单独放文件，不要写在 ExecStart 里 ——
+#   写在这里的话，`systemctl status` 和 ps 输出会把密码暴露给任何登录用户。
+EnvironmentFile=/etc/kuke/env
+
+# ★ HOST 默认是 127.0.0.1：让 Nginx 反代进来。
+#   想直接对外暴露（不推荐，没有 TLS）才改成 0.0.0.0。
+Environment=HOST=127.0.0.1
+
+# 提高 libuv 线程池。scrypt 跑在线程池上，默认只有 4 个线程 ——
+# 实测 300 并发登录时 p95 达到 1474ms，全部时间都耗在排队。
+Environment=UV_THREADPOOL_SIZE=16
+
+ExecStart=/usr/bin/node server/src/index.js
+
+Restart=always
+RestartSec=3
+# 反复崩溃时不要疯狂重启刷日志
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# ── 优雅退出 ──
+# 应用自己处理 SIGTERM（关 worker 池、关服务），
+# 给它 15 秒。到点还没退就直接 KILL。
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# ── 安全加固 ──
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
+# ProtectSystem=strict 会把整个文件系统挂成只读，
+# 所以要把真正需要写的地方显式开出来。
+ReadWritePaths=/var/lib/kuke
+# 应用要读 web/dist 与自身源码（只读）
+ReadOnlyPaths=/opt/kuke
+
+# 日志走 journald（配合 LOG_LEVEL=warn，不要开 info）
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kuke
+
+[Install]
+WantedBy=multi-user.target

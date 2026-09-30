@@ -40,9 +40,14 @@ function Boot() {
 export default function App() {
   const { user, settings, status, bootstrap } = useAuth();
   const { set: setTheme } = useTheme();
-  const { refreshSnapshot } = useApp();
+  const { refreshSnapshot, loadConfig } = useApp();
 
   useEffect(() => { bootstrap(); }, [bootstrap]);
+
+  /* 服务端配置在**启动时**拉一次，不能等登录之后 ——
+   * 登录页要用 allowRegister 决定显不显示注册入口。
+   * 它是个无副作用的 GET，未登录也能打。 */
+  useEffect(() => { loadConfig(); }, [loadConfig]);
 
   /* 登录后把服务端的主题和快照应用回来。
    * 主题必须在这里同步 —— 否则会出现"换台电脑登录后，

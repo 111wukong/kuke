@@ -26,6 +26,8 @@ import { xpFor, comboBonus, levelInfo, checkAchievements } from '../lib/game.js'
 import { todayLocal } from '../lib/dates.js';
 import { bumpStats } from '../db/index.js';
 import { refreshAchievements, addXp } from '../lib/progress.js';
+import { rl } from '../lib/rateLimit.js';
+import { refCacheKey, cachedReference } from '../lib/refCache.js';
 
 const parseJson = (s, fallback) => {
   if (s == null) return fallback;
@@ -65,7 +67,7 @@ export default async function sqlRoutes(fastify) {
   /* ============ 自由运行（SQL 实训场 / 广场）============ */
   fastify.post('/api/sql/run', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(60, '1 minute') },
     schema: {
       body: {
         type: 'object',
@@ -111,7 +113,7 @@ export default async function sqlRoutes(fastify) {
   /* ============ 提交关卡 ============ */
   fastify.post('/api/sql/levels/:id/submit', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 40, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(40, '1 minute') },
     schema: {
       body: {
         type: 'object',
@@ -172,10 +174,15 @@ export default async function sqlRoutes(fastify) {
         }
       }
     } else {
-      /* ---- 路径 ①：结果集比对 ---- */
+      /* ---- 路径 ①：结果集比对 ----
+       * 参考答案走内容哈希缓存（lib/refCache.js）：
+       * 300 个学生做同一道题只算一次，判题路径的 worker 占用直接减半。
+       * 键里含 ddl / seed / reference_sql / allowWrite ——
+       * 老师改了题就自动换键，不需要任何失效逻辑。 */
+      const refTask = { ddl: ds.ddl, seed: ds.seed, sql: level.reference_sql, allowWrite };
       const [userRes, refRes] = await Promise.all([
         sqlPool.run({ ddl: ds.ddl, seed: ds.seed, sql: userSql, allowWrite }, { timeout: 4000 }),
-        sqlPool.run({ ddl: ds.ddl, seed: ds.seed, sql: level.reference_sql, allowWrite }, { timeout: 4000 }),
+        cachedReference(refCacheKey(refTask), () => sqlPool.run(refTask, { timeout: 4000 })),
       ]);
       recordRun(req.user.id, { datasetId: ds.id, levelId: level.id, sql: userSql, res: userRes });
 
@@ -280,7 +287,7 @@ export default async function sqlRoutes(fastify) {
   /* ============ 索引实验：真跑 EXPLAIN 验证 ============ */
   fastify.post('/api/sql/labs/:id/submit', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 40, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(40, '1 minute') },
     schema: {
       body: { type: 'object', required: ['pick'], properties: { pick: { type: 'string' } } },
     },

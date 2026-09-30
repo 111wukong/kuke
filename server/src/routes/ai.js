@@ -19,6 +19,7 @@ import { MODES, newSession, run, publicSession, canInterject, interjectPlacehold
 import { describeTools, TEACHER_TOOLS, STUDENT_TOOLS, MATERIAL_DEPTH } from '../ai/tools.js';
 import { profileCard, learningProfile } from '../ai/profile.js';
 import { db } from '../db/index.js';
+import { rl } from '../lib/rateLimit.js';
 
 /* ============================================================
    会话表（内存）
@@ -71,7 +72,7 @@ export default async function aiRoutes(fastify) {
      ============================================================ */
   fastify.post('/api/ai/classroom', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(20, '1 minute') },
     schema: {
       body: {
         type: 'object',
@@ -142,7 +143,7 @@ export default async function aiRoutes(fastify) {
 
   fastify.post('/api/ai/classroom/:id/answer', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 120, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(120, '1 minute') },
     schema: { body: { type: 'object', required: ['text'], properties: { text: { type: 'string', maxLength: 4000 } } } },
   }, async (req, reply) => {
     const s = findSession(req, reply);
@@ -179,7 +180,7 @@ export default async function aiRoutes(fastify) {
      ============================================================ */
   fastify.post('/api/ai/generate', {
     preHandler: fastify.requireTeacher,
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(10, '1 minute') },
     schema: {
       body: {
         type: 'object',
@@ -214,7 +215,7 @@ export default async function aiRoutes(fastify) {
      ============================================================ */
   fastify.post('/api/ai/explain', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    config: { rateLimit: rl(30, '1 minute') },
     schema: {
       body: {
         type: 'object',

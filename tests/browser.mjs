@@ -364,6 +364,20 @@ try {
     { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 8000 },
     {
       act: 'assert',
+      /* ★ timeout 是必须的，不是保险。
+       *
+       * 这条断言读的是 getComputedStyle(document.body) —— 它依赖
+       * 「data-theme 已经切到 paper 且 CSS 变量已经重算完」。
+       * 上一步只断言了 data-theme 属性变了，那是一个 DOM 属性赋值，
+       * 立即生效；而样式重算要等一帧。
+       *
+       * 少了 timeout，这条断言会在属性刚改完、样式还没落地时求值，
+       * 拿到的是上一个主题的颜色 —— 于是变成随机失败：
+       * 机器快就过、机器忙就挂。实测同一份代码跑两次，
+       * 一次 21/1 一次 22/0。
+       *
+       * 周围所有断言都带 timeout，只有这条漏了。 */
+      timeout: 8000,
       expr: `(() => {
         const s = getComputedStyle(document.body);
         const lum = (c) => {

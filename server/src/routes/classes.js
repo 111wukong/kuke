@@ -18,6 +18,7 @@ import { isStaff, isAdmin, canManage } from '../lib/perms.js';
 import { diagnoseClass } from '../lib/diagnose.js';
 import { levelInfo } from '../lib/game.js';
 import { todayLocal, lastDays } from '../lib/dates.js';
+import { rl } from '../lib/rateLimit.js';
 
 const newId = () => crypto.randomBytes(4).toString('hex').toUpperCase();
 
@@ -277,7 +278,7 @@ export default async function classRoutes(fastify) {
   /* ============ 学生自己入班 ============ */
   fastify.post('/api/classes/join', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 10, timeWindow: '10 minutes' } },
+    config: { rateLimit: rl(10, '10 minutes') },
     schema: {
       body: { type: 'object', required: ['code'], properties: { code: { type: 'string' } } },
     },

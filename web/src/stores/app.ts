@@ -54,6 +54,21 @@ export interface Toast {
   detail?: string;
 }
 
+/* 服务端配置快照。
+ *
+ * ★ 这个接口（/api/misc/config）早就有了，但前端**从来没用过它** ——
+ *   于是生产环境关掉自助注册之后，登录页仍然显示「还没有账号？注册一个」，
+ *   学生点进去、填完表单、提交，才收到 403「本系统已关闭自助注册」。
+ *   前后端都在说实话，只是说的不是同一件事。
+ *
+ * 拉不到时按 **allowRegister: false** 处理（保守）：
+ * 少显示一个入口，用户最多问一句老师；
+ * 多显示一个点了会失败的入口，用户会以为系统坏了。 */
+export interface ServerConfig {
+  allowRegister: boolean;
+  version: string;
+}
+
 interface AppState {
   navOpen: boolean;
   setNavOpen: (v: boolean) => void;
@@ -61,6 +76,10 @@ interface AppState {
   snapshot: Snapshot | null;
   plan: DailyPlan | null;
   refreshSnapshot: () => Promise<void>;
+
+  /** 服务端配置（是否开放自助注册等）。null = 还没拉到。 */
+  config: ServerConfig | null;
+  loadConfig: () => Promise<void>;
 
   toasts: Toast[];
   toast: (kind: ToastKind, text: string, detail?: string) => void;
@@ -82,6 +101,23 @@ export const useApp = create<AppState>((set, get) => ({
       set({ snapshot: r.snapshot, plan: r.plan });
     } catch {
       /* 快照拉失败不该影响页面本身。侧栏数字暂时不变而已。 */
+    }
+  },
+
+  config: null,
+
+  async loadConfig() {
+    try {
+      const r = await api.get('/api/misc/config');
+      set({
+        config: {
+          // 服务端没给这个字段时按「不允许」处理，理由见 ServerConfig 注释
+          allowRegister: r?.allowRegister === true,
+          version: r?.version || '',
+        },
+      });
+    } catch {
+      set({ config: { allowRegister: false, version: '' } });
     }
   },
 

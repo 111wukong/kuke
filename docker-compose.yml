@@ -1,0 +1,85 @@
+# ══════════════════════════════════════════════════════════════
+# 库课 · 单机部署（云服务器）
+#
+# 用法：
+#   1. 在这个目录建 .env（compose 会读它做变量插值）：
+#        KUKE_EMAIL=teacher@your-school.edu
+#        KUKE_PASSWORD=一个强密码
+#        KUKE_USERNAME=张老师
+#   2. docker compose up -d --build
+#   3. 在宿主机装 Nginx，用 deploy/nginx.conf 反代到 127.0.0.1:5180
+#
+# ══════════════════════════════════════════════════════════════
+services:
+  kuke:
+    build: .
+    image: kuke:latest
+    container_name: kuke
+    restart: unless-stopped
+
+    ports:
+      # ★ 只绑 127.0.0.1，不写 "5180:5180"。
+      #
+      #   写成 5180:5180 会把应用直接暴露到公网，而它自己是纯 HTTP ——
+      #   学生的密码、会话 cookie 全部明文过网。必须让 Nginx 在前面
+      #   做 TLS 终止，应用只在回环上被访问。
+      - "127.0.0.1:5180:5180"
+
+    volumes:
+      # 数据库。★ 用命名卷而不是 bind mount ——
+      #   bind mount 到宿主机目录时，SELinux 和权限问题会让
+      #   node 用户写不进去，表现是「服务起来了但一写就报错」。
+      - kuke-data:/data
+      # 备份产物（scripts/backup.mjs 写的），放宿主机方便拷走
+      - ./backups:/backups
+
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "5180"
+      KUKE_DB: /data/kuke.db
+      LOG_LEVEL: warn
+
+      # 反向代理。★ 这一条必须设对，否则：
+      #   · 按 IP 的限流全部落到同一个「IP」（Nginx 自己的地址）
+      #   · 审计日志里所有登录都来自 127.0.0.1，出事查不到人
+      # 这里给的是 Docker 默认网桥网段 + 回环。宿主机 Nginx 反代时，
+      # 容器看到的来源是 docker0 网关（通常是 172.17.0.1）。
+      # 如果 Nginx 也在容器里，用 compose 的服务名对应网段。
+      TRUST_PROXY: "172.16.0.0/12,127.0.0.1"
+
+      # 自助注册。生产默认关闭（代码里也是这个默认值），
+      # 这里显式写出来是为了让部署的人看见有这么一个开关。
+      # 老师要收学生，走「建班 → 发邀请码」。
+      KUKE_ALLOW_REGISTER: "0"
+
+      # 首个教师账号。★ 只在数据库为空时创建一次，
+      # 之后无论怎么改这三个变量都不会动已有账号。
+      # 部署完请立刻登录改掉密码。
+      KUKE_EMAIL: "${KUKE_EMAIL:?请在 .env 里设置 KUKE_EMAIL}"
+      KUKE_PASSWORD: "${KUKE_PASSWORD:?请在 .env 里设置 KUKE_PASSWORD（不要用弱密码）}"
+      KUKE_USERNAME: "${KUKE_USERNAME:-老师}"
+      KUKE_BOOTSTRAP_ROLE: "${KUKE_BOOTSTRAP_ROLE:-teacher}"
+
+      # AI 课堂（可选）。不填就是「AI 功能未启用」，
+      # 其余功能完全不受影响 —— 不要为了它卡住部署。
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      DEEPSEEK_MODEL: "${DEEPSEEK_MODEL:-deepseek-chat}"
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5180/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+    logging:
+      # 不限制的话，日志会把磁盘写满 —— 实测 info 级别下
+      # 300 并发 20 秒就是 1GB。生产已经降到 warn，这里再加一道保险。
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  kuke-data:

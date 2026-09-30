@@ -138,6 +138,36 @@ npm run dev
 
 ---
 
+## 部署
+
+要放到云服务器上供学生通过公网访问，完整步骤看 **[docs/部署到云服务器.md](docs/部署到云服务器.md)**。
+
+仓库里已经准备好的东西：
+
+| 文件 | 用途 |
+|---|---|
+| `Dockerfile` · `docker-compose.yml` | 容器化部署，含健康检查与日志轮转 |
+| `deploy/nginx.conf` | 反代 + HTTPS + SSE 不缓冲 + gzip |
+| `deploy/kuke.service` | systemd 单元，含沙箱加固 |
+| `scripts/backup.mjs` | 数据库备份（`VACUUM INTO` + 完整性校验 + 轮转） |
+| `bench/` | 300 并发压测工具，零依赖 |
+
+```bash
+# Docker
+cp .env.example .env          # 填 KUKE_EMAIL / KUKE_PASSWORD
+docker compose up -d --build
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/kuke.conf && sudo certbot --nginx -d 你的域名
+
+# 或 systemd
+sudo cp deploy/kuke.service /etc/systemd/system/kuke.service && sudo systemctl enable --now kuke
+```
+
+> ★ **不要把 5180 端口直接开到公网。**
+> 应用自己是纯 HTTP —— 学生的密码和会话 cookie 会明文过网。
+> 正确结构是 `浏览器 → HTTPS → Nginx → 应用(只监听回环)`。
+
+---
+
 ## 内容规模
 
 | | 数量 |
@@ -303,10 +333,16 @@ npm run test:browser:ai  # AI 课堂的浏览器冒烟
 | 变量 | 作用 |
 |---|---|
 | `KUKE_DB` | 数据库文件位置 |
-| `PORT` | 监听端口（默认 5180） |
-| `KUKE_EMAIL` / `KUKE_PASSWORD` | 首个教师账号 |
-| `KUKE_ALLOW_REGISTER` | 设为 `0` 关闭自助注册 |
-| `TRUST_PROXY` | 跑在反向代理后面时才设（默认关闭，见注释） |
+| `PORT` / `HOST` | 监听端口与地址（`HOST` 默认 `127.0.0.1`，故意不暴露公网） |
+| `NODE_ENV` | 设 `production` 时：cookie 加 `Secure`、自助注册默认关闭、日志默认降为 warn |
+| `KUKE_EMAIL` / `KUKE_PASSWORD` | 首个教师账号（只在库为空时创建） |
+| `KUKE_ALLOW_REGISTER` | 生产默认关闭；要开放注册设 `1` |
+| `TRUST_PROXY` | 跑在反向代理后面时设成**代理的地址**（不要写 `true`） |
+| `UV_THREADPOOL_SIZE` | 建议 `16`。scrypt 跑在线程池上，默认 4 个线程，300 并发登录会排队 |
+| `LOG_LEVEL` | 生产别开 `info` —— 实测压测 20 秒产生 1GB 日志 |
+
+> `.env` **会被自动读取**（实现在 `server/src/lib/env.js`）。
+> 优先级：凭据类以 `.env` 为准，其余以环境变量为准。
 
 ---
 
@@ -341,7 +377,11 @@ kuke/
 ├── server/      Fastify + SQLite（含全部课程内容在 src/data/）
 ├── web/         React + Vite + Tailwind
 ├── tests/       五组零依赖测试
-├── docs/        设计说明
+├── bench/       300 并发压测工具（零依赖，可复现报告里的数字）
+├── deploy/      Nginx 反代配置 + systemd 单元
+├── scripts/     备份 / 重置密码 / AI 联通检查
+├── docs/        设计说明 + 部署文档
+├── Dockerfile   生产镜像（多阶段构建）
 └── 启动.command macOS 一键启动
 ```
 
@@ -351,9 +391,12 @@ kuke/
 
 1. 浏览器测试需要真实桌面环境（见上）。
 2. SQL 方言是 **SQLite** —— 教学语法它全有，但 `ALTER TABLE` 支持有限。
-3. Docker 部署配置未在本机验证（这台机器没装 Docker）。
-4. 内容够一学期但不富余，扩充只需往 `server/src/data/` 加条目。
-5. 教师端内容管理只做了题目的增删改，没有可视化编辑器。
+3. **Docker 配置没有在本机跑过**（这台机器没装 Docker）。文件是按官方文档写的，
+   首次使用请留意 `docker compose up --build` 的构建日志。
+4. **单进程 + 单 SQLite 连接**：所有 API 在主线程上同步执行 SQL，只用到一个 CPU 核。
+   读路径实测能到 4700 req/s，当前规模够用；要留更多余量需要多进程（见部署文档第 9 节）。
+5. 内容够一学期但不富余，扩充只需往 `server/src/data/` 加条目。
+6. 教师端内容管理只做了题目的增删改，没有可视化编辑器。
 
 ---
 

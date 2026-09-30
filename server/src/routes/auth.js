@@ -23,9 +23,13 @@ import {
 } from '../lib/session.js';
 import { shapeUser } from '../lib/perms.js';
 import { isThemeId, DEFAULT_THEME } from '../lib/themes.js';
+import { rl } from '../lib/rateLimit.js';
+import { loginGuardCheck, loginGuardFail, loginGuardSuccess } from '../lib/loginGuard.js';
 
-const IS_PROD = process.env.NODE_ENV === 'production';
-const ALLOW_REGISTER = process.env.KUKE_ALLOW_REGISTER !== '0';
+/* ★ IS_PROD / ALLOW_REGISTER 统一从 lib/flags.js 取。
+ * 这两个值 misc.js 也在读（前端靠它决定显不显示注册入口）——
+ * 两处各写一份判断必然会漂移，见 flags.js 顶部的真实案例。 */
+import { IS_PROD, ALLOW_REGISTER } from '../lib/flags.js';
 
 /** 登录失败时的统一响应。不区分「邮箱不存在」和「密码错误」——
  *  区分开等于给攻击者一个邮箱枚举接口。 */
@@ -34,7 +38,14 @@ const LOGIN_FAIL = { error: '邮箱或密码不正确', code: 'BAD_CREDENTIALS' 
 export default async function authRoutes(fastify) {
   /* ============ 注册 ============ */
   fastify.post('/api/auth/register', {
-    config: { rateLimit: { max: 8, timeWindow: '10 minutes' } },
+    /* 注册是**唯一**必须按 IP 计的业务接口 —— 它天然匿名，
+     * 没有邮箱或用户 id 可以当桶键，而按 IP 正是防批量注册的正确维度。
+     *
+     * 阈值从 8 放宽到 60：8 次/10 分钟意味着机房开课那天，
+     * 同一个出口只有 8 个学生能自助注册（其余全 429）。
+     * 60 仍然拦得住批量刷号 —— 而且注册本身还要求班级邀请码，
+     * 真正的门槛在那里。 */
+    config: { rateLimit: rl(60, '10 minutes') },
     schema: {
       body: {
         type: 'object',
@@ -99,10 +110,25 @@ export default async function authRoutes(fastify) {
 
   /* ============ 登录 ============ */
   fastify.post('/api/auth/login', {
-    /* 限流按 IP 计。★ 这条依赖 trustProxy 默认关闭 ——
-     * 如果开了 trustProxy 又没配好，客户端可以随便改 X-Forwarded-For，
-     * 换个头就是一个新身份，登录接口可以无限次试密码。 */
-    config: { rateLimit: { max: 12, timeWindow: '10 minutes' } },
+    /* ★ 这里**刻意不挂** per-route 的 rate-limit。
+     *
+     * 原因：@fastify/rate-limit 按「请求」计数，而登录请求有两种，
+     * 语义完全相反 ——
+     *   · 机房 300 个学生登录 = 300 次**成功**的请求，应该全放行
+     *   · 有人在扫号         = 大量**失败**的请求，应该尽快拦住
+     * 按请求计数必然误伤前者：阈值定 12，第 13 个学生就进不来；
+     * 为了放行学生把阈值放宽，扫号防护又形同虚设。
+     *
+     * 所以改在业务层按**失败次数**计数（lib/loginGuard.js）：
+     * 邮箱桶 12 次失败/10 分钟、IP 桶 30 次失败/10 分钟，
+     * 登录成功还会清掉邮箱桶。这样机房来多少人都不受影响，
+     * 而扫号 12 次就锁死那个账号。
+     *
+     * 全局那层按 IP 的兜底限流仍然生效（未登录时 1200 次/分钟），
+     * 所以这个路由并没有裸奔 —— 它只是不再有「按请求」的窄桶。
+     *
+     * 这一层同样依赖 trustProxy 配置正确：开了 trustProxy 又没收窄到
+     * 代理自己的地址，客户端就能随便改 X-Forwarded-For 换 IP 桶。 */
     schema: {
       body: {
         type: 'object',
@@ -114,14 +140,33 @@ export default async function authRoutes(fastify) {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
 
+    /* ★ 失败计数检查放在**最前面**，早于任何查库和 scrypt。
+     *   放到后面等于把 CPU 送给攻击者 —— 拦是拦住了，
+     *   但每次被拦的请求都已经付过一次 scrypt 的钱。 */
+    const blocked = loginGuardCheck({ email, ip: req.ip });
+    if (blocked) {
+      const mins = Math.max(1, Math.ceil(blocked.retryAfterSec / 60));
+      reply.header('Retry-After', String(blocked.retryAfterSec));
+      return reply.code(429).send({
+        error: blocked.scope === 'account'
+          ? `这个账号的登录尝试太频繁了，请 ${mins} 分钟后再试。忘了密码可以让老师重置。`
+          : `这个网络地址的登录尝试太频繁了，请 ${mins} 分钟后再试。`,
+        code: 'RATE_LIMITED',
+        scope: blocked.scope,
+        retryAfterSec: blocked.retryAfterSec,
+      });
+    }
+
     const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!row) {
+      loginGuardFail({ email, ip: req.ip });
       logAuth('login_failed', { email, ip: req.ip, userAgent: req.headers['user-agent'] });
       return reply.code(401).send(LOGIN_FAIL);
     }
 
     const ok = await verifyPassword(password, row.password_hash, row.password_salt);
     if (!ok) {
+      loginGuardFail({ email, ip: req.ip });
       logAuth('login_failed', { email, userId: row.id, ip: req.ip, userAgent: req.headers['user-agent'] });
       return reply.code(401).send(LOGIN_FAIL);
     }
@@ -129,6 +174,10 @@ export default async function authRoutes(fastify) {
     if (row.status !== 'active') {
       return reply.code(403).send({ error: '这个账号已被停用，请联系老师', code: 'ACCOUNT_DISABLED' });
     }
+
+    /* 登录成功 → 清掉这个邮箱的失败记录。
+     * 本人输错几次再输对，不该留下案底。IP 桶不清 —— 见 loginGuard 文件头。 */
+    loginGuardSuccess({ email });
 
     db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(row.id);
     logAuth('login', { email, userId: row.id, ip: req.ip, userAgent: req.headers['user-agent'] });

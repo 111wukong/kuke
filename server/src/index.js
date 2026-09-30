@@ -24,6 +24,7 @@ import { initSchema, health, DB_PATH } from './db/index.js';
 import { migrate, ensureBootstrapAccount } from './db/migrate.js';
 import { seed } from './db/seed.js';
 import { COOKIE_NAME, readSession, cleanupSessions } from './lib/session.js';
+import { userOrIpKey, rateLimitScale } from './lib/rateLimit.js';
 import { isAdmin, isTeacher, isStaff } from './lib/perms.js';
 import { sqlPool } from './lib/sqlRunner.js';
 
@@ -66,7 +67,16 @@ function resolveTrustProxy() {
 }
 
 const app = Fastify({
-  logger: { level: process.env.LOG_LEVEL || 'info' },
+  /* 日志级别。生产默认 warn。
+   *
+   * 实测数据：info 级别下，300 并发压测 20 秒产生了 1.0GB 日志
+   * （每个请求两行：incoming + completed）。公网部署时这既是磁盘压力，
+   * 也是 IO 压力，而且真正有用的错误信息被淹在几百万行请求日志里。
+   * 请求级日志交给 Nginx 的 access_log 去做，那里才是它该待的地方。 */
+  logger: {
+    level: process.env.LOG_LEVEL
+      || (process.env.NODE_ENV === 'production' ? 'warn' : 'info'),
+  },
   bodyLimit: 4 * 1024 * 1024,
   trustProxy: resolveTrustProxy(),
 });
@@ -195,20 +205,20 @@ app.decorate('requireAdmin', async (req, reply) => {
 await app.register(cookie);
 await app.register(rateLimit, {
   global: true,
-  /* ★ 限流阈值可以用环境变量调。
+  /* ★ 阈值和分桶方式都改过一轮，理由见 lib/rateLimit.js 顶部。
    *
-   * 为什么需要这个口子：浏览器冒烟测试一次要加载 30+ 个页面，
-   * 每个页面 8~10 个请求 —— 加起来正好撞上 300/分钟 的默认阈值，
-   * 于是后半程的页面全部收到 429，探针页拿到的是 JSON 而不是 HTML，
-   * 报出来是「探针页没有输出结果（__probe.html 没被正确提供？）」，
-   * 看起来像静态托管坏了，其实是限流。
+   * 原来：max 300 / 分钟，keyGenerator = req.ip。
+   * 问题：学校机房是一个 NAT 出口，300 个学生共享同一个 req.ip ——
+   *       一次页面加载就要 8~10 个请求，300/分钟 只够 30 个学生打开页面。
+   *       实测（bench/run.mjs session --c 300 --ip same）：成功率 5%。
    *
-   * 生产环境保持默认值；测试起的是本地一次性服务，调高它不削弱安全性。 */
-  max: Number(process.env.KUKE_RATE_LIMIT) || 300,
+   * 现在：keyGenerator 按「已登录用户 / 未登录 IP」分桶。
+   *       已登录的学生各有一份 300/分钟的配额，互不挤占；
+   *       未登录的匿名流量仍按 IP 计，防的是扫描和 DoS。
+   *       未登录阈值放宽到 1200 —— 要装得下「一个机房同时打开登录页」。 */
+  max: Number(process.env.KUKE_RATE_LIMIT) || 1200,
   timeWindow: '1 minute',
-  /* 限流按 IP。这里**不做**用户级限流 —— 用户级要读 cookie、
-   * 查库，成本比 IP 高一个量级，而教学系统的并发量远没到需要它的程度。 */
-  keyGenerator: (req) => req.ip,
+  keyGenerator: userOrIpKey,
   allowList: [],
 });
 
@@ -229,7 +239,36 @@ await app.register(aiRoutes);
  * 而服务本身是正常的，很容易误以为装错了。
  * 所以这里明确打印一条警告，而不是静默 404。 */
 if (fs.existsSync(WEB_DIST)) {
-  await app.register(fastifyStatic, { root: WEB_DIST, prefix: '/' });
+  await app.register(fastifyStatic, {
+    root: WEB_DIST,
+    prefix: '/',
+    /* 缓存策略按文件类型决定，所以关掉插件自带的那一份。
+     *
+     * ★ 第一个参数是 **Fastify 的 reply**，不是 Node 的 http.ServerResponse。
+     *   写成 `res.setHeader(...)` 会在**第一次请求静态资源时**抛
+     *   TypeError: res.setHeader is not a function，而且因为它在
+     *   fastify-static 的 pumpSendToReply 里被调用，异常会直接冒到
+     *   顶层把进程打挂 —— 表现是「服务起来后一切正常，直到有人打开首页」。
+     *   查插件源码确认签名：setHeaders?.(reply, metadata.path, metadata.stat) */
+    cacheControl: false,
+    setHeaders(reply, filePath) {
+      /* Vite 产物带内容哈希（index-BlbmVkrY.js）—— 内容一变文件名就变，
+       * 所以可以永久缓存。这一条把回访用户的加载从「重下约 900KB」
+       * 降到「只下 2KB 的 index.html」。
+       *
+       * 公网部署时这条尤其重要：学生的带宽和服务器出口流量都要钱。 */
+      if (/[.-][A-Za-z0-9_-]{8,}\.(?:js|css|woff2?|png|jpe?g|svg|webp|ico)$/.test(filePath)) {
+        reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        /* ★ index.html 绝对不能长缓存。它是产物的入口 ——
+         * 缓存住之后，即使静态资源的哈希变了，用户也永远不会去请求新名字，
+         * 结果是「发了新版但所有人还在用旧前端」，而且刷新也不管用。
+         * no-cache 不是不缓存，是「每次都要回来问一句」，
+         * 命中 304 时只花几十字节。 */
+        reply.header('Cache-Control', 'no-cache');
+      }
+    },
+  });
 
   app.setNotFoundHandler((req, reply) => {
     /* SPA fallback：非 /api 的路径一律回 index.html，

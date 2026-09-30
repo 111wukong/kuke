@@ -4,10 +4,20 @@
  */
 import { db, health } from '../db/index.js';
 import { isAdmin } from '../lib/perms.js';
+import { ALLOW_REGISTER, VERSION } from '../lib/flags.js';
+import { refCacheStats, refCacheSize } from '../lib/refCache.js';
+import { loginGuardStats } from '../lib/loginGuard.js';
+import { rateLimitScale } from '../lib/rateLimit.js';
 
 export default async function miscRoutes(fastify) {
   /* 健康检查。**不需要登录** —— 部署时反代和监控要用它探活，
-   * 而那两样都不带 cookie。所以它只能回不敏感的信息。 */
+   * 而那两样都不带 cookie。所以它只能回不敏感的信息：
+   * 表数量、账号数、运行时长。
+   *
+   * ★ 缓存命中率、限流计数这类内部状态**不放这里** ——
+   *   公网上的任何人都能打这个接口，把限流水位暴露出去
+   *   等于告诉攻击者「现在离被拦还有多远」。
+   *   要看那些去 /api/misc/metrics（需要管理员）。 */
   fastify.get('/api/health', async () => {
     const h = health();
     return {
@@ -15,7 +25,7 @@ export default async function miscRoutes(fastify) {
       tables: h.tables,
       users: h.users,
       uptime: Math.round(process.uptime()),
-      version: '1.0.0',
+      version: VERSION,
     };
   });
 
@@ -71,12 +81,39 @@ export default async function miscRoutes(fastify) {
   }));
 
   /* 服务端配置快照。前端用它决定显示哪些入口
-   * （比如关闭了自助注册就不显示注册链接）。 */
+   * （比如关闭了自助注册就不显示注册链接）。
+   *
+   * ★ 这里的 ALLOW_REGISTER 必须和 auth.js 里放行注册用的是同一个值 ——
+   *   之前两处各写一份判断，改了一处没改另一处，结果是
+   *   「前端显示注册入口，学生填完提交收到 403」。
+   *   现在都从 lib/flags.js 取。 */
   fastify.get('/api/misc/config', async () => ({
-    allowRegister: process.env.KUKE_ALLOW_REGISTER !== '0',
+    allowRegister: ALLOW_REGISTER,
     hasBootstrap: true,
-    version: '1.0.0',
+    version: VERSION,
   }));
+
+  /* 运行指标（管理员）。上线后「服务到底健不健康」看这里：
+   *   · 参考答案缓存命中率 —— 判题的 worker 占用有没有被省下来
+   *   · 登录失败计数 —— 有没有人在扫号
+   *   · 限流倍率 —— 确认生产跑的是 1（不是压测时留下的放大值） */
+  fastify.get('/api/misc/metrics', { preHandler: fastify.requireAdmin }, async () => {
+    const total = refCacheStats.hit + refCacheStats.miss;
+    return {
+      refCache: {
+        ...refCacheStats,
+        size: refCacheSize(),
+        hitRate: total ? +(refCacheStats.hit / total * 100).toFixed(1) : null,
+      },
+      loginGuard: loginGuardStats(),
+      rateLimit: { scale: rateLimitScale, scaled: rateLimitScale !== 1 },
+      runtime: {
+        uptime: Math.round(process.uptime()),
+        rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        node: process.version,
+      },
+    };
+  });
 
   /* 我的会话列表（学生自己也能看，用于"这账号在哪些设备上登录了"） */
   fastify.get('/api/misc/sessions', { preHandler: fastify.requireAuth }, async (req) => {

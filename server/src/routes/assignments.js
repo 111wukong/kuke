@@ -15,6 +15,7 @@ import { judgeQuestion } from '../lib/judge.js';
 import { judgeSql } from '../lib/sqlCompare.js';
 import { judgeNormalize, parseAttrGroup, parseSchemeList } from '../lib/normalize.js';
 import { sqlPool } from '../lib/sqlRunner.js';
+import { rl } from '../lib/rateLimit.js';
 
 const parseJson = (s, fallback) => {
   if (s == null) return fallback;
@@ -313,7 +314,7 @@ export default async function assignmentRoutes(fastify) {
   /* ============ 学生提交作业 ============ */
   fastify.post('/api/assignments/:id/submit', {
     preHandler: fastify.requireAuth,
-    config: { rateLimit: { max: 10, timeWindow: '10 minutes' } },
+    config: { rateLimit: rl(10, '10 minutes') },
     schema: {
       body: {
         type: 'object',

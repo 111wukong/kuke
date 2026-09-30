@@ -21,10 +21,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKER_PATH = path.resolve(__dirname, '../workers/sqlWorker.js');
 
 const DEFAULT_TIMEOUT = 4000;   // 单次执行上限。教学库上是几百行的量级，4 秒已经很宽裕
-const QUEUE_LIMIT = 200;        // 排队上限，防止有人刷接口把内存堆爆
+
+/* 排队上限。原来是 200 —— 那是按「偶尔有人连点」估的。
+ * 300 个学生同时交卷的场面下，一次提交最多产生 2 个任务
+ * （学生 SQL + 参考答案，后者现在有缓存），200 的队列
+ * 连一个班都装不下，超出部分直接被拒成「服务器繁忙」。
+ * 队列元素只是几个字符串引用，1000 条的常驻成本可以忽略。 */
+const QUEUE_LIMIT = 1000;
+
+/* 池大小。原为 min(4, cpus-1)，理由是「worker 是 CPU 密集的，
+ * 开太多会互相抢核」。这个理由对重查询成立，但教学库是
+ * 每表几百行的内存库 —— 单次任务的实际耗时在 5~20ms 量级，
+ * 而且每个任务都要新建内存库、灌 DDL 和样本数据，
+ * 这段时间里 worker 有相当一部分是在等内存分配而不是烧 CPU。
+ * 所以把上限从 4 提到 8 —— 代价是常驻内存多了几个 worker
+ * （每个约 10~20MB），换的是判题排队长度减半。
+ * 上限仍然压在 8，避免在 4 核机器上把系统拖死。
+ * （这个改动的收益见 bench/ 下的对比数据；没有实测支撑就不写进结论。） */
+const POOL_SIZE = Math.max(2, Math.min(8, os.cpus().length - 1));
 
 class SqlPool {
-  constructor(size = Math.max(2, Math.min(4, os.cpus().length - 1))) {
+  constructor(size = POOL_SIZE) {
     this.size = size;
     this.workers = [];
     this.queue = [];

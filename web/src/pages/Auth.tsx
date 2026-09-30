@@ -129,8 +129,15 @@ export function Login() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const { login } = useAuth();
-  const { toast } = useApp();
+  const { toast, config } = useApp();
   const nav = useNavigate();
+
+  /* ★ 注册入口要跟着服务端开关走。
+   *   以前这里写死了一个「注册一个」链接，而生产环境（NODE_ENV=production）
+   *   默认关闭自助注册 —— 学生点进去、填完表单、提交，才收到 403
+   *   「本系统已关闭自助注册」。前后端都在说实话，只是说的不是同一件事。
+   *   config 还没拉到（null）时按「不显示」处理，理由见 stores/app.ts。 */
+  const canRegister = config?.allowRegister === true;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -151,7 +158,11 @@ export function Login() {
     <AuthShell
       title="登录"
       subtitle="用邮箱和密码进入你的学习空间"
-      footer={<>还没有账号？<Link to="/register" className="text-cyan hover:underline">注册一个</Link></>}
+      footer={
+        canRegister
+          ? <>还没有账号？<Link to="/register" className="text-cyan hover:underline">注册一个</Link></>
+          : <>没有账号？让老师给你开通，或问老师要班级邀请码。</>
+      }
     >
       <form onSubmit={submit} className="space-y-3.5">
         <Field label="邮箱" required>
@@ -205,8 +216,16 @@ export function Register() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const { register } = useAuth();
-  const { toast } = useApp();
+  const { toast, config } = useApp();
   const nav = useNavigate();
+
+  /* 服务端明确关闭了自助注册时，直接给一句解释，而不是让学生
+   * 填完表单再吃 403。
+   *
+   * 判断用 === false 而不是 falsy：config 还没拉到时是 null，
+   * 这时**不拦** —— 用户可能是直接访问 /register 深链接，
+   * 给表单比给一个可能过时的「已关闭」提示更稳妥。 */
+  const closed = config?.allowRegister === false;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -227,6 +246,24 @@ export function Register() {
       setBusy(false);
     }
   };
+
+  if (closed) {
+    return (
+      <AuthShell
+        title="注册已关闭"
+        subtitle="这个系统目前不开放自助注册"
+        footer={<>已经有账号了？<Link to="/login" className="text-cyan hover:underline">去登录</Link></>}
+      >
+        <Callout tone="info" title="怎么拿到账号">
+          两种方式：让老师给你开通一个，或者问老师要班级邀请码。
+        </Callout>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-fg-mute">
+          如果老师已经发了邀请码，说明他那边可以一键批量建号 ——
+          把邀请码发给他就行，不用自己注册。
+        </p>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
