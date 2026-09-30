@@ -178,7 +178,7 @@ export default function Normalize() {
             {/* 题目数据 */}
             <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">属性集</div>
+                <div className="mb-1 text-[11px] font-medium text-fg-faint">属性集</div>
                 <div className="flex flex-wrap gap-1">
                   {task.attrs.map((a) => (
                     <span key={a} className="rounded bg-veil/10 px-1.5 py-0.5 font-mono text-[12px] text-fg">
@@ -188,7 +188,7 @@ export default function Normalize() {
                 </div>
               </div>
               <div className="rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">函数依赖集 F</div>
+                <div className="mb-1 text-[11px] font-medium text-fg-faint">函数依赖集 F</div>
                 <div className="space-y-0.5">
                   {task.fds.map((fd, i) => (
                     <div key={i} className="font-mono text-[12px] text-fg-soft">{fmtFd(fd)}</div>

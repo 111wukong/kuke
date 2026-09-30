@@ -63,18 +63,21 @@ export function Levels() {
   return (
     <div className="space-y-4">
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-[16px] font-semibold text-fg">
-              <Flag size={17} className="text-cyan" />
-              SQL 闯关
-            </h2>
-            <p className="mt-1 text-[12.5px] text-fg-mute">
-              从单表查询一路做到窗口函数。判题靠**跑结果集**，不比对 SQL 文本 ——
-              同一个答案怎么写都算对。
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            {/* ★ 这里原本又写了一遍「SQL 闯关」。页面顶部（routes.tsx 的
+                路由标题）已经有同名标题了 —— 同一个名字出现两次，用户会
+                以为自己进了两层页面，而且不知道哪一层才是"这一页"。
+                改成把这张卡真正该说的说清楚：判题方式 + 进度。 */}
+            <div className="flex items-center gap-2 text-[13px] font-medium text-fg-soft">
+              <Flag size={15} className="text-cyan" />
+              判题靠跑结果集，不比对 SQL 文本
+            </div>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-fg-mute">
+              同一个答案怎么写都算对。从单表查询一路做到窗口函数，45 关按依赖顺序解锁。
             </p>
           </div>
-          <div className="min-w-[160px]">
+          <div className="min-w-[180px]">
             <div className="mb-1 flex items-baseline justify-between text-[12px]">
               <span className="text-fg-soft">通关进度</span>
               <span className="tabular-nums text-fg-mute">{passed}/{total}</span>
@@ -115,7 +118,10 @@ export function Levels() {
                         {l.title}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2">
+                    {/* min-h 固定这一行的高度。有的关卡带「要求行序」、
+                        有的带「试过 N 次」、有的两者都没有 —— 不固定的话
+                        同一行网格里卡片高度参差，整片列表看起来是歪的。 */}
+                    <div className="mt-1 flex min-h-[15px] items-center gap-2">
                       <DifficultyDots value={l.difficulty} />
                       {l.orderMatters && <span className="text-[10px] text-warn">要求行序</span>}
                       {l.attempts > 0 && !l.passed && (

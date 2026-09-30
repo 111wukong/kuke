@@ -206,14 +206,22 @@ export function Badge({
   );
 }
 
-/** 难度点。用点的个数而不是数字 —— 一眼扫过去就能比大小。 */
+/** 难度点。用点的个数 **加颜色梯度** 双重编码。
+ *
+ * 原来只有个数、而且亮起的点一律是青色。5 个点里数出「亮了 3 个」
+ * 需要停顿一下 —— 而列表页扫视时最缺的就是停顿。
+ * 加上颜色分档之后，绿/黄/红一眼就能分出难易，不用数。 */
 export function DifficultyDots({ value, max = 5 }: { value: number; max?: number }) {
+  const ratio = max > 0 ? value / max : 0;
+  const fill = ratio <= 0.4 ? 'bg-ok' : ratio <= 0.7 ? 'bg-warn' : 'bg-bad';
+  const label = ratio <= 0.4 ? '入门' : ratio <= 0.7 ? '进阶' : '挑战';
+
   return (
-    <span className="inline-flex items-center gap-0.5" title={`难度 ${value}/${max}`}>
+    <span className="inline-flex items-center gap-0.5" title={`难度 ${value}/${max}（${label}）`}>
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className={cn('h-1.5 w-1.5 rounded-full', i < value ? 'bg-cyan' : 'bg-veil/15')}
+          className={cn('h-1.5 w-1.5 rounded-full', i < value ? fill : 'bg-veil/15')}
         />
       ))}
     </span>
@@ -263,7 +271,7 @@ export function Progress({
 /* ============ 统计卡片 ============ */
 
 export function Stat({
-  label, value, sub, tone, icon, grad, sparkline,
+  label, value, sub, tone, icon, grad, sparkline, trend,
 }: {
   label: string;
   value: ReactNode;
@@ -274,23 +282,47 @@ export function Stat({
   grad?: boolean;
   /** 右下角的迷你趋势线（0..1 的数组） */
   sparkline?: number[];
+  /** 环比变化百分比。正数向上、负数向下，0 或不传则不显示。 */
+  trend?: number;
 }) {
   const toneColor = tone === 'ok' ? 'text-ok' : tone === 'bad' ? 'text-bad'
     : tone === 'warn' ? 'text-warn' : tone === 'accent' ? 'text-cyan' : 'text-fg';
 
   return (
     <div className="glass card-hover relative overflow-hidden rounded-xl p-3.5">
-      <div className="flex items-center gap-1.5 text-[11.5px] font-medium uppercase tracking-wide text-fg-mute">
+      {/* ★ 这里原本是 `uppercase tracking-wide`。
+       *
+       * 那是英文界面的写法：小号大写 + 加字距，用来把标签和正文区分开。
+       * 但这两个属性**都是为拉丁字母设计的**：
+       *   · uppercase 对汉字完全无效（不是错，是白写）
+       *   · letter-spacing 会把汉字一个个撑开，看起来像「坏掉的间距」，
+       *     而不是强调 —— 汉字是方块字，字距一加就散架
+       *
+       * 中文的层次靠**字重 + 颜色**，不靠字距。
+       * 顺带把字号从 11.5 提到 12：汉字在小字号下比英文难认得多，
+       * 同一个视觉尺寸，中文需要多半级才等价。 */}
+      <div className="flex items-center gap-1.5 text-[12px] font-medium text-fg-mute">
         {icon}
         {label}
       </div>
       <div className={cn(
-        'mt-1.5 text-[26px] font-semibold leading-none tabular-nums',
+        'mt-1.5 flex items-baseline gap-2 text-[28px] font-semibold leading-none tabular-nums tracking-tight',
         grad ? 'grad-text' : toneColor,
       )}>
         {value}
+        {/* 趋势指示。企业级仪表盘的标配 —— 光有一个数字，
+            看不出「这周比上周好还是差」。 */}
+        {typeof trend === 'number' && trend !== 0 && (
+          <span className={cn(
+            'flex items-center gap-0.5 text-[11.5px] font-medium',
+            trend > 0 ? 'text-ok' : 'text-bad',
+          )}>
+            <span aria-hidden="true">{trend > 0 ? '↑' : '↓'}</span>
+            {Math.abs(trend)}%
+          </span>
+        )}
       </div>
-      {sub && <div className="mt-1.5 text-[11.5px] text-fg-faint">{sub}</div>}
+      {sub && <div className="mt-1.5 text-[11.5px] leading-relaxed text-fg-faint">{sub}</div>}
       {sparkline && sparkline.length > 1 && (
         <Sparkline data={sparkline} className="mt-2" />
       )}
@@ -365,8 +397,100 @@ export function Spinner({ label }: { label?: string }) {
   );
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('skeleton', className)} />;
+export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={cn('skeleton', className)} style={style} />;
+}
+
+/** 卡片网格骨架。用于「一组卡片」的加载态：班级列表、成就墙、关卡分组。
+ *  比一整块灰好的地方在于它保留了网格的节奏，内容到位时不会跳。 */
+export function CardGridSkeleton({
+  count = 6, cols = 3, height = 96,
+}: { count?: number; cols?: number; height?: number }) {
+  return (
+    <div className={cn('grid gap-3 sm:grid-cols-2', cols >= 3 && 'lg:grid-cols-3')}>
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} className="rounded-xl" style={{ height }} />
+      ))}
+    </div>
+  );
+}
+
+/** 图表骨架。统计页专用。
+ *  光秃秃一块灰说明不了「这里要出图」；配上高低不一的柱子和一条基线，
+ *  用户立刻知道等来的是图表 —— 而且不会把它误认成列表。 */
+export function ChartSkeleton({ height = 200 }: { height?: number }) {
+  return (
+    <div className="glass rounded-xl p-4">
+      <Skeleton className="h-3 w-28" />
+      <div className="mt-5 flex items-end gap-2" style={{ height }}>
+        {[42, 68, 33, 82, 52, 74, 38].map((h, i) => (
+          <Skeleton key={i} className="flex-1 rounded-t" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+      <Skeleton className="mt-3 h-px w-full" />
+    </div>
+  );
+}
+
+/** 详情页骨架。左栏正文 + 右栏信息卡，对应大多数「点进来看看」的页面。 */
+export function DetailSkeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+      <div className="space-y-3">
+        <Skeleton className="h-9 w-2/3 rounded-lg" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-4 w-4/6" />
+        <Skeleton className="h-40 rounded-xl" />
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-40 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/** 表格骨架屏。
+ *
+ * 加载态直接丢一个 `<Skeleton className="h-64" />` 是常见的偷懒做法 ——
+ * 它只说明「这里在加载」，没说明「这里将出现什么」。用户看到一大块灰，
+ * 不知道等来的是表格、图表还是一段文字。
+ *
+ * 按真实表格的形状铺骨架有两个好处：
+ *   1. 内容到位时布局不跳（占位块的尺寸和真表头一致）
+ *   2. 用户一眼知道这是列表页，能提前预期
+ *
+ * 列宽故意做成不等宽 —— 等宽的骨架看起来像进度条，不像表格。 */
+export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
+  /* 第一列宽（通常是名字/标题）、中间列窄、最后一列是操作按钮 */
+  const widthOf = (i: number) => {
+    if (i === 0) return '26%';
+    if (i === cols - 1) return '12%';
+    return `${Math.round(52 / Math.max(1, cols - 2))}%`;
+  };
+
+  return (
+    <div className="glass overflow-hidden rounded-xl">
+      <div className="flex items-center gap-4 border-b border-hairline bg-veil/5 px-4 py-3">
+        {Array.from({ length: cols }, (_, i) => (
+          <Skeleton key={i} className="h-2.5" style={{ width: widthOf(i) }} />
+        ))}
+      </div>
+      {Array.from({ length: rows }, (_, r) => (
+        <div key={r} className="flex items-center gap-4 border-b border-hairline px-4 py-3.5 last:border-b-0">
+          {Array.from({ length: cols }, (_, i) => (
+            <Skeleton
+              key={i}
+              className="h-3"
+              /* 每行宽度略有差异，模拟真实数据的参差 */
+              style={{ width: widthOf(i), opacity: 1 - r * 0.11 }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function Empty({

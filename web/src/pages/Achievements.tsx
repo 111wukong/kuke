@@ -5,7 +5,7 @@
  * 学生知道"连续 7 天"是怎么算的，才会去追它。
  */
 import { Trophy, Lock, Flame, Zap, Target, Terminal, Sigma, FlaskConical, Sparkles } from 'lucide-react';
-import { Card, SectionTitle, Badge, Skeleton, Empty, Progress, Stat } from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, CardGridSkeleton, Empty, Progress, Stat } from '@/components/ui/Primitives';
 import { useAsync } from '@/lib/hooks';
 import { api } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
@@ -37,7 +37,7 @@ export default function Achievements() {
     { ttl: 600000 },
   );
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <CardGridSkeleton count={9} height={112} />;
 
   const owned = new Map((data?.achievements.list || []).map((a) => [a.id, a]));
   const all = meta?.achievements || [];

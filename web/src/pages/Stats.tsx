@@ -13,7 +13,7 @@ import {
   CheckCircle2, ArrowRight,
 } from 'lucide-react';
 import {
-  Card, SectionTitle, Badge, Skeleton, Empty, Progress, Stat, Tabs,
+  Card, SectionTitle, Badge, Button, Skeleton, ChartSkeleton, Empty, Progress, Stat, Tabs,
 } from '@/components/ui/Primitives';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -61,7 +61,7 @@ export default function Stats() {
   );
 
   if (loading && !data) {
-    return <div className="space-y-3"><Skeleton className="h-32" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-48" />)}</div>;
+    return <div className="space-y-3"><Skeleton className="h-32" /><ChartSkeleton /><ChartSkeleton /></div>;
   }
 
   const s = snap?.snapshot;
@@ -237,7 +237,11 @@ export default function Stats() {
               </div>
             </div>
           ) : (
-            <Empty title="还没有作答记录" desc="做过题之后这里会有分类掌握度" />
+            <Empty
+              title="还没有作答记录"
+              desc="做过题之后，这里会按知识分类显示你的掌握度，并自动标出最该补的那几块。"
+              action={<AppLink to="/practice"><Button>去做几道题</Button></AppLink>}
+            />
           )
         )}
 

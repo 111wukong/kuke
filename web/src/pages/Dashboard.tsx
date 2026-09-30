@@ -109,7 +109,7 @@ export default function Dashboard() {
 
         <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <div className="text-[11.5px] font-medium uppercase tracking-[0.14em] text-fg-faint">
+            <div className="text-[12px] font-medium text-fg-faint">
               {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}
             </div>
             <h1 className="mt-1.5 text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">

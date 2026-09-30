@@ -347,7 +347,11 @@ export function AssignmentDetail() {
                 </div>
               ))}
               {!data.submissions?.length && (
-                <Empty title="班级里还没有学生" desc="去班级页用邀请码把学生加进来" />
+                <Empty
+                  title="班级里还没有学生"
+                  desc="先让学生用班级邀请码入班，之后布置的作业才会出现在他们的待办里。"
+                  action={<AppLink to="/classes" sameTab><Button size="sm">去班级页</Button></AppLink>}
+                />
               )}
             </div>
           </Card>
@@ -406,13 +410,13 @@ export function AssignmentDetail() {
 
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         <div className="rounded border border-hairline bg-ink-1000/40 p-2">
-                          <div className="mb-1 text-[10.5px] uppercase tracking-wide text-fg-faint">学生的作答</div>
+                          <div className="mb-1 text-[10.5px] text-fg-faint">学生的作答</div>
                           <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-fg-soft">
                             {it.answer || '（空）'}
                           </pre>
                         </div>
                         <div className="rounded border border-hairline bg-ink-1000/40 p-2">
-                          <div className="mb-1 text-[10.5px] uppercase tracking-wide text-fg-faint">参考答案</div>
+                          <div className="mb-1 text-[10.5px] text-fg-faint">参考答案</div>
                           <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-ok">
                             {it.correctAnswer || '—'}
                           </pre>
@@ -421,13 +425,13 @@ export function AssignmentDetail() {
 
                       {it.analysis && (
                         <div className="mt-2 rounded border border-hairline bg-veil/3 p-2">
-                          <div className="mb-1 text-[10.5px] uppercase tracking-wide text-fg-faint">解析</div>
+                          <div className="mb-1 text-[10.5px] text-fg-faint">解析</div>
                           <Markdown source={it.analysis} />
                         </div>
                       )}
                       {it.steps?.length ? (
                         <div className="mt-2">
-                          <div className="mb-1 text-[10.5px] uppercase tracking-wide text-fg-faint">评分点</div>
+                          <div className="mb-1 text-[10.5px] text-fg-faint">评分点</div>
                           <ul className="space-y-0.5">
                             {it.steps.map((s: any, i: number) => (
                               <li key={i} className="text-[12px] text-fg-mute">

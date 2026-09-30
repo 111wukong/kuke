@@ -12,6 +12,7 @@
  * 停用是可逆的，一步确认即可。
  */
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePageParams } from '@/components/layout/KeepAlivePages';
 import {
   ShieldCheck, Users, School, ClipboardList, Database, ScrollText, Search,
@@ -20,7 +21,7 @@ import {
   CircleAlert, FileText, BarChart3, Layers,
 } from 'lucide-react';
 import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Progress, Stat, Input,
+  Card, SectionTitle, Badge, Button, Skeleton, TableSkeleton, Empty, Progress, Stat, Input,
   Field, Select, Callout, Tabs, ListRow, Textarea,
 } from '@/components/ui/Primitives';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
@@ -71,7 +72,7 @@ export function Admin() {
         />
       </Card>
 
-      {tab === 'overview' && <Overview />}
+      {tab === 'overview' && <Overview onGoTab={setTab} />}
       {tab === 'students' && <Students />}
       {tab === 'classes' && <ClassesTab />}
       {tab === 'assignments' && <AssignmentsTab />}
@@ -85,7 +86,7 @@ export function Admin() {
    总览
    ============================================================ */
 
-function Overview() {
+function Overview({ onGoTab }: { onGoTab: (t: 'overview' | 'students' | 'classes' | 'assignments' | 'content' | 'audit') => void }) {
   const { data, loading } = useAsync<any>('admin:overview', () => api.get('/api/admin/overview'), { ttl: 10000 });
 
   if (loading && !data) return <div className="grid gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>;
@@ -132,7 +133,11 @@ function Overview() {
             ))}
           </div>
         ) : (
-          <Empty title="还没有班级" desc="去「班级」标签页建一个" />
+          <Empty
+            title="还没有班级"
+            desc="班级是发邀请码、看学情的入口。建一个班，把邀请码发给学生，他们注册时填上就自动进班。"
+            action={<Link to="/classes"><Button>去建班</Button></Link>}
+          />
         )}
       </Card>
 
@@ -150,7 +155,11 @@ function Overview() {
             ))}
           </div>
         ) : (
-          <Empty title="还没有学生" desc="建班之后把邀请码发出去，或者直接在这里批量建号" />
+          <Empty
+            title="还没有学生"
+            desc="两种方式：把班级邀请码发给学生让他们自己注册，或者在这里批量建号后统一发密码。"
+            action={<Button onClick={() => onGoTab('students')}>去批量建号</Button>}
+          />
         )}
       </Card>
     </div>
@@ -236,7 +245,7 @@ function Students() {
       </Card>
 
       {loading && !data ? (
-        <Skeleton className="h-64" />
+        <TableSkeleton rows={6} cols={8} />
       ) : data?.students.length ? (
         <Card padded={false} className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -750,7 +759,7 @@ function ClassesTab() {
 function AssignmentsTab() {
   const { data, loading } = useAsync<any>('assignments:list', () => api.get('/api/assignments'), { ttl: 10000 });
 
-  if (loading && !data) return <Skeleton className="h-64" />;
+  if (loading && !data) return <TableSkeleton rows={6} cols={6} />;
 
   return (
     <div className="space-y-3">
@@ -794,7 +803,7 @@ function AssignmentsTab() {
 function ContentTab() {
   const { data, loading } = useAsync<any>('admin:content', () => api.get('/api/admin/content'), { ttl: 10000 });
 
-  if (loading && !data) return <Skeleton className="h-64" />;
+  if (loading && !data) return <TableSkeleton rows={6} cols={6} />;
 
   return (
     <div className="space-y-3">
@@ -918,7 +927,7 @@ function AuditTab() {
       </Card>
 
       <Card padded={false} className="overflow-hidden">
-        {loading && !data ? <Skeleton className="h-64" /> : data?.logs.length ? (
+        {loading && !data ? <TableSkeleton rows={6} cols={6} /> : data?.logs.length ? (
           <div className="divide-y divide-[color:var(--color-hairline)]">
             {data.logs.map((l: any) => (
               <div key={l.id} className="flex flex-wrap items-start gap-2.5 px-3.5 py-2.5 hover:bg-veil/4">

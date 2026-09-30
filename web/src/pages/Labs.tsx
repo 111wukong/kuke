@@ -148,7 +148,7 @@ export default function Labs() {
             {/* 索引实验：把查询和数据集亮出来 */}
             {kind === 'index' && payload.query && (
               <div className="mt-3 rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+                <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-fg-faint">
                   <Zap size={11} />要分析的查询
                   {detail?.lab?.dataset && (
                     <span className="ml-1 normal-case text-fg-mute">· {detail.lab.dataset.title}</span>

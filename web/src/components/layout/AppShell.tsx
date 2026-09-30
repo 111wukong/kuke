@@ -156,7 +156,13 @@ export function AppShell() {
           <nav aria-label="主导航">
             {NAV.map((g) => (
               <div key={g.group} className="mb-3">
-                <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-fg-faint">
+                {/* 分组标题。原本是 `uppercase tracking-[0.14em]` ——
+                    英文界面用「小号大写 + 加字距」做分组标签，但这两个属性
+                    对汉字都没用甚至有害：uppercase 对中文无效，
+                    0.14em 的字距会把「学 习」「训 练」撑成散架的样子。
+                    中文用字重和颜色做层次；字号从 10.5 提到 11.5，
+                    因为汉字在小字号下比拉丁字母难认。 */}
+                <div className="px-2.5 pb-1.5 pt-2 text-[11.5px] font-semibold text-fg-faint">
                   {g.group}
                 </div>
                 {g.items.map((it) => (

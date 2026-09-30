@@ -12,7 +12,7 @@ import {
   UserMinus, Trash2, GraduationCap, BookOpen, BarChart3, Clock,
 } from 'lucide-react';
 import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Progress, Input,
+  Card, SectionTitle, Badge, Button, CardGridSkeleton, TableSkeleton, Empty, Progress, Input,
   Field, Callout, ListRow,
 } from '@/components/ui/Primitives';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
@@ -60,7 +60,7 @@ function StudentClasses() {
     }
   };
 
-  if (loading && !data) return <Skeleton className="h-72" />;
+  if (loading && !data) return <CardGridSkeleton count={4} height={120} />;
 
   return (
     <div className="space-y-4">
@@ -193,7 +193,7 @@ function TeacherClasses() {
     }
   };
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <TableSkeleton rows={8} cols={5} />;
 
   return (
     <div className="space-y-4">
@@ -420,7 +420,15 @@ function TeacherClasses() {
                     </div>
                   ))}
                   {!detail.members.length && (
-                    <Empty title="还没有学生" desc="把邀请码发给学生，他们注册时填上就会出现在这里" />
+                    <Empty
+                      title="还没有学生"
+                      desc="把邀请码发给学生，他们注册时填上就自动进这个班 —— 不用你手动一个个加。"
+                      action={(
+                        <Button onClick={() => copyCode(active.id, detail.class.code)}>
+                          <Copy size={12} /> 复制邀请码
+                        </Button>
+                      )}
+                    />
                   )}
                 </div>
               </Card>

@@ -101,7 +101,7 @@ function ThemeGrid({ value, onChange }: { value: string; onChange: (id: string) 
 
   const Group = ({ title, list }: { title: string; list: typeof THEMES }) => (
     <div className="mb-2.5 last:mb-0">
-      <div className="mb-1.5 px-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-fg-faint">
+      <div className="mb-1.5 px-0.5 text-[10.5px] font-semibold text-fg-faint">
         {title}
       </div>
       <div className="grid grid-cols-2 gap-1.5">
