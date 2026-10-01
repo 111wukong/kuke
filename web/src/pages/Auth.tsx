@@ -19,35 +19,35 @@ function AuthShell({ title, subtitle, children, footer }: {
 }) {
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-[1.08fr_1fr]">
-      {/* 背景光斑。三团缓慢漂移的色块，给整个页面一个"活"的底色。
-          它们只负责氛围，不承载信息，所以 aria-hidden + 不吃指针事件。 */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* 背景：一层极淡的斜向渐变 + 一道分隔线，就这些。
+       *
+       * ★ 2026-10-01 改。原来这里是**三团会漂移的巨型色斑**
+       *   （46rem / 38rem / 34rem，blur-[110px]，青/紫/品红各一，
+       *   各自跑一条 26–38 秒的 drift 动画）。
+       *
+       *   那是整站"AI 味"最重的一处：三个彩虹光斑在背后缓慢蠕动，
+       *   是 2023 年以后 AI 产品落地页的固定配方。而登录页要完成的事
+       *   只有一件 —— 让人把账号密码填进去。背景越安静，表单越清楚。
+       *
+       *   顺带去掉的还有三个长跑动画：它们在低端机上一直占着合成层，
+       *   而收益是"页面看起来是活的"—— 登录页不需要活着。 */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <span
-          className="absolute -left-[12%] top-[-18%] h-[46rem] w-[46rem] rounded-full opacity-[0.16] blur-[110px]"
-          style={{ background: 'var(--color-cyan)', animation: 'drift 26s ease-in-out infinite' }}
-        />
-        <span
-          className="absolute right-[-10%] top-[24%] h-[38rem] w-[38rem] rounded-full opacity-[0.15] blur-[110px]"
-          style={{ background: 'var(--color-violet)', animation: 'drift 32s ease-in-out infinite reverse' }}
-        />
-        <span
-          className="absolute bottom-[-24%] left-[32%] h-[34rem] w-[34rem] rounded-full opacity-[0.10] blur-[110px]"
-          style={{ background: 'var(--color-magenta)', animation: 'drift 38s ease-in-out infinite' }}
+          className="absolute inset-0 opacity-[0.5]"
+          style={{
+            background:
+              'radial-gradient(60rem 34rem at 8% -10%, var(--halo-1), transparent 62%),'
+              + 'radial-gradient(48rem 30rem at 96% 10%, var(--halo-2), transparent 60%)',
+          }}
         />
       </div>
 
       {/* 左侧品牌区。窄屏隐藏 —— 手机上那点空间应该全给表单。 */}
       <div className="relative hidden flex-col justify-between overflow-hidden border-r border-hairline p-10 lg:flex xl:p-14">
         <div className="flex items-center gap-2.5">
-          <span className="relative grid h-10 w-10 place-items-center">
-            <span
-              className="absolute inset-0 rounded-xl opacity-60 blur-[9px]"
-              style={{ backgroundImage: 'var(--grad-spectrum)' }}
-              aria-hidden="true"
-            />
-            <span className="glass relative grid h-10 w-10 place-items-center rounded-xl text-cyan">
-              <Database size={20} />
-            </span>
+          {/* ★ 去掉渐变光晕，改成实色方块（理由同侧栏 Brand）。 */}
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
+            <Database size={19} />
           </span>
           <div>
             <div className="text-[17px] font-semibold tracking-tight text-fg">库课</div>
@@ -59,7 +59,10 @@ function AuthShell({ title, subtitle, children, footer }: {
           <h1 className="text-[32px] font-semibold leading-[1.22] tracking-tight text-fg xl:text-[38px]">
             数据库这门课，
             <br />
-            <span className="grad-text">光看是学不会的。</span>
+            {/* ★ 从渐变字改成单色强调。青→紫→品红那道彩虹是"AI 产品
+             *   落地页"的标志性配色，而这句标题要表达的只是"光看没用" ——
+             *   一个实色强调就够了，颜色本身不该成为内容。 */}
+            <span className="text-cyan">光看是学不会的。</span>
           </h1>
           <p className="mt-5 text-[14px] leading-relaxed text-fg-soft">
             所以这里不是一份讲义，是一个能动手的环境。
@@ -73,7 +76,7 @@ function AuthShell({ title, subtitle, children, footer }: {
               ['SQL 实训场', '4 套教学库、45 道关卡，判题靠跑结果集而不是比对文本', Terminal],
               ['范式实验室', '闭包、候选键、范式判定、无损分解，全部算法验算', Sigma],
               ['索引与事务实验台', '结论来自 EXPLAIN 和优先图，不是来自我写的注释', FlaskConical],
-              ['教师工作台', '建班、建号、布置作业、看学情根因，全流程闭环', Users],
+              ['教师工作台', '建班、建号、布置作业、看学情', Users],
             ].map(([t, d, Icon]: any, i) => (
               <li key={t} className="stagger flex gap-3" style={{ '--i': i } as React.CSSProperties}>
                 <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-hairline bg-veil/5 text-cyan">
@@ -98,7 +101,7 @@ function AuthShell({ title, subtitle, children, footer }: {
       <div className="relative flex flex-col">
         <div className="flex items-center justify-between p-4 lg:justify-end">
           <div className="flex items-center gap-2 lg:hidden">
-            <span className="glass grid h-8 w-8 place-items-center rounded-lg text-cyan">
+            <span className="grid h-8 w-8 place-items-center rounded-md bg-cyan text-on-accent">
               <Database size={16} />
             </span>
             <span className="text-[15px] font-semibold tracking-tight text-fg">库课</span>

@@ -22,6 +22,12 @@
         try {
           var t = localStorage.getItem('kuke:theme');
           if (t) document.documentElement.setAttribute('data-theme', t);
+          /* ★ 网格背景只在开了 fx 的主题上挂。这里必须同步设 ——
+           *   否则切到克制的主题时会先闪一下满屏方格网。
+           *   只有赛博绿一个主题开 fx，所以这里直接判等，
+           *   不引主题注册表（那会把 bundle 提前拉进来，得不偿失）。 */
+          document.documentElement.setAttribute(
+            'data-fx', (t === 'cyber-lime') ? 'on' : 'off');
         } catch (e) {}
       })();
     </script>

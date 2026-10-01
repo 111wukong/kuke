@@ -48,16 +48,29 @@ export const THEMES: ThemeDef[] = [
   {
     id: 'deep-space',
     name: '深空',
-    desc: '青紫光谱 + 赛博网格地平线。默认主题，也是唯一带 WebGL 背景的。',
+    /* ★ 2026-10-01：默认主题的 fx 从 true 改成 false。
+     *
+     * 它原来挂着一层 WebGL 赛博网格地平线 + Canvas 星尘。单看很酷，
+     * 但它同时是"AI 生成感"最强的元素：透视网格 + 霓虹青紫 +
+     * 星尘，这套组合几乎是"2023 年之后的 AI 落地页"的标配，
+     * 而它和"数据库课程学习平台"这件事没有任何关系。
+     *
+     * 更要命的是它对**阅读**是负贡献：网格线会从卡片边缘透出来，
+     * 星尘在暗色正文上是一层噪点。数据密集的界面最不需要的就是
+     * 会动的背景。
+     *
+     * 没有删掉这套特效 —— 赛博绿（cyber-lime）仍然开着，
+     * 想要那个感觉的人可以选它。默认主题应该是安静的。 */
+    desc: '深蓝灰底 + 青紫强调。默认主题，安静的深色工作台。',
     mode: 'dark',
-    fx: true,
+    fx: false,
     font: 'sans',
     preview: ['#03040a', '#10151f', '#22d3ee', '#a855f7', '#e9ebf4'],
   },
   {
     id: 'cyber-lime',
     name: '赛博绿',
-    desc: '磷光绿终端。长时间盯屏幕眼睛最不容易累的一套暗色。',
+    desc: '磷光绿终端 + 赛博网格背景。**唯一带动态背景的主题**，想要炫技感选它。',
     mode: 'dark',
     fx: true,
     font: 'sans',
@@ -68,7 +81,7 @@ export const THEMES: ThemeDef[] = [
     name: '北境',
     desc: 'Nord 极地蓝灰。冷、静、低饱和，适合白天光线强的时候。',
     mode: 'dark',
-    fx: true,
+    fx: false,
     font: 'sans',
     preview: ['#1b1f27', '#3b4252', '#88c0d0', '#b48ead', '#eceff4'],
   },
@@ -77,7 +90,7 @@ export const THEMES: ThemeDef[] = [
     name: '熔岩',
     desc: '暖橙暗底。夜里看书不刺眼，对比度仍然够。',
     mode: 'dark',
-    fx: true,
+    fx: false,
     font: 'sans',
     preview: ['#0a0504', '#2f1811', '#fb923c', '#f43f5e', '#f7ece6'],
   },
@@ -86,7 +99,7 @@ export const THEMES: ThemeDef[] = [
     name: '午夜玫瑰',
     desc: '深紫底 + 品红强调。视觉最重的一套，适合做长时间专注块。',
     mode: 'dark',
-    fx: true,
+    fx: false,
     font: 'sans',
     preview: ['#08040d', '#1f132e', '#e879f9', '#a855f7', '#f1e9f7'],
   },

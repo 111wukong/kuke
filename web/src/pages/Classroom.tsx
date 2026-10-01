@@ -396,7 +396,7 @@ export default function Classroom() {
 
           {/* ---- 答题卡 ---- */}
           {ask && (
-            <div className="mx-4 mb-3 rounded-2xl border border-cyan/40 bg-cyan/8 p-3.5 shadow-[var(--glow-accent-soft)]">
+            <div className="mx-4 mb-3 rounded-lg border border-cyan/40 bg-cyan/8 p-3.5">
               <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold text-cyan">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan" />该你了
               </div>

@@ -139,9 +139,42 @@
    这些不参与 Tailwind 工具类生成，只在 CSS 里用，所以放 :root 不放 @theme。
    ============================================================ */
 :root {
+  /* ============================================================
+     ★ 面的三级阶梯（这一层是 2026-10-01 加的，解决"AI 味"）
+     ============================================================
+     之前所有卡片都走 `.glass` —— 半透明 + backdrop-blur + 四层叠加。
+     结果是：**每一张卡片都在"浮着"**，而当所有东西都浮着，
+     就没有东西是浮着的了，层级反而消失。
+
+     参考真实的生产级设计系统（Radix Colors 的 12 级色阶、Semi Design 的
+     功能色分层），层级应该由**结构**表达，而不是由**效果**表达：
+       · 面 → 用背景色差（Radix step 2/3）
+       · 边界 → 用 1px 边框（Radix step 6/7）
+       · 抬升 → 只在真正浮起的层（弹窗/下拉）用阴影
+     Semi 的文档里那句说得最直白：阴影是"浅阴影，通过 border 模拟的
+     扁平阴影效果"。
+
+     所以新增这两个令牌，让"面"有名字，而不是到处临时 color-mix：
+       --panel         抬起的面（卡片、面板）
+       --panel-sunken  下沉的面（输入框、代码块、表格里的嵌套块）
+
+     ★ 为什么用 color-mix 派生而不是每套主题各写一遍：
+       方向是相反的 —— 暗色下"面"要比页面底亮一点，亮色下要比页面底
+       白一点，而 ink 阶梯在两种模式下的方向本身也是反的。
+       所以这里分两步：
+         · 暗色（:root 默认）：把 ink-1000 和 ink-800 按 72:28 混 ——
+           直接用 ink-800 太跳（砚秋的 ink-800 是 #6b432a，压在
+           #2b1810 上会是一块亮棕色的板子）
+         · 亮色：直接用 ink-800（那本来就是各亮色主题的"卡片面"）
+       亮色的覆盖在下面「亮色主题的公共覆盖」那一组里。 */
+  --panel: color-mix(in srgb, var(--color-ink-1000) 72%, var(--color-ink-800));
+  /* 下沉的面：从 --panel 往页面底色方向拉一点。
+   * 用固定比例而不是固定的两个色，是为了在明暗两种模式下方向都对。 */
+  --panel-sunken: color-mix(in srgb, var(--panel) 82%, var(--color-ink-1000));
+
   /* 玻璃面板那层"不透明底"。
-   * ⚠️ 不是可选项：背景是会动的透视网格 + 星尘，纯高光压不住它，
-   * 网格线会直接穿过卡片里的正文。 */
+   * ★ 现在只给**真正浮起**的层用：弹窗、下拉、抽屉、sticky 顶栏。
+   *   普通卡片不再用它 —— 见上面 --panel 的说明。 */
   --glass-sheet: rgba(6, 8, 16, 0.58);
   --glass-sheet-strong: rgba(8, 11, 20, 0.72);
   --glass-hi-1: rgba(255, 255, 255, 0.055);
@@ -150,10 +183,12 @@
   --glass-shadow: rgba(0, 0, 0, 0.9);
   --glass-subtle-bg: rgba(255, 255, 255, 0.025);
 
-  /* 光晕：body::before 上那两团色斑 */
-  --halo-1: rgba(34, 211, 238, 0.10);
-  --halo-2: rgba(168, 85, 247, 0.09);
-  /* 静态细网格（WebGL 挂掉时的降级路径，亮色主题的主力） */
+  /* 光晕：body::before 上那两团色斑。
+   * ★ 减到原来的约一半 —— 之前那两团太亮，整页像蒙了一层彩色雾。 */
+  --halo-1: rgba(34, 211, 238, 0.055);
+  --halo-2: rgba(168, 85, 247, 0.048);
+  /* 静态细网格（WebGL 挂掉时的降级路径，亮色主题的主力）
+   * ★ 默认主题不再渲染它 —— 见 fx 的说明。数值留着给 fx 主题用。 */
   --mesh: rgba(255, 255, 255, 0.022);
   --mesh-size: 34px;
 
@@ -183,34 +218,40 @@
    * 光晕还是青色的，会出现"强调色变了、光晕没变"的半截生效。
    */
 
-  /* 高程：三层阴影。暗色主题下阴影要重一点才有层次，
-   * 亮色主题下要轻（见下面亮色主题块里的覆盖）。 */
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.28), 0 3px 10px -5px rgba(0, 0, 0, 0.42);
-  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.32), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
-  --elev-3: 0 6px 18px rgba(0, 0, 0, 0.36), 0 28px 60px -26px rgba(0, 0, 0, 0.62);
+  /* 高程：三层阴影。
+   * ★ 2026-10-01 整体减重。之前那套是"每张卡片都投一道明显的影子"，
+   *   叠上半透明玻璃面，效果是整页飘着一堆发光方块 —— 这是最典型的
+   *   "模板生成感"。现在卡片默认几乎不投影（靠 1px 边框分层），
+   *   阴影只留给真正浮起的层：下拉、弹窗、抽屉。 */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --elev-2: 0 3px 10px -4px rgba(0, 0, 0, 0.34);
+  --elev-3: 0 12px 32px -12px rgba(0, 0, 0, 0.48);
 
-  /* 强调光晕。用在：主按钮、选中态、激活的导航项、关键数字。 */
-  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 24%, transparent),
-                 0 10px 34px -12px color-mix(in srgb, var(--color-cyan) 52%, transparent);
-  --glow-accent-soft: 0 0 22px -6px color-mix(in srgb, var(--color-cyan) 38%, transparent);
-  --glow-violet: 0 0 26px -8px color-mix(in srgb, var(--color-violet) 46%, transparent);
+  /* 强调光晕。★ 现在只剩一处用途：**键盘焦点环**。
+   * 之前它挂在主按钮、激活导航项、关键数字上，是"到处发光"的来源。
+   * 发光不该表达"重要"，该表达"你现在在这里" —— 那是焦点的语义。 */
+  --glow-accent: 0 0 0 3px color-mix(in srgb, var(--color-cyan) 26%, transparent);
+  --glow-accent-soft: 0 0 0 3px color-mix(in srgb, var(--color-cyan) 16%, transparent);
+  --glow-violet: 0 0 0 3px color-mix(in srgb, var(--color-violet) 22%, transparent);
 
-  /* 渐变。--grad-accent 是主按钮和关键数字用的斜向渐变。 */
+  /* 渐变。★ 主按钮不再用它（改实色）—— 见 .btn-accent 的说明。
+   * 保留给**图表和数据可视化**：那里的颜色本来就没有"层级"语义，
+   * 渐变只是把同一色系的深浅连起来，是信息而不是装饰。 */
   --grad-accent: linear-gradient(135deg, var(--color-cyan), var(--color-blue));
   --grad-spectrum: linear-gradient(115deg, var(--color-cyan), var(--color-violet) 52%, var(--color-magenta));
   --grad-ok: linear-gradient(135deg, var(--color-emerald), var(--color-cyan));
   --grad-bad: linear-gradient(135deg, var(--color-rose), var(--color-magenta));
 
-  /* 卡片顶边的细高光。让"面"有一点体积感，而不是一张贴纸。 */
+  /* 卡片顶边的细高光。★ 只在 .glass 上生效 —— 实色面不需要它，
+   * 那层高光的用途是"让半透明面不至于糊成一片"，实色面没有这个问题。 */
   --card-sheen: linear-gradient(180deg,
     color-mix(in srgb, var(--color-veil) 7%, transparent),
     transparent 42%);
 
-  /* 噪点。纯色大面积铺开会有色带（banding），叠一层极淡的噪点能压掉，
-   * 也让玻璃面看起来更像"材质"而不是"滤镜"。
-   * 用 SVG feTurbulence 内联生成，零请求。 */
+  /* 噪点。★ 默认关掉（opacity 0）—— 它是给玻璃面压色带用的，
+   * 而实色面本来就没有色带。要开的话在具体主题里调回去。 */
   --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
-  --noise-opacity: 0.028;
+  --noise-opacity: 0;
 
   color-scheme: dark;
 }
@@ -776,14 +817,17 @@ html[data-theme="paper"],
 html[data-theme="mint"],
 html[data-theme="solarized"],
 html[data-theme="ink-dawn"] {
-  --elev-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px -4px rgba(15, 23, 42, 0.10);
-  --elev-2: 0 1px 3px rgba(15, 23, 42, 0.07), 0 10px 24px -12px rgba(15, 23, 42, 0.16);
-  --elev-3: 0 3px 10px rgba(15, 23, 42, 0.08), 0 22px 48px -22px rgba(15, 23, 42, 0.20);
-  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 30%, transparent),
-                 0 8px 26px -12px color-mix(in srgb, var(--color-cyan) 40%, transparent);
-  --glow-accent-soft: 0 0 18px -6px color-mix(in srgb, var(--color-cyan) 26%, transparent);
-  --glow-violet: 0 0 22px -8px color-mix(in srgb, var(--color-violet) 30%, transparent);
-  --noise-opacity: 0.016;
+  /* 亮色主题的"面"就是白纸本身 —— 各亮色主题的 ink-800 都是白/近白，
+   * 直接拿来当卡片面即可（暗色那边不能这么干，见 :root 的说明）。 */
+  --panel: var(--color-ink-800);
+  --panel-sunken: color-mix(in srgb, var(--panel) 82%, var(--color-ink-1000));
+  --elev-1: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --elev-2: 0 3px 10px -4px rgba(15, 23, 42, 0.12);
+  --elev-3: 0 12px 32px -12px rgba(15, 23, 42, 0.16);
+  --glow-accent: 0 0 0 3px color-mix(in srgb, var(--color-cyan) 30%, transparent);
+  --glow-accent-soft: 0 0 0 3px color-mix(in srgb, var(--color-cyan) 18%, transparent);
+  --glow-violet: 0 0 0 3px color-mix(in srgb, var(--color-violet) 22%, transparent);
+  --noise-opacity: 0;
 }
 
 /* ============================================================
@@ -805,8 +849,8 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* 背景两团光晕 + 细网格。这是 WebGL 背景的降级路径，
- * 也是亮色主题的主力（亮色下不挂 WebGL）。 */
+/* 背景两团光晕。这是 WebGL 背景的降级路径。
+ * ★ 透明度已减半（见 --halo-* 的定义）—— 之前整页像蒙了一层彩色雾。 */
 body::before {
   content: "";
   position: fixed;
@@ -817,18 +861,25 @@ body::before {
     radial-gradient(60rem 40rem at 12% -8%, var(--halo-1), transparent 65%),
     radial-gradient(52rem 36rem at 92% 8%, var(--halo-2), transparent 62%);
 }
+/* 细网格。
+ * ★ 默认**不渲染** —— 这个 34px 的方格网铺满整屏，是最容易被一眼认出
+ *   "模板感"的元素之一，而它对信息没有任何贡献。
+ *   只有显式开了 fx 的主题（赛博绿）才挂上它，作为"这套主题就是炫技"的标记。
+ *   见 components/fx/Background.tsx 与 lib/themes.ts 的 fx 字段。 */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -29;
   pointer-events: none;
+  display: none;
   background-image:
     linear-gradient(var(--mesh) 1px, transparent 1px),
     linear-gradient(90deg, var(--mesh) 1px, transparent 1px);
   background-size: var(--mesh-size) var(--mesh-size);
   mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 25%, transparent 78%);
 }
+html[data-fx="on"] body::after { display: block; }
 
 ::selection { background: var(--sel-bg); color: var(--color-fg); }
 
@@ -853,15 +904,47 @@ body::after {
 
 /* ============================================================
    组件层
+   ============================================================
+   ★ 2026-10-01 这里做过一次方向性调整，值得写清楚原因。
+
+   之前**所有**卡片都走 .glass：半透明底 + backdrop-blur + 顶部高光 +
+   外投影。单看一张很好看，铺满一屏就是灾难 —— 每张卡都在"浮着"，
+   于是没有任何一张是浮着的，层级反而消失；再加上满屏的模糊和发光，
+   整页读起来像"滤镜叠出来的"，而不是"排版排出来的"。
+
+   对照真实的生产级设计系统：
+     · Radix Colors 用 12 级色阶把"面 / 边框 / 文字"分开
+       （step 1-2 背景、3-5 组件底、6-8 边框、9-10 实心、11-12 文字）
+     · Semi Design 的阴影是"浅阴影，通过 border 模拟的扁平阴影效果"
+
+   两条都在说同一件事：**层级该由结构表达，不该由效果表达。**
+
+   所以现在分两套：
+     .panel  实色面 + 1px 边框 —— 卡片、面板、区块，**默认都用这个**
+     .glass  半透明 + 模糊 —— 只给真正浮在内容之上的层：弹窗、下拉、
+             抽屉、sticky 顶栏。它们下面确实有内容要透出来。
    ============================================================ */
+
+/* 面。一块实色的、有边界的区域。
+ * 没有模糊、没有高光叠层、没有外投影 —— 它靠和底色的明度差 + 1px 边框
+ * 站住，这在任何主题下都成立，而且不依赖 backdrop-filter（那东西在
+ * 低端机上很贵）。 */
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--color-hairline);
+}
+/* 下沉的面：输入框、代码块、表格里嵌的块。
+ * 比 .panel 暗一点，读起来像"凹进去"，不需要额外加边框。 */
+.panel-sunken { background: var(--panel-sunken); }
 
 /* 玻璃面。四层叠加：
  *   ① 半透明底（--glass-sheet）
  *   ② 顶部细高光（--card-sheen）—— 让"面"有体积感，而不是一张贴纸
  *   ③ 顶边一像素内高光（--glass-edge）
  *   ④ 外投影（--elev-*）
- * 少第 ②③ 层的话，卡片在纯色背景上会"浮"不起来，
- * 看起来像一块颜色不同的区域而不是一张卡。 */
+ * 少第 ②③ 层的话，半透明面在背景上会糊成一片、读不出边界。
+ * ⚠️ 只给浮层用。 */
 .glass {
   position: relative;
   background: var(--glass-sheet);
@@ -882,36 +965,38 @@ body::after {
 }
 .glass-strong { background: var(--glass-sheet-strong); }
 
-/* 可交互的卡片：悬停时抬起 + 强调色描边。
- * ★ 只做 translateY(-1px) 而不是放大：放大在密集列表里会让相邻卡片
- *   互相挤压，视觉上"抖"。位移 1px 足够传达"可以点"。 */
+/* 可交互的卡片：悬停时描边变亮 + 极轻的抬升。
+ * ★ 2026-10-01 减重：去掉了 hover 时的强调色描边和光晕。
+ *   之前悬停一张卡会同时发生四件事（位移 + 变色 + 投影加重 + 发光），
+ *   在密集列表里鼠标扫过就是一片闪烁。现在只留两件：
+ *   边框变亮（说明"它响应你"）+ 1px 位移。 */
 .card-hover {
-  transition: transform 0.22s var(--ease-out-expo),
-              border-color 0.22s ease,
-              box-shadow 0.22s ease;
+  transition: transform 0.18s var(--ease-out-expo),
+              border-color 0.18s ease,
+              background-color 0.18s ease;
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--color-cyan) 42%, var(--color-hairline));
-  box-shadow:
-    0 1px 0 0 var(--glass-edge) inset,
-    var(--elev-3),
-    var(--glow-accent-soft);
+  border-color: var(--color-hairline-strong);
+  background: color-mix(in srgb, var(--panel) 88%, var(--color-veil));
 }
 
-/* 渐变描边的卡片。用两层背景做：内层是面，外层是渐变边框。
- * 比 border-image 好用的地方是它支持 border-radius。 */
+/* 被"选中"的卡片：用一条强调色左边框表达，不用渐变描边。
+ * 左边框是列表里表达"当前项"最省墨的方式，而且不会和相邻卡片抢注意力。 */
+.card-selected {
+  border-left: 3px solid var(--color-cyan);
+  background: color-mix(in srgb, var(--color-cyan) 7%, var(--panel));
+}
+
+/* 强调卡片的旧实现（渐变描边 + 玻璃）。
+ * ★ 保留类名，但降级成"实色面 + 强调色左边框" —— 渐变描边是
+ *   "AI 味"最集中的一处：它在说"看我"，但没说"我为什么重要"。
+ *   信息层级应该由位置和尺寸表达，不是由彩虹边框。 */
 .card-grad {
   position: relative;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--glass-sheet-strong), var(--glass-sheet-strong)) padding-box,
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--color-cyan) 55%, transparent),
-      color-mix(in srgb, var(--color-violet) 45%, transparent)) border-box;
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: var(--elev-2);
+  background: var(--panel);
+  border: 1px solid var(--color-hairline);
+  border-left: 3px solid var(--color-cyan);
 }
 
 /* 噪点叠层。加在任何容器上，用 ::after 铺一层极淡的噪点。 */
@@ -926,36 +1011,36 @@ body::after {
   mix-blend-mode: overlay;
 }
 
-/* 主按钮的实心渐变。文字颜色走 --color-on-accent，
- * 因为亮色主题下 ink-1000 是白的，压在浅色渐变上会看不见。 */
+/* 主按钮。
+ * ★ 2026-10-01 从"实心渐变 + 光晕 + 掠过式高光"改成**纯实色**。
+ *
+ *   原来那个按钮上叠了四层效果：135° 渐变底、外发光、悬停时一道
+ *   斜向白光扫过、按下时位移。单看很"高级"，但它回答不了一个问题：
+ *   **它凭什么比别的按钮重要？** 靠发光吗？
+ *
+ *   真实产品里，主操作的辨识度来自**位置**（表单右下角）、
+ *   **唯一性**（一屏只有一个）、**实色填充**（与描边按钮形成对比）。
+ *   渐变和扫光只是让页面变吵 —— 一屏里出现三个渐变按钮时，
+ *   等于三个都在喊"看我"，结果谁都没被看见。
+ *
+ *   所以现在是：实色填充 + 无发光 + 悬停只做 4% 变亮。
+ *   文字颜色走 --color-on-accent（亮色主题下 ink-1000 是白的，
+ *   压在强调色实心块上会看不见，所以必须单独一个令牌）。 */
 .btn-accent {
   position: relative;
-  overflow: hidden;
-  background-image: var(--grad-accent);
+  background-color: var(--color-cyan);
   color: var(--color-on-accent);
   font-weight: 600;
-  box-shadow: var(--glow-accent);
-  transition: filter 0.18s ease, box-shadow 0.24s ease, transform 0.14s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
-.btn-accent:hover { filter: brightness(1.08); }
-.btn-accent:active { filter: brightness(0.96); transform: translateY(1px); }
-/* 掠过式高光。比单纯的 hover 变亮更有"质感"，而且是纯 CSS，零成本。 */
-.btn-accent::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 38%;
-  left: -50%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.42), transparent);
-  transform: skewX(-18deg);
-  pointer-events: none;
-}
-.btn-accent:hover::after {
-  animation: btn-sweep 0.72s var(--ease-out-expo);
-}
+.btn-accent:hover { background-color: color-mix(in srgb, var(--color-cyan) 88%, var(--color-fg)); }
+.btn-accent:active { transform: translateY(1px); }
+/* 键盘焦点时才发光 —— 发光的语义是"你在这里"，不是"这很重要"。 */
+.btn-accent:focus-visible { box-shadow: var(--glow-accent); }
 
-/* 渐变文字。用在关键数字和大标题上。
+/* 渐变文字。★ 只保留给**单个关键数字**（等级、总 XP 这类一屏一个的指标）。
+ *   之前它被用在多个地方，一屏里出现三处彩色渐变字，
+ *   每处都在喊"看我" —— 那正是"模板生成感"的来源。
  * ★ 必须同时给 -webkit-background-clip 和 background-clip，
  *   只写前者在 Firefox 上会变成一整块色块（文字看不见）。 */
 .grad-text {
@@ -966,8 +1051,8 @@ body::after {
   -webkit-text-fill-color: transparent;
 }
 
-/* 侧栏导航的激活指示器：左侧一根发光的竖条。
- * 比"整块变色"更克制，而且在密集的导航列表里更容易定位。 */
+/* 侧栏导航的激活指示器：左侧一根竖条。
+ * ★ 去掉发光 —— 激活态只需要"和别的项不一样"，不需要发光。 */
 .nav-active-bar::before {
   content: "";
   position: absolute;
@@ -977,8 +1062,7 @@ body::after {
   width: 2.5px;
   height: 16px;
   border-radius: 99px;
-  background-image: var(--grad-accent);
-  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--color-cyan) 62%, transparent);
+  background: var(--color-cyan);
 }
 
 /* 分隔线：两端淡出，比一根实线更"轻"。 */

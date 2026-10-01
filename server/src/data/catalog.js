@@ -313,18 +313,40 @@ FROM → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → 
 
 由这个顺序能推出三件初学者常踩的事：
 
-1. **WHERE 里不能用 SELECT 起的别名** —— WHERE 执行时 SELECT 还没跑
-2. **WHERE 里不能写聚合函数** —— 那时还没分组，没有"组"可言
-3. **ORDER BY 里可以用别名** —— 它最后执行
+1. **WHERE 里不能写聚合函数** —— 那时还没分组，没有"组"可言
+2. **ORDER BY 里可以用别名** —— 它最后执行
+3. **别名在 WHERE 里能不能用，取决于数据库** —— 见下
 
 \`\`\`sql
--- ✗ 报错：no such column: 人数
+-- ✗ 聚合函数不能出现在 WHERE 里
 SELECT COUNT(*) AS 人数 FROM student WHERE 人数 > 3;
--- ✓ 用 HAVING
+--   SQLite 报的是：misuse of aggregate: COUNT()
+--   注意它认得"人数"这个别名（否则会报 no such column），
+--   只是别名展开后是个聚合函数，而 WHERE 阶段还没有"组"。
+-- ✓ 筛聚合结果要用 HAVING
 SELECT COUNT(*) AS 人数 FROM student GROUP BY sdept HAVING COUNT(*) > 3;
 -- ✓ ORDER BY 可以用别名
 SELECT sdept, COUNT(*) AS 人数 FROM student GROUP BY sdept ORDER BY 人数 DESC;
-\`\`\``,
+\`\`\`
+
+> **⚠️ 一个必须说清楚的分歧：普通别名在 WHERE 里到底能不能用？**
+>
+> 标准 SQL（以及 PostgreSQL、SQL Server、MySQL）**不允许** ——
+> 理由是"WHERE 比 SELECT 先执行，别名还不存在"。
+>
+> 但**本平台的 SQLite 允许**。下面这句在本平台的实训场里能正常返回结果：
+>
+> \`\`\`sql
+> SELECT sage AS 年龄 FROM student WHERE 年龄 > 20;   -- SQLite：正常返回
+> \`\`\`
+>
+> SQLite 会把 SELECT 列表里的别名提前解析好，所以 WHERE 里看得到。
+> 这不是标准行为，是 SQLite 的宽松之处 —— 和它允许
+> \`SELECT sdept, sname, COUNT(*) ... GROUP BY sdept\` 是同一类"宽容"。
+>
+> 所以：**考试按标准 SQL 答（不能用），写代码别依赖 SQLite 的宽容**
+> （换到 PostgreSQL 上那句就直接挂）。要跨库可移植，就重复写表达式，
+> 或者用派生表 / CTE 把计算包一层。`,
     sql_demo: 'SELECT sdept, COUNT(*) AS 人数 FROM student GROUP BY sdept ORDER BY 人数 DESC;',
     sql_demo_dataset: 'school',
   },
@@ -417,12 +439,12 @@ PostgreSQL 把 NULL 当最大值（升序时排最后）。
 
 \`\`\`sql
 -- 用 company 库实际看一下差别
-SELECT COUNT(*), COUNT(comm) FROM emp;          -- 14 行 vs 9 个有奖金的
-SELECT AVG(comm), AVG(COALESCE(comm, 0)) FROM emp;  -- 差很多
+SELECT COUNT(*), COUNT(comm) FROM emp;          -- 14 行 vs 6 个有奖金的
+SELECT AVG(comm), AVG(COALESCE(comm, 0)) FROM emp;  -- 2616.67 vs 1121.43
 \`\`\`
 
-> \`AVG(comm)\` 回答的是"**有奖金的人**平均拿多少"；
-> \`AVG(COALESCE(comm,0))\` 回答的是"**所有人**平均拿多少"。
+> \`AVG(comm)\` 回答的是"**有奖金的人**平均拿多少"（2616.67）；
+> \`AVG(COALESCE(comm,0))\` 回答的是"**所有人**平均拿多少"（1121.43）。
 > 两个数都对，取决于你要回答哪个问题 —— 但选错就是错的答案。
 
 **空集上的聚合**：\`COUNT\` 返回 0，而 \`SUM\`/\`AVG\`/\`MAX\`/\`MIN\` 返回 **NULL**。
@@ -772,11 +794,18 @@ WHERE return_date IS NOT NULL
 \`\`\`
 
 **处理 NULL 的函数**：
-| 函数 | 作用 |
-|---|---|
-| \`COALESCE(a, b, c)\` | 返回第一个非 NULL 的值 |
-| \`IFNULL(a, b)\` / \`ISNULL(a, b)\` | 两参数版，SQLite/MySQL 各自的名字 |
-| \`NULLIF(a, b)\` | a = b 时返回 NULL，否则返回 a |
+| 函数 | 作用 | 哪来的 |
+|---|---|---|
+| \`COALESCE(a, b, c)\` | 返回第一个非 NULL 的值 | **标准 SQL**，到处都有 |
+| \`IFNULL(a, b)\` | 两参数版 | SQLite / MySQL |
+| \`ISNULL(a)\` | 判断是不是 NULL，等价于 \`a IS NULL\`，返回 0/1 | SQLite / MySQL，**只接受一个参数** |
+| \`NULLIF(a, b)\` | a = b 时返回 NULL，否则返回 a | 标准 SQL |
+
+> ⚠️ **\`ISNULL\` 是个容易记混的名字**：
+> SQLite 和 MySQL 的 \`isnull(x)\` 是**单参数**的判空函数，
+> 而**两参数**的 \`ISNULL(a, b)\`（"为空就换成 b"）是 **SQL Server** 的写法。
+> 在 SQLite 里写 \`ISNULL(NULL, 1)\` 会直接报语法错误 —— 实测如此。
+> 要跨库可移植，一律用标准的 \`COALESCE\`。
 
 \`\`\`sql
 -- 奖金显示：没有奖金时显示 0 而不是空白
@@ -823,9 +852,10 @@ CREATE TABLE sc (
 > 会被引用的表建议用单列代理主键 —— 否则引用方要背上两个列，
 > 而且那两列的业务含义一旦变化（比如学号规则改了），改动面很大。
 
-**ALTER TABLE** 在 SQLite 里支持有限（只能 ADD COLUMN / RENAME），
-MySQL 支持 \`MODIFY\` / \`DROP COLUMN\` / \`ADD INDEX\`。
-**跨数据库迁移时这是最容易踩的差异**。
+**ALTER TABLE** 在 SQLite 里支持有限：\`ADD COLUMN\` / \`RENAME TABLE\` /
+\`RENAME COLUMN\`，**3.35 起也支持 \`DROP COLUMN\`**（但删列有额外限制，
+比如被索引或视图引用的列删不掉）。MySQL 支持 \`MODIFY\` / \`CHANGE\` /
+\`DROP COLUMN\` / \`ADD INDEX\`。**跨数据库迁移时这是最容易踩的差异**。
 
 **DROP TABLE 是不可逆的**。生产环境里的标准做法是先 \`RENAME\` 加个时间戳后缀
 观察一周，确认没人用再真删。`,
@@ -942,9 +972,21 @@ SELECT * FROM v_student_grade WHERE grade >= 90;
 | 情况 | 转换方式 |
 |---|---|
 | 实体 | 一个实体一张表，属性作列，码作主键 |
-| 1:1 联系 | 可以并入任一端（建议并入参与度低的一端） |
+| 1:1 联系 | 可以并入任一端（**建议并入"完全参与"的那一端**，见下） |
 | 1:n 联系 | **把 1 端的码加到 n 端**当外键 |
 | m:n 联系 | **必须单独建一张表**，主键是两端码的组合 |
+
+**为什么 1:1 建议并入"完全参与"的一端**：
+
+"完全参与"指这一端的**每个实体都必然参与**这个联系。并入它，
+新加的那一列不会有 NULL；并入部分参与的那一端，就会留下一堆 NULL。
+
+> 例：\`系\` 与 \`系主任\` 是 1:1。如果规定"每个系必须有主任"（系完全参与），
+> 那 \`系主任\` 这边一定找得到对应的系 —— 把 \`系号\` 加到 \`系主任\` 表里，
+> 列列有值。反过来并入 \`系\` 表，那些还没任命主任的系就会留一个 NULL。
+>
+> 教材上通常写"并入任意一端均可"，那是在**不考虑 NULL 和空值统计**的
+> 前提下说的。实际建模时，"哪一端不产生 NULL"才是那个决定性的判据。
 
 **为什么 m:n 必须单独建表** —— 这是本节最重要的一条：
 
@@ -968,7 +1010,7 @@ SELECT * FROM v_student_grade WHERE grade >= 90;
     content: `**函数依赖** $X \\to Y$：对任意两个元组，若它们在 $X$ 上的值相同，
 则它们在 $Y$ 上的值也必然相同。记作 $X$ 决定 $Y$。
 
-例：$\`sno \\to sname\`$ —— 学号定了，姓名就定了。
+例：$sno \\to sname$ —— 学号定了，姓名就定了。
 
 **Armstrong 公理**（三条基本规则）：
 - **自反律**：$Y \\subseteq X \\Rightarrow X \\to Y$
@@ -1141,7 +1183,7 @@ result = X
 **缓冲池（Buffer Pool）**：内存里的一块区域，缓存磁盘页。
 访问一页时先在池里找（命中），找不到才读磁盘（未命中）并替换掉某一页。
 
-**替换算法**：数据库不用 LRU，主要因为两个问题：
+**替换算法**：数据库不用**朴素 LRU**，主要因为两个问题：
 1. **顺序扫描污染**：一次全表扫描会把整个池冲掉，
    而那个大表页**再也不会被访问**
 2. **脏页不能随便淘汰**：被改过还没写回的页要先刷盘
@@ -1213,33 +1255,76 @@ result = X
 - 很少被查询的列
 - 表本身很小（全表扫只要一次 I/O，走索引反而要多次）
 
-**★ 索引失效的常见写法**（本节的实用重点）：
+**★ 索引失效的常见写法**（本节的实用重点）
+
+下面每条都标了「在 SQLite 上实测是什么结果」—— 因为**很多流传很广的
+"索引失效"说法是 MySQL 的经验，在 SQLite 上并不成立**。
+本平台的实验台跑的是 SQLite，所以这里以实测为准。
 
 \`\`\`sql
--- ✗ 列上做运算/函数，索引失效
-WHERE YEAR(hiredate) = 2022
+-- ① 列上做运算/函数 —— ✅ 确实失效（SQLite 实测 SCAN）
+WHERE substr(hiredate, 1, 4) = '2022'     -- hiredate 是 TEXT，取年份
 WHERE sal + 100 > 20000
 -- ✓ 改写：把运算挪到常量侧
 WHERE hiredate >= '2022-01-01' AND hiredate < '2023-01-01'
 WHERE sal > 19900
 
--- ✗ 前导通配符，无法用索引
+-- ② 前导通配符 —— ✅ 确实失效
 WHERE ename LIKE '%伟'
--- ✓ 后缀通配符可以
+-- ✓ 后缀通配符**在 SQLite 上也不走索引**（下面单独说）
 WHERE ename LIKE '张%'
-
--- ✗ 类型不匹配导致隐式转换
-WHERE sno = 2021001        -- sno 是 TEXT，这里给的是数字
--- ✓
-WHERE sno = '2021001'
-
--- ✗ OR 连接不同列
-WHERE deptno = 10 OR sal > 20000
--- ✓ 拆成 UNION，各自走各自的索引
 \`\`\`
 
-> **"索引失效"的本质是：优化器无法用索引的有序性来缩小扫描范围**。
-> 只要你能回答"这个条件能不能让我直接跳到某一段"，就知道索引能不能用。
+> \`substr\` 是 SQLite 的函数。MySQL/PostgreSQL 里这一步通常写成
+> \`YEAR(hiredate)\` —— 但 SQLite **没有** \`YEAR\` 这个函数，
+> 照抄会直接报 \`no such function\`。这也是"换库要重测"的一个小例子。
+
+**② 需要展开说：\`LIKE '张%'\` 在 SQLite 上也不走索引。**
+
+这是最容易搞错的一条 —— 教材和 MySQL 的经验都说"前缀匹配能用索引"，
+但 SQLite 有个额外前提：**索引必须建成 \`COLLATE NOCASE\`**。
+因为 SQLite 的 \`LIKE\` 默认大小写不敏感，而普通索引是按 \`BINARY\` 排的，
+优化器没法拿它来回答一个大小写不敏感的匹配。
+
+\`\`\`sql
+-- 实测（EXPLAIN QUERY PLAN）：
+--   CREATE INDEX i ON emp(ename);            → LIKE '张%' 是 SCAN
+--   CREATE INDEX i ON emp(ename COLLATE NOCASE); → LIKE '张%' 是 SEARCH
+\`\`\`
+
+要在 SQLite 上做前缀匹配，有三个真正可行的写法：
+
+\`\`\`sql
+-- ① 索引加 COLLATE NOCASE
+CREATE INDEX idx_name_nocase ON emp(ename COLLATE NOCASE);
+-- ② 用 GLOB（默认区分大小写，能直接用 BINARY 索引）
+WHERE ename GLOB '张*'
+-- ③ 手工写成范围条件 —— 最通用，任何数据库都认
+WHERE ename >= '张' AND ename < '张' || char(0x10FFFF)
+\`\`\`
+
+**③ 类型不匹配（\`WHERE sno = 2021001\`，sno 是 TEXT）—— 在 SQLite 上不失效。**
+
+MySQL 上这条会让列发生隐式转换，索引用不上，是经典陷阱。
+但 SQLite 的规则相反：**没有亲和性的字面量会被"拉"到列的类型上**，
+所以 \`2021001\` 被当成 \`'2021001'\` 处理，索引照用、结果也完全一致（实测）。
+
+> 跨库写代码时仍然建议类型写对 —— 这条在 MySQL 上是真会翻车的。
+> 但**别在本平台的实验台上断言"它失效了"**，实测是 SEARCH。
+
+**④ \`OR\` 连接不同列（\`WHERE deptno = 10 OR sal > 20000\`）—— 在 SQLite 上也不失效。**
+
+SQLite 有 **MULTI-INDEX OR** 优化：它会对 \`OR\` 两边分别走各自的索引，
+再把结果合并（实测计划里能看到 \`MULTI-INDEX OR\` + 两个 \`SEARCH\`）。
+
+> MySQL 老版本确实会退化成全表扫描，"拆成 UNION" 那条建议就是从那儿来的。
+> 在 SQLite 上没必要拆 —— 但拆了也不会错。
+
+> **一条比"记住失效写法清单"更耐用的判据**：
+> **"索引失效"的本质是优化器无法用索引的有序性来缩小扫描范围。**
+> 只要你能回答"这个条件能不能让我直接跳到某一段"，
+> 就知道索引能不能用 —— 而不用去背某个数据库某个版本的清单。
+> 清单会过期，判据不会。
 
 **最左前缀原则**（复合索引）：索引 \`(a, b, c)\` 能支持
 \`a\`、\`(a,b)\`、\`(a,b,c)\` 的查询，但**不支持单独的 \`b\` 或 \`c\`**。
@@ -1507,6 +1592,27 @@ COMMIT;
 | SERIALIZABLE | ✓ | ✓ | ✓ | ✓ |
 
 （✓ = 能防止，✗ = 防不住）
+
+> **⚠️ 表格里"丢失修改"这一列按教材口径写，但有个必须知道的边界。**
+>
+> 教材的推理链是：一级封锁协议（写前加 X 锁、保持到事务结束）
+> 能防丢失修改 → 读已提交至少有一级的强度 → 所以能防。
+> 这条链在"两个事务各自 \`UPDATE\` 同一行"时是对的 ——
+> 第二个写会被第一个的 X 锁挡住，直到它提交。
+>
+> 但**如果应用是"先读、在代码里算、再写回"**（读-改-写），
+> 读已提交就防不住了：
+>
+>       T1: SELECT balance → 100     T2: SELECT balance → 100
+>       T1: 代码算 100-10=90         T2: 代码算 100-20=80
+>       T1: UPDATE balance = 90  ✓
+>                                    T2: UPDATE balance = 80  ✓  ← T1 的修改丢了
+>
+> 两次读都在各自事务里拿到了旧值 100，写的时候 X 锁只保证"不并发写"，
+> 保证不了"写的是最新值"。**这正是 \`SELECT ... FOR UPDATE\` 存在的理由** ——
+> 它把读锁保持到事务结束，让第二个事务读到的是新值。
+>
+> 所以：考试按表格答；写代码时记住"读-改-写要显式加锁"。
 
 **各级别的实现思路**：
 - **READ UNCOMMITTED**：不加读锁，直接读 —— 所以能读到未提交数据

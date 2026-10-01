@@ -167,9 +167,9 @@ export const QUESTIONS = [
   },
   {
     id: 'Q015', kid: 'k-select', type: 'judge', difficulty: 3,
-    stem: '在 WHERE 子句中可以使用 SELECT 列表中定义的列别名，例如 `SELECT sal*12 AS 年薪 FROM emp WHERE 年薪 > 100000`。',
-    answer: 'F',
-    analysis: '不能。WHERE 在 SELECT **之前**执行，那时"年薪"这个别名还不存在。报错信息通常是 `no such column: 年薪`。解决方式：重复写表达式，或者用派生表/CTE 包一层。**但 ORDER BY 里可以用别名**，因为它最后执行 —— 这一正一反是高频考点。',
+    stem: '在**标准 SQL** 中，WHERE 子句里不能使用 SELECT 列表定义的列别名。',
+    answer: 'T',
+    analysis: '标准 SQL（以及 PostgreSQL、SQL Server、MySQL）都不允许 —— 理由是 WHERE 比 SELECT 先执行，那时"年薪"这个别名还不存在。\n\n**但本平台用的 SQLite 允许**：`SELECT sal*12 AS 年薪 FROM emp WHERE 年薪 > 100000` 在实训场里能正常返回 3 行。这是 SQLite 的宽松之处（它会把 SELECT 列表的别名提前解析好），不是标准行为 —— 和它允许 `SELECT sdept, sname, COUNT(*) ... GROUP BY sdept` 是同一类宽容。\n\n所以：**考试按标准 SQL 答（不能）**，写代码别依赖 SQLite 的宽容（换到 PostgreSQL 上那句直接挂）。要跨库可移植，就重复写表达式，或者用 CTE / 派生表把计算包一层。ORDER BY 里用别名则是标准允许的，因为它最后执行。',
   },
   {
     id: 'Q016', kid: 'k-where', type: 'choice', difficulty: 2,
@@ -193,7 +193,7 @@ export const QUESTIONS = [
       { key: 'D', text: "sname = '张%'" },
     ],
     answer: 'AC',
-    analysis: "A 是标准写法。C 用函数也能达到同样效果（但**会导致索引失效**）。B 匹配的是「名字里含张」，会把「小张」也选进来，语义不同。D 是等值比较，只会匹配名字字面等于「张%」这个三个字符的人 —— 一个都匹配不到。",
+    analysis: "A 是标准写法。C 用函数也能达到同样效果，但**列上套函数一定用不了索引**。B 匹配的是「名字里含张」，会把「小张」也选进来，语义不同。D 是等值比较，只会匹配名字字面等于「张%」这个三个字符的人 —— 一个都匹配不到。\n\n> 补充一句：A 虽然写法标准，但在 SQLite 上**默认也不走索引**（LIKE 大小写不敏感 vs 索引按 BINARY 排序）。要让它走索引得把索引建成 `COLLATE NOCASE`，或改用 `GLOB '张*'`。细节见「索引的选择与失效场景」那个知识点。",
   },
   {
     id: 'Q018', kid: 'k-orderby', type: 'judge', difficulty: 3,
@@ -203,15 +203,15 @@ export const QUESTIONS = [
   },
   {
     id: 'Q019', kid: 'k-aggregate', type: 'choice', difficulty: 2,
-    stem: '表 emp 有 14 行，其中 comm 列有 5 行为 NULL。`SELECT COUNT(*), COUNT(comm) FROM emp` 的结果是：',
+    stem: '本平台 company 库里，表 emp 有 14 行，其中 comm 列有 8 行为 NULL（表示没有奖金）。`SELECT COUNT(*), COUNT(comm) FROM emp` 的结果是：',
     options: [
       { key: 'A', text: '14, 14' },
-      { key: 'B', text: '14, 9' },
-      { key: 'C', text: '9, 9' },
-      { key: 'D', text: '14, 5' },
+      { key: 'B', text: '14, 6' },
+      { key: 'C', text: '6, 6' },
+      { key: 'D', text: '14, 8' },
     ],
     answer: 'B',
-    analysis: '`COUNT(*)` 数的是**行数**，包含含 NULL 的行 → 14。`COUNT(列)` 数的是该列**非 NULL** 的行数 → 14-5 = 9。这是最常考的聚合函数细节。',
+    analysis: '`COUNT(*)` 数的是**行数**，包含含 NULL 的行 → 14。`COUNT(列)` 数的是该列**非 NULL** 的行数 → 14-8 = 6。\n\n选项 D 的 8 是**NULL 的行数**，不是非空行数 —— 这是最常见的反向错误（把"有几个空"和"有几个非空"记反）。可以在实训场里直接跑一遍验证。',
   },
   {
     id: 'Q020', kid: 'k-aggregate', type: 'blank', difficulty: 3,
@@ -411,13 +411,13 @@ export const QUESTIONS = [
     id: 'Q039', kid: 'k-key', type: 'choice', difficulty: 5,
     stem: '设 R(A,B,C,D)，F = {AB→C, C→D, D→A}。下列哪个是 R 的候选键？',
     options: [
-      { key: 'A', text: 'AB' },
+      { key: 'A', text: 'AD' },
       { key: 'B', text: 'BC' },
       { key: 'C', text: 'CD' },
       { key: 'D', text: 'ACD' },
     ],
     answer: 'B',
-    analysis: '逐个验：AB⁺ = {A,B,C,D}（AB→C，C→D）→ AB 是超键，且 A、B 单独都不是（A⁺={A}，B⁺={B}），所以 AB 是候选键。BC⁺ = {B,C,D,A} = 全集，且 B、C 单独都不是超键 → BC 也是候选键。CD⁺ = {C,D,A}，缺 B → 不是。ACD 包含 BC 但多一个 A，**不是极小的** → 是超键但不是候选键。所以正确答案 B。本题考的是"候选键必须是极小超键"。',
+    analysis: 'B 从不出现在任何依赖的右部，所以**每个候选键都必须含 B**。逐个验闭包：\n\n- **BC**⁺：{B,C} → C→D 得 D → D→A 得 A → **{A,B,C,D} = 全集**，且 B、C 单独都不是超键 → **是候选键** ✓\n- **AD**⁺：只有 {A,D}（AB→C 缺 B，C→D 缺 C）→ 不是 ✓\n- **CD**⁺：{C,D,A}，缺 B → 不是\n- **ACD**：包含全部属性但**不极小** → 是超键，不是候选键\n\n> **这道题完整的候选键有三个：AB、BC、BD**（每个都含 B，再配一个 LR 类属性即可凑齐全集）。选项里只出现了 BC，所以选 B。\n> 记住判据：**候选键 = 极小超键**。包含候选键的属性组是超键，不是候选键 —— 这正是 D 的陷阱。',
   },
   {
     id: 'Q040', kid: 'k-key', type: 'blank', difficulty: 4,
@@ -518,15 +518,15 @@ export const QUESTIONS = [
   },
   {
     id: 'Q050', kid: 'k-index-use', type: 'multi', difficulty: 4,
-    stem: '下列哪些写法会导致索引失效？（多选）',
+    stem: '下列哪些写法会让优化器**无法利用索引的有序性**，从而退化成全表扫描？（多选）',
     options: [
-      { key: 'A', text: "WHERE YEAR(hiredate) = 2022" },
-      { key: 'B', text: "WHERE ename LIKE '张%'" },
-      { key: 'C', text: "WHERE ename LIKE '%伟'" },
-      { key: 'D', text: "WHERE sal + 100 > 20000" },
+      { key: 'A', text: "WHERE substr(hiredate, 1, 4) = '2022'（在列上做函数）" },
+      { key: 'B', text: "WHERE ename LIKE '%伟'（前导通配符）" },
+      { key: 'C', text: "WHERE sal + 100 > 20000（在列上做运算）" },
+      { key: 'D', text: "WHERE deptno = 10（对列做等值比较）" },
     ],
-    answer: 'ACD',
-    analysis: 'A 和 D 都是在**列上做运算**，索引存的是列的原始值，运算后的结果没法用有序性定位。C 是**前导通配符**，无法确定从哪开始扫。B 是后缀通配符，可以用索引（从"张"开始扫）。改法：A 改成 `hiredate >= \'2022-01-01\' AND hiredate < \'2023-01-01\'`，D 改成 `sal > 19900` —— 把运算挪到常量侧。',
+    answer: 'ABC',
+    analysis: 'A 和 C 都是在**列上做运算**：索引里存的是列的原始值，运算后的结果没法用有序性定位。B 是**前导通配符**，无法确定从哪一段开始扫。D 恰恰是索引最擅长的情况 —— 等值条件可以直接定位到一段。\n\n改法：A 改成 `hiredate >= \'2022-01-01\' AND hiredate < \'2023-01-01\'`，C 改成 `sal > 19900` —— 把运算挪到常量侧。\n\n> **顺带一条本平台特有的坑**：`LIKE \'张%\'`（后缀通配符）在很多教材里被写成"可以用索引"，但**在 SQLite 上默认也不走**。因为 SQLite 的 LIKE 大小写不敏感，而普通索引按 BINARY 排序，优化器没法用它。要让前缀匹配走索引，得把索引建成 `COLLATE NOCASE`，或者改用 `GLOB \'张*\'` / 手工的范围条件。这是"教材经验 ≠ 当前引擎行为"的典型例子 —— 实验台里能直接跑出来。',
   },
   {
     id: 'Q051', kid: 'k-index-use', type: 'judge', difficulty: 3,

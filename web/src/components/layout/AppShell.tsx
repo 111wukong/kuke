@@ -149,7 +149,7 @@ export function AppShell() {
       {/* 侧栏 */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-hairline bg-ink-950/75 backdrop-blur-2xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-hairline bg-ink-950/95 backdrop-blur-md transition-transform duration-300 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0',
           navOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)' }}
@@ -212,17 +212,19 @@ export function AppShell() {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5 px-4 py-4">
-      {/* 图标垫在一层渐变光晕上，让它在侧栏顶部有个视觉重心。
-          纯色方块太"平"，和下面的玻璃卡片不在一个语言里。 */}
-      <span className="relative grid h-9 w-9 place-items-center">
-        <span
-          className="absolute inset-0 rounded-xl opacity-55 blur-[7px]"
-          style={{ backgroundImage: 'var(--grad-spectrum)' }}
-          aria-hidden="true"
-        />
-        <span className="glass relative grid h-9 w-9 place-items-center rounded-xl text-cyan">
-          <Database size={18} />
-        </span>
+      {/* ★ 2026-10-01：去掉了图标背后那层 blur-[7px] 的渐变光晕，
+       *   改成实色方块。
+       *
+       *   原来那个做法（渐变光斑 + 玻璃方块 + 里面一个图标）是"AI 应用
+       *   图标"的标准长相 —— 几乎每个 AI 产品落地页左上角都是这个。
+       *   它的问题是：**光晕不携带任何信息**。品牌识别靠的是字形和颜色，
+       *   不是发光强度。
+       *
+       *   现在是一个 32px 的实心强调色方块 + 反白图标 —— 这是从
+       *   Linear 到 Stripe 到 GitHub 都在用的做法，因为它清晰、可缩放、
+       *   且在亮暗两种主题下都成立。 */}
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
+        <Database size={17} />
       </span>
       <div className="min-w-0">
         <div className="text-[15px] font-semibold leading-tight tracking-tight text-fg">库课</div>
@@ -240,13 +242,15 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
       to={to}
       end={to === '/'}
       className={({ isActive }: { isActive: boolean }) => cn(
-        'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-all duration-200',
+        'group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] transition-colors duration-150',
         isActive
-          ? 'nav-active-bar bg-cyan/12 font-medium text-cyan shadow-[var(--glow-accent-soft)]'
+          ? 'nav-active-bar bg-cyan/12 font-medium text-cyan'
           : 'text-fg-soft hover:bg-veil/6 hover:text-fg',
       )}
     >
-      <Icon size={16} className="shrink-0 transition-transform duration-200 group-hover:scale-[1.08]" />
+      {/* ★ 去掉悬停时图标的放大动画（group-hover:scale-[1.08]）——
+       *   侧栏有 14 个条目，鼠标扫过时图标逐个弹跳，是很吵的动效。 */}
+      <Icon size={16} className="shrink-0" />
       <span className="truncate">{label}</span>
       {badgeCount > 0 && (
         <span className="ml-auto shrink-0 rounded-full bg-rose/20 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-rose">
@@ -276,10 +280,12 @@ function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
     <div className="border-t border-hairline p-2.5">
       {/* 快捷键入口。藏着的功能等于没有 —— 不摆出来，没人会去按 ? 试试。 */}
       <HotkeyHint onClick={onShowHotkeys} />
-      <div className="glass relative overflow-hidden rounded-lg p-2.5">
+      <div className="panel relative overflow-hidden rounded-lg p-2.5">
         <div className="flex items-center gap-2">
           <span
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white shadow-[var(--glow-accent-soft)]"
+            /* ★ 去掉等级徽章上的发光。它是侧栏里一个 28px 的圆点，
+             *   发光除了让侧栏变吵没有任何作用。 */
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
             style={avatarStyle(user.avatarHue)}
           >
             {lv}
@@ -302,10 +308,13 @@ function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-veil/10">
           <div
+            /* ★ 进度条从"彩虹渐变"改成单色强调色。
+             *   进度条的语义是"完成了多少"，一条从青到紫到品红的彩虹
+             *   并不能多表达任何东西 —— 它只是把"进度"这件事说三遍。 */
             className="h-full rounded-full transition-[width] duration-700"
             style={{
               width: `${Math.min(100, progress * 100)}%`,
-              backgroundImage: 'var(--grad-spectrum)',
+              background: 'var(--color-cyan)',
               transitionTimingFunction: 'var(--ease-out-expo)',
             }}
           />
@@ -377,7 +386,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   }, [location.pathname]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-ink-1000/72 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-hairline bg-ink-1000/88 backdrop-blur-md">
       <div className="flex h-13 items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <button
           onClick={onMenu}

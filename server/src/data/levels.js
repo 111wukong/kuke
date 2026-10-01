@@ -587,16 +587,21 @@ SELECT AVG(comm), AVG(COALESCE(comm, 0)) FROM emp;
   {
     id: 'L39', dataset_id: 'school', chapter_id: 'ch-sql-dml', kid: 'k-dml', seq: 39,
     title: '删除记录',
-    brief: `从 \`sc\` 表中删除**成绩为 NULL** 的选课记录（还没出分的）。
+    brief: `从 \`sc\` 表中删除**不及格（grade < 60）**的选课记录。
 
-删除后查询 \`sc\` 验证：结果里不应再有 grade 为 NULL 的行。
+删除后查询 \`sc\` 验证：结果里不应再有 grade 小于 60 的行。
 
 > 删除前先 \`SELECT\` 一遍确认范围，是生产环境的标准动作。
-> 在这个沙箱里养成习惯，比在生产环境里学要便宜得多。`,
-    hint: 'DELETE FROM sc WHERE grade IS NULL;',
-    starter_sql: '-- 先看一眼要删什么\nSELECT * FROM sc WHERE grade IS NULL;\n\nDELETE FROM sc WHERE grade IS NULL;\n\nSELECT * FROM sc;',
-    reference_sql: 'DELETE FROM sc WHERE grade IS NULL;',
-    check_sql: 'SELECT CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END FROM sc WHERE grade IS NULL',
+> 在这个沙箱里养成习惯，比在生产环境里学要便宜得多。
+>
+> ⚠️ **顺带一个真实的坑**：如果题目改成"删除 grade 为 NULL 的记录"，
+> 你跑完会发现删了 **0 行** —— 因为这个库里的 sc 表根本没有 NULL 成绩。
+> 而 SQL 不会为此报任何错。所以"先 SELECT 看一眼会删掉多少行"
+> 不是谨慎，是必需品：**DELETE 匹配 0 行和匹配 1000 行，返回给你的是同一句话。**`,
+    hint: 'DELETE FROM sc WHERE grade < 60;',
+    starter_sql: '-- 先看一眼要删什么\nSELECT * FROM sc WHERE grade < 60;\n\nDELETE FROM sc WHERE grade < 60;\n\nSELECT * FROM sc;',
+    reference_sql: 'DELETE FROM sc WHERE grade < 60;',
+    check_sql: 'SELECT CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END FROM sc WHERE grade < 60',
     difficulty: 2,
   },
 
@@ -685,7 +690,7 @@ ROW_NUMBER() OVER (PARTITION BY cid ORDER BY price DESC)
     brief: `输出**每个系**的：系名、人数、平均年龄、**选课总人次**。
 
 要求：
-- 四个系都要出现，即使某个系还没人选课（选课人次记 0）
+- 三个系都要出现，即使某个系还没人选课（选课人次记 0）
 - 按人数从多到少排序
 
 > ⚠️ 要求行序。这道题综合了 LEFT JOIN、GROUP BY、COUNT 的 NULL 语义、
