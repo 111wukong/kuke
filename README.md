@@ -35,7 +35,7 @@
 
 <img src="docs/screenshots/02-dashboard.png" alt="仪表盘" width="100%">
 
-### 知识树 —— 43 个知识点，带 68 条依赖边
+### 知识树 —— 47 个知识点，带 68 条依赖边
 
 <img src="docs/screenshots/03-knowledge-tree.png" alt="知识树" width="100%">
 
@@ -237,7 +237,7 @@ sudo cp deploy/kuke.service /etc/systemd/system/kuke.service && sudo systemctl e
 
 | | 数量 |
 |---|---|
-| 分类 / 章 / **知识点** | 7 / 29 / **43** |
+| 分类 / 章 / **知识点** | 7 / 29 / **47** |
 | 知识依赖边 | **68** 条（53 硬前置 + 5 相关 + 10 易混淆） |
 | 教学数据集 | **4** 套（学生选课 / 电商订单 / 图书借阅 / 员工部门） |
 | SQL 关卡 | **45** 关 |

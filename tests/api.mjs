@@ -94,8 +94,8 @@ try {
   const tree = await student.get('/api/catalog/tree');
   check('知识树可读', ok(tree.body) && tree.body.categories.length === 7,
     `分类数 ${tree.body?.categories?.length}`);
-  check('知识树含 43 个知识点',
-    tree.body.categories.reduce((s, c) => s + c.chapters.reduce((t, ch) => t + ch.knowledge.length, 0), 0) === 43);
+  check('知识树含 47 个知识点',
+    tree.body.categories.reduce((s, c) => s + c.chapters.reduce((t, ch) => t + ch.knowledge.length, 0), 0) === 47);
 
   const kDetail = await student.get('/api/catalog/knowledge/k-groupby');
   check('知识点详情可读', ok(kDetail.body), JSON.stringify(kDetail.body).slice(0, 120));
@@ -103,7 +103,7 @@ try {
   check('知识点详情带解锁列表', Array.isArray(kDetail.body?.unlocks));
 
   const qs = await student.get('/api/catalog/questions?limit=200');
-  check('题库可读', ok(qs.body) && qs.body.questions.length === 74, `题目数 ${qs.body?.questions?.length}`);
+  check('题库可读', ok(qs.body) && qs.body.questions.length === 180, `题目数 ${qs.body?.questions?.length}`);
   check('★ 题库列表不下发答案', qs.body.questions.every((q) => q.answer === undefined),
     JSON.stringify(qs.body.questions.find((q) => q.answer !== undefined) || {}));
 
