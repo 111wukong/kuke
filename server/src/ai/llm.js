@@ -27,17 +27,19 @@
  */
 
 import { fromEnvFile } from '../lib/env.js';
+import { aiConfig, getSetting } from '../lib/appSettings.js';
 
 /* 配置**惰性读**：env.js 在 import 时就把 .env 装好了，
  * 但写成函数能避免「模块加载顺序」这种隐性依赖 ——
- * 谁先 import 都不影响结果。 */
+ * 谁先 import 都不影响结果。
+ *
+ * ★ 现在配置有两个来源：**界面设置（数据库）优先，环境变量兜底**。
+ *   部署的人（IT）和使用的人（老师）往往不是同一个 ——
+ *   让老师为了换个模型去改服务器环境变量再重启，是把运维成本
+ *   转嫁给了教学的人。见 lib/appSettings.js。 */
 function cfg() {
-  return {
-    key: (process.env.DEEPSEEK_API_KEY || '').trim(),
-    base: (process.env.DEEPSEEK_BASE || 'https://api.deepseek.com').replace(/\/+$/, ''),
-    model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
-    timeout: Number(process.env.DEEPSEEK_TIMEOUT) || 60000,
-  };
+  const c = aiConfig();
+  return { key: c.apiKey, base: c.baseUrl, model: c.model, timeout: c.timeout };
 }
 
 export function aiHealth() {
@@ -48,8 +50,11 @@ export function aiHealth() {
     keyLooksValid: /^sk-[A-Za-z0-9_-]{16,}$/.test(c.key),
     /* ★ 只回**来源**，不回任何一位密钥字符。
      *   「用错了哪把」和「这把失效了」是两件事，处理方式完全不同；
-     *   只回一个 hasKey 的话，这两种情况长得一模一样。 */
-    keySource: !c.key ? 'none' : (fromEnvFile('DEEPSEEK_API_KEY') ? 'env-file' : 'environment'),
+     *   只回一个 hasKey 的话，这两种情况长得一模一样。
+     *   现在来源有三档：界面设置 / .env / 环境变量。 */
+    keySource: !c.key ? 'none'
+      : (getSetting('ai.apiKey', '') ? 'settings'
+        : (fromEnvFile('DEEPSEEK_API_KEY') ? 'env-file' : 'environment')),
     base: c.base,
     model: c.model,
   };
@@ -178,8 +183,12 @@ export const TOOL_PROTOCOL_HINT = `
  *   degraded: '' | 'text-protocol' —— 走的是哪条降级路径
  */
 export async function chat(opts) {
-  const { messages, tools = [], hooks = {}, temperature, maxTokens, stream = true, signal } = opts;
-  const c = cfg();
+  const { messages, tools = [], hooks = {}, temperature, maxTokens, stream = true, signal, override } = opts;
+  /* override 是给「测试连接」用的：用户刚在界面上填了一套配置但还没保存，
+   * 要拿这套**未保存的值**去发一次真实请求验证。
+   * 不然就只能「先保存再测试」—— 而那意味着一次填错会把线上正在用的
+   * 配置也改坏，测试本身成了风险源。 */
+  const c = override ? { ...cfg(), ...override } : cfg();
 
   if (!c.key) {
     const err = new Error('服务端没有配置 DeepSeek API Key');

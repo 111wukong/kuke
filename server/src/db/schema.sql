@@ -512,3 +512,34 @@ CREATE TABLE IF NOT EXISTS admin_log (
 CREATE INDEX IF NOT EXISTS idx_adminlog_at ON admin_log(at DESC);
 CREATE INDEX IF NOT EXISTS idx_adminlog_target ON admin_log(target_id);
 CREATE INDEX IF NOT EXISTS idx_adminlog_actor ON admin_log(actor_id);
+
+-- ============ 应用级配置（整套服务一份）============
+/*
+ * 和 user_settings 的区别：那张表是「每个人自己的偏好」（主题、每日目标），
+ * 这张是「整套服务一份的配置」—— 目前只有 AI 模型接入。
+ *
+ * ── 为什么让老师在界面上配，而不是只读 .env ─────────────────────
+ * 部署的人（IT / 运维）和使用的人（任课老师）往往不是同一个。
+ * 让老师为了换一个模型去改服务器上的环境变量、再重启服务，
+ * 是把运维成本转嫁给了教学的人 —— 而这件事本身只是一次表单提交。
+ *
+ * 尤其是教学场景：这门课可能这个学期用 DeepSeek、下学期换成学校的
+ * 私有化部署模型，甚至老师自己有个别家的 key。这些都不该需要重新部署。
+ *
+ * ── 优先级 ──────────────────────────────────────────────────────
+ * 数据库 > 环境变量。原因同上：界面上的设置是「使用者当下想要的」，
+ * 环境变量是「部署时的默认值」。前者应该覆盖后者。
+ * 界面上清空某项时，自动落回环境变量的值 —— 这样「恢复默认」不用
+ * 单独做一个功能。
+ *
+ * ★ 值里可能有 API Key，所以：
+ *   · 读接口一律打码（只回前后各 4 位，中间固定长度）
+ *   · 写接口要求教师及以上（学生不该碰这个 —— 那是别人的额度）
+ *   · 不写进任何日志
+ */
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by INTEGER
+);

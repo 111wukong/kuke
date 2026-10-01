@@ -360,6 +360,9 @@ try {
 
   await probeCase('设置页：切换主题生效（含亮色对比度）', '/settings', [
     { act: 'assert', expr: "document.body.textContent.includes('宣纸')", timeout: 8000 },
+    /* AI 模型配置块只对教师/管理员渲染，这里的账号是教师 ——
+     * 所以它应该出现。这条顺带守住了「权限判断没写反」。 */
+    { act: 'assert', expr: "document.body.textContent.includes('AI 模型')", timeout: 8000 },
     { act: 'click', text: '宣纸' },
     { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'paper'", timeout: 8000 },
     {

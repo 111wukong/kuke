@@ -20,6 +20,8 @@ import { describeTools, TEACHER_TOOLS, STUDENT_TOOLS, MATERIAL_DEPTH } from '../
 import { profileCard, learningProfile } from '../ai/profile.js';
 import { db } from '../db/index.js';
 import { rl } from '../lib/rateLimit.js';
+import { aiConfigPublic, saveAiConfig, aiConfigIsCustom, aiConfig } from '../lib/appSettings.js';
+import { chat } from '../ai/llm.js';
 
 /* ============================================================
    会话表（内存）
@@ -40,9 +42,158 @@ function gcSessions() {
 }
 setInterval(gcSessions, 5 * 60 * 1000).unref?.();
 
+/** 写一条管理审计。审计是旁路，失败不能连累主流程。 */
+function audit(req, action, { target = null, detail = {} } = {}) {
+  try {
+    db.prepare(`INSERT INTO admin_log (actor_id, actor_email, target_id, target_email, action, detail, ip)
+      VALUES (?,?,?,?,?,?,?)`).run(
+      req.user.id, req.user.email,
+      target?.id ?? null, target?.email ?? null,
+      action, JSON.stringify(detail), String(req.ip || '').slice(0, 60),
+    );
+  } catch (e) {
+    req.log.error({ err: e }, '写管理审计失败');
+  }
+}
+
 export default async function aiRoutes(fastify) {
   /* ============ 密钥状态 ============ */
   fastify.get('/api/ai/health', { preHandler: fastify.requireAuth }, async () => aiHealth());
+
+  /* ============ AI 模型配置 ============
+   *
+   * 谁能改：**教师及以上**。学生不该碰这个 —— 那是别人的额度，
+   * 而且改错了全班学生的 AI 课堂都用不了。
+   *
+   * 为什么要做成界面可配：部署的人（IT）和使用的人（老师）
+   * 往往不是同一个。让老师为了换个模型去改服务器上的环境变量、
+   * 再重启服务，是把运维成本转嫁给了教学的人 ——
+   * 而这件事本身只是一次表单提交。
+   *
+   * 教学场景尤其明显：这门课这学期用 DeepSeek、下学期换成学校
+   * 私有化部署的模型，甚至老师自己有个别家的 key。
+   * 这些都不该需要重新部署。
+   */
+
+  fastify.get('/api/ai/config', { preHandler: fastify.requireTeacher }, async () => ({
+    ...aiConfigPublic(),
+    customized: aiConfigIsCustom(),
+  }));
+
+  /* 用 PATCH 而不是 PUT：这是「改其中几个字段」，
+   * 没传的字段保持原样。PUT 的语义是「用这份完整替换掉旧的」，
+   * 那样「只改模型名」就会把 key 清空 —— 是个很容易踩的坑。 */
+  fastify.patch('/api/ai/config', {
+    preHandler: fastify.requireTeacher,
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          apiKey: { type: 'string', maxLength: 400 },
+          baseUrl: { type: 'string', maxLength: 400 },
+          model: { type: 'string', maxLength: 160 },
+          timeout: { type: ['string', 'number'] },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const b = req.body || {};
+
+    /* baseUrl 必须是 http(s)。填错了会让之后每一次 AI 请求都失败，
+     * 而报错是「连不上上游」—— 看不出是配置写错了。
+     * 所以在这里拦住，给一句能对症的话。 */
+    const baseUrl = b.baseUrl === undefined ? undefined : String(b.baseUrl).trim();
+    if (baseUrl && !/^https?:\/\//i.test(baseUrl)) {
+      return reply.code(400).send({
+        error: '接口地址要以 http:// 或 https:// 开头',
+        hint: '例如 https://api.deepseek.com —— 注意末尾不用带 /v1',
+      });
+    }
+
+    /* 超时按秒收（界面上写秒比写毫秒自然），存成毫秒 */
+    let timeout;
+    if (b.timeout !== undefined && String(b.timeout).trim() !== '') {
+      const sec = Number(b.timeout);
+      if (!Number.isFinite(sec) || sec < 5 || sec > 600) {
+        return reply.code(400).send({ error: '超时要在 5 ~ 600 秒之间' });
+      }
+      timeout = Math.round(sec * 1000);
+    } else if (b.timeout !== undefined) {
+      timeout = '';           // 显式清空 = 恢复默认
+    }
+
+    const changed = saveAiConfig({
+      apiKey: b.apiKey, baseUrl, model: b.model, timeout,
+    }, req.user.id);
+
+    /* ★ 审计里只记「改了哪几个字段」，**不记值** ——
+     *   值里可能有 API Key，写进审计表等于把它复制到第二个地方。 */
+    audit(req, 'ai_config_update', { detail: { fields: changed } });
+    return { ok: true, changed, config: aiConfigPublic() };
+  });
+
+  /* 测试连接。
+   *
+   * ★ 用**请求里带的配置**去测，不读已保存的 ——
+   *   否则就变成「先保存再测试」，而一次填错会把正在用的配置也改坏，
+   *   测试本身成了风险源。
+   *   前端没传的字段回落到当前已生效的配置。 */
+  fastify.post('/api/ai/config/test', {
+    preHandler: fastify.requireTeacher,
+    config: { rateLimit: rl(10, '1 minute') },
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          apiKey: { type: 'string', maxLength: 400 },
+          baseUrl: { type: 'string', maxLength: 400 },
+          model: { type: 'string', maxLength: 160 },
+        },
+      },
+    },
+  }, async (req) => {
+    const b = req.body || {};
+    const cur = aiConfig();
+    const override = {
+      /* 没传 key 就用已保存的；传了空串也用已保存的 ——
+       * 前端拿到的 key 是打码的，用户不改时那个输入框里是空的。 */
+      apiKey: (b.apiKey || '').trim() || cur.apiKey,
+      baseUrl: (b.baseUrl || '').trim() || cur.baseUrl,
+      model: (b.model || '').trim() || cur.model,
+      timeout: Math.min(cur.timeout, 20000),   // 测试别等太久
+    };
+
+    if (!override.apiKey) {
+      return { ok: false, kind: 'nokey', message: '还没有填 API Key' };
+    }
+
+    const t0 = Date.now();
+    try {
+      const out = await chat({
+        messages: [
+          { role: 'system', content: '你是一个连通性测试端点。' },
+          { role: 'user', content: '回复两个字：正常' },
+        ],
+        stream: false,
+        maxTokens: 16,
+        override,
+      });
+      return {
+        ok: true,
+        ms: Date.now() - t0,
+        model: override.model,
+        reply: String(out?.content || '').slice(0, 60),
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        kind: e.kind || 'unknown',
+        message: e.message,
+        hint: e.hint || '',
+        ms: Date.now() - t0,
+      };
+    }
+  });
 
   /* ============ 工具清单（前端展示「谁手里有什么」） ============ */
   fastify.get('/api/ai/tools', { preHandler: fastify.requireAuth }, async () => ({

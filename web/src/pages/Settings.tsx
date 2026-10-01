@@ -13,6 +13,7 @@ import {
   Skeleton,
 } from '@/components/ui/Primitives';
 import { ThemePicker } from '@/components/ui/Toaster';
+import { AiConfigCard } from '@/components/ai/AiConfigCard';
 import { useAsync } from '@/lib/hooks';
 import { api } from '@/lib/api';
 import { useApp } from '@/stores/app';
@@ -24,6 +25,9 @@ import { formatDateTime, avatarStyle } from '@/lib/utils';
 export default function Settings() {
   const { user, settings, patchSettings, logout } = useAuth();
   const { toast } = useApp();
+  /* AI 配置只有教师/管理员能改。前端隐藏只是不给人添乱 ——
+   * 服务端的写接口也用 requireTeacher 挡住了，那才是真正的边界。 */
+  const canManageAi = user?.role === 'teacher' || user?.role === 'admin';
   const { id: themeId } = useTheme();
 
   const [dailyGoal, setDailyGoal] = useState(settings?.dailyGoal ?? 20);
@@ -166,6 +170,11 @@ export default function Settings() {
           </Button>
         </div>
       </Card>
+
+      {/* ---------- AI 模型（仅教师 / 管理员）----------
+          ★ 学生看不到这一块。不只是「隐藏入口」—— 服务端的写接口
+            也用 requireTeacher 挡住了，前端隐藏只是不给人添乱。 */}
+      {canManageAi && <AiConfigCard />}
 
       {/* ---------- 改密码 ---------- */}
       <Card>

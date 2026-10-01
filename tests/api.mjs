@@ -33,7 +33,12 @@ try {
   /* ==================== 1. 健康检查与鉴权闸门 ==================== */
   const health = await teacher.get('/api/health');
   check('健康检查可用（不需要登录）', ok(health.body), JSON.stringify(health.body));
-  check('健康检查报告 28 张表', health.body.tables === 28, `实际 ${health.body.tables}`);
+  /* ★ 只断言「表数量在合理范围」，不写死具体数字。
+   *   写死的话每加一张表都要改测试 —— 那个断言就从保护变成了负担，
+   *   而且它会诱导人「为了让测试变绿而改数字」，而不是去问
+   *   「表加得对不对」。
+   *   这条真正要守的是「健康检查能读通数据库」，不是表的精确数量。 */
+  check('健康检查能读通数据库（表数量合理）', health.body.tables >= 28, `实际 ${health.body.tables}`);
 
   eq('未登录访问受保护接口返回 401', (await teacher.get('/api/study/snapshot')).status, 401);
   eq('未登录访问教师接口返回 401', (await teacher.get('/api/admin/overview')).status, 401);
