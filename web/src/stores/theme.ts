@@ -34,7 +34,15 @@ function initialId(): string {
 
 function apply(id: string) {
   if (typeof document === 'undefined') return;
+  const def = themeOf(id);
   document.documentElement.setAttribute('data-theme', id);
+  /* ★ data-fx 控制 CSS 层那张 34px 的方格网（styles/index.css 的 body::after）。
+   *   只有开了 fx 的主题才挂 —— 网格铺满整屏是最容易被一眼认出
+   *   "模板感"的元素，而它对信息没有任何贡献。
+   *   放在这里而不是写在组件里：它是**主题属性**，和 WebGL 那两层
+   *   （CyberGrid / Starfield）必须同进同出，否则会出现
+   *   "WebGL 关了但网格还在"的半截状态。 */
+  document.documentElement.setAttribute('data-fx', def.fx ? 'on' : 'off');
   try { localStorage.setItem(THEME_STORAGE_KEY, id); } catch { /* 存不下就算了 */ }
 }
 

@@ -25,7 +25,10 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function Button({
   variant = 'ghost', size = 'md', loading, className, children, disabled, ...rest
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all disabled:opacity-45 disabled:cursor-not-allowed select-none';
+  /* ★ 圆角从 8px 收到 6px；主按钮不再带投影和光晕。
+   *   `shadow-lg shadow-cyan/20` 是"发光按钮"的来源 —— 一屏三个发光按钮
+   *   等于三个都在喊"看我"。见 styles/index.css 的 .btn-accent 注释。 */
+  const base = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-all disabled:opacity-45 disabled:cursor-not-allowed select-none';
   const sizes = {
     sm: 'h-7 px-2.5 text-[12.5px]',
     md: 'h-9 px-3.5 text-[13.5px]',
@@ -33,7 +36,7 @@ export function Button({
     icon: 'h-9 w-9',
   };
   const variants = {
-    accent: 'btn-accent shadow-lg shadow-cyan/20',
+    accent: 'btn-accent',
     ghost: 'text-fg-soft hover:text-fg hover:bg-veil/6 border border-transparent',
     outline: 'border border-hairline-strong text-fg-soft hover:text-fg hover:bg-veil/6',
     subtle: 'bg-veil/6 text-fg-soft hover:text-fg hover:bg-veil/10 border border-hairline',
@@ -60,11 +63,13 @@ export function Card({
   children: ReactNode;
   padded?: boolean;
   strong?: boolean;
-  /** 可点击的卡片：悬停抬起 + 强调色描边 */
+  /** 可点击的卡片：悬停时描边变亮 + 1px 抬升 */
   hover?: boolean;
-  /** 渐变描边的卡片。用在需要"被看见"的那一张上（首屏主卡、当前选中项） */
+  /** 需要被强调的那一张（首屏主卡、当前选中项）。
+   *  ★ 现在渲染成「实色面 + 强调色左边框」—— 原来是渐变描边 + 玻璃面。
+   *    渐变描边在说"看我"，却没说"我为什么重要"，一屏出现两张就互相抵消。 */
   grad?: boolean;
-  /** 叠一层噪点。大面积卡片加一点会让玻璃面更像材质 */
+  /** @deprecated 噪点叠层已全局关闭（实色面不需要它压色带）。保留参数避免改动 63 处调用。 */
   noise?: boolean;
   style?: React.CSSProperties;
 }) {
@@ -72,9 +77,14 @@ export function Card({
     <div
       style={style}
       className={cn(
-        grad ? 'card-grad' : 'glass',
-        'rounded-xl',
-        strong && !grad && 'glass-strong',
+        /* ★ 从 `glass`（半透明 + blur + 四层叠加）改成 `panel`（实色 + 1px 边框）。
+         *   理由见 styles/index.css 里「组件层」那一段的长注释：
+         *   每张卡都浮着 = 没有卡浮着。 */
+        grad ? 'card-grad' : 'panel',
+        /* 圆角从 12px 收到 8px。大圆角是"消费级 App"的语言，
+         * 数据密集的工具界面用 6–8px：同样的面积里能多放一行信息。 */
+        'rounded-lg',
+        strong && !grad && 'border-hairline-strong',
         hover && 'card-hover',
         noise && 'noise',
         padded && 'p-4 sm:p-5',
@@ -89,7 +99,22 @@ export function Card({
 export function SectionTitle({
   title, desc, right, icon, accent,
 }: {
-  title: string; desc?: string; right?: ReactNode; icon?: ReactNode;
+  title: string; desc?: string; right?: ReactNode;
+  /**
+   * 章节图标。
+   * ★ 颜色**会被忽略**，一律按弱化色渲染。
+   *
+   * 原来每个卡片标题前都挂一个不同颜色的图标（外观=青、学习偏好=紫、
+   * 账号=蓝……），这是"模板批量生成"最明显的信号之一：
+   * 颜色在真实产品里是有语义的（危险=红、成功=绿、当前项=强调色），
+   * 拿它给纯装饰分类，等于把语义稀释掉。
+   *
+   * 所以图标留着（它确实帮助扫读），颜色收掉。
+   * 调用处那些 `className="text-cyan"` 不用改 —— 这里用
+   * `[&>svg]:text-fg-faint` 覆盖（选择器权重更高），
+   * 免得为了改一个颜色去动 63 处调用点。
+   */
+  icon?: ReactNode;
   /** 给标题加一道强调色竖条。用在页面的主要区块上，和次级区块区分开 */
   accent?: boolean;
 }) {
@@ -99,12 +124,14 @@ export function SectionTitle({
         {accent && (
           <span
             className="mt-[3px] h-[18px] w-[3px] shrink-0 rounded-full"
-            style={{ backgroundImage: 'var(--grad-accent)' }}
+            style={{ background: 'var(--color-cyan)' }}
           />
         )}
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-fg">
-            {icon}
+            {icon && (
+              <span className="shrink-0 [&>svg]:text-fg-faint" aria-hidden="true">{icon}</span>
+            )}
             {title}
           </h2>
           {desc && <p className="mt-0.5 text-[12.5px] leading-relaxed text-fg-mute">{desc}</p>}
@@ -289,7 +316,7 @@ export function Stat({
     : tone === 'warn' ? 'text-warn' : tone === 'accent' ? 'text-cyan' : 'text-fg';
 
   return (
-    <div className="glass card-hover relative overflow-hidden rounded-xl p-3.5">
+    <div className="panel card-hover relative overflow-hidden rounded-lg p-3.5">
       {/* ★ 这里原本是 `uppercase tracking-wide`。
        *
        * 那是英文界面的写法：小号大写 + 加字距，用来把标签和正文区分开。
@@ -420,7 +447,7 @@ export function CardGridSkeleton({
  *  用户立刻知道等来的是图表 —— 而且不会把它误认成列表。 */
 export function ChartSkeleton({ height = 200 }: { height?: number }) {
   return (
-    <div className="glass rounded-xl p-4">
+    <div className="panel rounded-lg p-4">
       <Skeleton className="h-3 w-28" />
       <div className="mt-5 flex items-end gap-2" style={{ height }}>
         {[42, 68, 33, 82, 52, 74, 38].map((h, i) => (
@@ -496,7 +523,7 @@ export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: nu
   };
 
   return (
-    <div className="glass overflow-hidden rounded-xl">
+    <div className="panel overflow-hidden rounded-lg">
       <div className="flex items-center gap-4 border-b border-hairline bg-veil/5 px-4 py-3">
         {Array.from({ length: cols }, (_, i) => (
           <Skeleton key={i} className="h-2.5" style={{ width: widthOf(i) }} />
@@ -523,17 +550,15 @@ export function Empty({
 }: { title: string; desc?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2.5 py-12 text-center">
-      {/* 图标垫在一个渐变光环里。空态是"什么都没有"的页面，
-          给它一个视觉落点，比一行灰字要让人愿意停下来读。 */}
-      <div className="relative grid h-14 w-14 place-items-center rounded-2xl">
-        <span
-          className="absolute inset-0 rounded-2xl opacity-40 blur-md"
-          style={{ backgroundImage: 'var(--grad-spectrum)' }}
-          aria-hidden="true"
-        />
-        <span className="glass relative grid h-14 w-14 place-items-center rounded-2xl text-cyan">
-          {icon || <Info size={22} />}
-        </span>
+      {/* ★ 2026-10-01：去掉了图标背后那圈"渐变光晕"（blur-md 的
+       *   grad-spectrum 色斑）和 16px 圆角，改成实色小方块。
+       *
+       *   空态是"什么都没有"的页面，原来却在这里放全站最亮的一团光 ——
+       *   一个发光图标 + 一句说明，是"AI 生成的空态组件"的标准长相。
+       *   空态真正需要的是**一个出口**（下面那个 action 按钮），
+       *   而不是一个视觉落点。 */}
+      <div className="grid h-11 w-11 place-items-center rounded-lg border border-hairline bg-veil/4 text-fg-faint">
+        {icon || <Info size={18} />}
       </div>
       <div className="mt-1 text-[14px] font-medium text-fg-soft">{title}</div>
       {desc && <div className="max-w-md text-[12.5px] leading-relaxed text-fg-mute">{desc}</div>}

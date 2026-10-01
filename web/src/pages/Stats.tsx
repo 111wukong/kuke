@@ -83,7 +83,7 @@ export default function Stats() {
         <Card>
           <SectionTitle
             title="诊断：薄弱点的根因"
-            desc="沿知识依赖图回溯 —— 找的是「补了它，后面的问题会一起好」的那个点"
+            desc="沿依赖图往前找，优先补那些「补了它，后面的问题会一起好」的知识点"
             icon={<TrendingUp size={15} className="text-violet" />}
           />
 

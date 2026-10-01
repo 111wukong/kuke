@@ -103,15 +103,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      {/* ---------- Hero：今天的状态 ---------- */}
-      <div className="card-grad noise relative overflow-hidden rounded-2xl p-5 sm:p-6">
-        {/* 右上角一团柔光。给这张主卡一个光源方向，
-            比纯平底色有纵深。overflow-hidden + blur 保证它不溢出卡片。 */}
-        <span
-          className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full opacity-[0.22] blur-3xl"
-          style={{ backgroundImage: 'var(--grad-spectrum)' }}
-          aria-hidden="true"
-        />
+      {/* ---------- Hero：今天的状态 ----------
+       *
+       * ★ 2026-10-01 改：去掉了"右上角一团柔光"和 16px 大圆角。
+       *
+       *   原来那张卡上是：渐变描边 + 玻璃面 + 噪点 + 一团 blur-3xl 的
+       *   青紫光斑 + rounded-2xl。这五样叠在一起，是"AI 生成落地页"
+       *   最标准的 hero 卡配方 —— 而它承载的信息只有一句话和一个进度。
+       *
+       *   现在：实色面 + 1px 边框 + 左侧一道强调色（表示"这是主区块"），
+       *   8px 圆角。层级由**位置和尺寸**表达（它最宽、最高、在最上面），
+       *   不需要靠光斑。 */}
+      <div className="card-grad relative overflow-hidden rounded-lg p-5 sm:p-6">
 
         <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
@@ -217,7 +220,14 @@ export default function Dashboard() {
           <Card>
             <SectionTitle
               title="今天做什么"
-              desc="按优先级排好了：先清复习队列，再补错题，最后学新内容"
+              /* ★ 文案从"按优先级排好了：先清复习队列，再补错题，最后学新内容"
+               *   改成一句名词短语。
+               *
+               *   原来那句是**自我解释**：它在向用户解释"我做了什么排序"，
+               *   而用户看到的本来就是已经排好的列表。这类"我帮你做了 X，
+               *   因为 Y"的句式是模板化界面的标志 —— 真实产品只在
+               *   **用户会误解**的地方解释，其余地方让内容自己说话。 */
+              desc="按到期时间排的"
               icon={<Sparkles size={15} className="text-cyan" />}
             />
             <div className="space-y-2">
@@ -265,7 +275,7 @@ export default function Dashboard() {
             <Card>
               <SectionTitle
                 title="诊断：最该先补什么"
-                desc="沿知识依赖图回溯，找的是根因而不是症状"
+                desc="沿依赖图往前找，找到能一次解开多个问题的那一个知识点"
                 icon={<TrendingUp size={15} className="text-violet" />}
                 right={<AppLink to="/stats" className="text-[12px] text-cyan hover:underline">完整统计</AppLink>}
               />
