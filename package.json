@@ -19,6 +19,7 @@
     "test:api": "node tests/api.mjs",
     "test:hardening": "node tests/hardening.mjs",
     "test:contrast": "node tests/contrast.mjs",
+    "test:subpath": "node tests/subpath.mjs",
     "test:fonts": "node tests/fonts.mjs",
     "test:browser": "node tests/browser.mjs",
     "shots": "node tests/browser.mjs --shots",

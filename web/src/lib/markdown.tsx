@@ -26,6 +26,16 @@ import { type ReactNode, useMemo, Fragment } from 'react';
 import { highlightSql, escapeHtml } from './sqlHighlight';
 import { renderLatex } from './latex';
 
+/* 部署前缀（子路径部署时是 '/kuke'，末尾不带斜杠）。
+ *
+ * ★ 为什么写成 `(import.meta as any).env?` 而不是直接 import.meta.env.BASE_URL：
+ *   单元测试是用 tsc 把本文件单独编到 Node 下 import 的（见 tests/unit.mjs），
+ *   而 Node 里根本没有 import.meta.env —— 直接取属性会在**模块加载时**抛
+ *   TypeError，后果不是"测试红"，而是整组「前端渲染器」被跳过：
+ *   渲染器这一组守的正是"标记漏屏"这类静默缺陷，它哑掉是没人看得见的。
+ *   兜底成 ''（即不补前缀）在测试环境刚好等于原来的行为。 */
+const BASE_PATH = ((import.meta as any).env?.BASE_URL ?? '/').replace(/\/$/, '');
+
 /* ============ 行内解析 ============ */
 
 type InlineToken =
@@ -115,8 +125,20 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
        *   表现为「加粗那段里的公式没渲染」，而别的公式都好好的。 */
       case 'italic': return <em key={k}>{renderInline(tok.v, k)}</em>;
       case 'link': {
-        // 只放行 http/https —— javascript: 和 data: 会被拦下
-        const safe = /^https?:\/\//i.test(tok.href) ? tok.href : '#';
+        /* 只放行 http/https —— javascript: 和 data: 会被拦下。
+         *
+         * ★ 站内链接（以 / 开头的路由路径）要补上部署前缀。
+         *   本站挂在 /kuke/ 下，AI 回复里写 [去闯关](/levels) 时，
+         *   原样输出会指向根路径的隔壁应用（研数）—— 和 lib/links.tsx
+         *   里记的是同一个坑，只是这里的链接是模型生成的，没法走 <Link>。
+         *   其他协议一律给 '#'（死链），不给模型留注入口子。 */
+        const isHttp = /^https?:\/\//i.test(tok.href);
+        const isInternal = tok.href.startsWith('/') && !tok.href.startsWith('//');
+        const safe = isHttp
+          ? tok.href
+          : isInternal
+            ? BASE_PATH + tok.href
+            : '#';
         return <a key={k} href={safe} target="_blank" rel="noopener noreferrer">{tok.v}</a>;
       }
       default: return <Fragment key={k}>{tok.v}</Fragment>;

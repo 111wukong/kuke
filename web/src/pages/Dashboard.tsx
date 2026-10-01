@@ -9,6 +9,7 @@
  * 所以布局顺序是：待办 → 诊断 → 概览。而不是把统计数字堆在最上面。
  */
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Flame, Zap, Target, TrendingUp, CircleAlert, RotateCcw, Sparkles,
   ArrowRight, BookOpen, Terminal, Flag, Sigma,
@@ -44,6 +45,11 @@ interface Plan {
 export default function Dashboard() {
   const { user } = useAuth();
   const { refreshSnapshot } = useApp();
+  /* ★ 站内跳转一律走 navigate()，不要写 window.location.href。
+   *   window.location 是浏览器级的整页跳转，不认 basename ——
+   *   本站是 /kuke/ 子路径部署，写 '/review' 会跑到根路径的隔壁应用去
+   *   （见 lib/links.tsx 里的长注释）。顺带还省掉一次全页刷新。 */
+  const nav = useNavigate();
   const { data, loading, error, reload } = useAsync<{ snapshot: Snapshot; plan: Plan }>(
     'study:snapshot',
     () => api.get('/api/study/snapshot'),
@@ -221,7 +227,7 @@ export default function Dashboard() {
                   desc="间隔重复算法认为这些内容你快要忘了 —— 现在复习的性价比最高"
                   left={<RotateCcw size={15} className="text-warn" />}
                   right={<Badge tone="warn">{plan.review.length}</Badge>}
-                  onClick={() => { window.location.href = '/review'; }}
+                  onClick={() => { nav('/review'); }}
                 />
               ) : (
                 <ListRow
@@ -237,7 +243,7 @@ export default function Dashboard() {
                   desc="这些题你错过而且还没答对过"
                   left={<CircleAlert size={15} className="text-bad" />}
                   right={<Badge tone="bad">{plan.mistakes.length}</Badge>}
-                  onClick={() => { window.location.href = '/mistakes'; }}
+                  onClick={() => { nav('/mistakes'); }}
                 />
               ) : null}
 
@@ -248,7 +254,7 @@ export default function Dashboard() {
                   desc={f.ready ? '前置知识都掌握了，可以直接学' : `还有 ${f.missing} 个前置知识点没掌握`}
                   left={<BookOpen size={15} className={f.ready ? 'text-ok' : 'text-fg-faint'} />}
                   right={f.ready ? <Badge tone="ok">可以开始</Badge> : <Badge>建议先补前置</Badge>}
-                  onClick={() => { window.location.href = `/learn/${f.id}`; }}
+                  onClick={() => { nav(`/learn/${f.id}`); }}
                 />
               ))}
             </div>
