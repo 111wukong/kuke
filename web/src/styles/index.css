@@ -253,6 +253,17 @@
   --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
   --noise-opacity: 0;
 
+  /* ---- 动态背景（WebGL 网格 + Canvas 星尘）的颜色 ----
+   * ★ 单独三个令牌，而不是复用 --color-cyan / --color-violet。
+   *   原因：背景占满整屏，它的颜色需求和使用在按钮/文字上的强调色
+   *   **不是一回事** —— 强调色要够亮才看得清，而背景色要够暗才不抢戏。
+   *   绑在一起的话，为了让按钮达标而提亮强调色，背景就会跟着一起变亮。
+   *
+   *   只有开了 fx 的主题需要定义这三个（见 themes.ts 的 fx 字段）。 */
+  --fx-grid: #22d3ee;
+  --fx-glow: #a855f7;
+  --fx-star: #d9e6ff;
+
   color-scheme: dark;
 }
 
@@ -265,6 +276,9 @@ html[data-theme="deep-space"] { /* 即 :root 的默认值，这里显式写一�
 
 /* ---- 赛博绿 磷光绿终端。长时间盯屏幕眼睛最不容易累的一套暗色 ---- */
 html[data-theme="cyber-lime"] {
+  --fx-grid: #a3e635;
+  --fx-glow: #2dd4bf;
+  --fx-star: #e2ffcc;
   --color-ink-1000: #030803;
   --color-ink-950: #04120a;
   --color-ink-900: #061a0e;
@@ -426,6 +440,75 @@ html[data-theme="midnight-rose"] {
   --sql-comment: #6d5a85;
   --sql-func: #c084fc;
   --sql-op: #f472b6;
+}
+
+/* ---- 星云 深靛蓝底 + 品红/星蓝的星云光。**带动态 3D 背景** ----
+ *
+ * 2026-10-02 新增。它是「优化后的开场 3D」的正式落点：
+ * 深空（默认）保留动态背景是因为用户要求"保留"，但深空的青紫配色
+ * 本来就是为赛博网格挑的；这一套是**为背景重新设计的** ——
+ * 底色压得更深更冷（深靛），让网格的星蓝和辉光的品红有地方发光。
+ *
+ * fx 的三个颜色单独给（--fx-grid / --fx-glow / --fx-star），
+ * 因为它们和"文字强调色"的需求正好相反：强调色要亮到能当文字，
+ * 背景色要暗到不抢戏。绑成一个令牌的话，调其中一个必然毁掉另一个。 */
+html[data-theme="nebula"] {
+  --fx-grid: #7c9cff;
+  --fx-glow: #d946ef;
+  --fx-star: #e8e0ff;
+
+  --color-ink-1000: #05030f;
+  --color-ink-950: #0a0618;
+  --color-ink-900: #100a24;
+  --color-ink-850: #17102f;
+  --color-ink-800: #1e163c;
+  --color-ink-700: #2a2050;
+  --color-ink-600: #382a68;
+  --color-veil: #ffffff;
+  --color-on-accent: #0b0618;
+  --color-glass-1: rgba(200, 190, 255, 0.04);
+  --color-glass-2: rgba(200, 190, 255, 0.06);
+  --color-glass-3: rgba(200, 190, 255, 0.09);
+  --color-hairline: rgba(160, 150, 220, 0.14);
+  --color-hairline-strong: rgba(160, 150, 220, 0.24);
+  --color-cyan: #5eead4;
+  --color-blue: #7c9cff;
+  --color-violet: #c084fc;
+  --color-magenta: #f472b6;
+  --color-emerald: #6ee7b7;
+  --color-amber: #fcd34d;
+  --color-rose: #fb7185;
+  --color-ok: #6ee7b7;
+  --color-ok-soft: rgba(110, 231, 183, 0.16);
+  --color-bad: #fb7185;
+  --color-bad-soft: rgba(251, 113, 133, 0.16);
+  --color-warn: #fcd34d;
+  --color-warn-soft: rgba(252, 211, 77, 0.16);
+  --color-fg: #ece9fb;
+  --color-fg-soft: #b9b3d8;
+  --color-fg-mute: #928bb5;
+  --color-fg-faint: #7d769e;
+  --glass-sheet: rgba(16, 10, 36, 0.62);
+  --glass-sheet-strong: rgba(20, 13, 44, 0.82);
+  --glass-hi-1: rgba(200, 190, 255, 0.07);
+  --glass-hi-2: rgba(0, 0, 0, 0.05);
+  --glass-edge: rgba(180, 170, 255, 0.10);
+  --glass-shadow: rgba(0, 0, 0, 0.6);
+  --glass-subtle-bg: rgba(200, 190, 255, 0.02);
+  --halo-1: rgba(217, 70, 239, 0.09);
+  --halo-2: rgba(124, 156, 255, 0.08);
+  --mesh: rgba(200, 190, 255, 0.028);
+  --sel-bg: rgba(192, 132, 252, 0.26);
+  --code-bg: rgba(200, 190, 255, 0.07);
+  --code-fg: #c4b5fd;
+  --skeleton: rgba(200, 190, 255, 0.06);
+  --sql-keyword: #c084fc;
+  --sql-string: #6ee7b7;
+  --sql-number: #fcd34d;
+  --sql-comment: #6b6390;
+  --sql-func: #7c9cff;
+  --sql-op: #f472b6;
+  color-scheme: dark;
 }
 
 /* ============================================================
@@ -713,6 +796,91 @@ html[data-theme="ink-dawn"] {
   color-scheme: light;
 }
 
+/* ---- 若依 后台管理风格（Element UI 配色 + 深色侧栏布局）----
+ *
+ * 2026-10-02 新增。这不是"又一套配色"，而是**一整套视觉语言**：
+ * 它同时带 `layout: 'console'`，布局也跟着换（深色侧栏 + 白色顶栏 +
+ * 灰色内容区 + 标签页栏）。见下面「console 布局」那一节。
+ *
+ * 配色直接对齐 Element UI 的调色板（RuoYi 用的是它）：
+ *   主色 #409EFF · 成功 #67C23A · 警告 #E6A23C · 危险 #F56C6C · 信息 #909399
+ *   文字 #303133 / #606266 / #909399 / #C0C4CC
+ *   边框 #DCDFE6 / #E4E7ED / #EBEEF5 / #F2F6FC
+ *   页面底 #F0F2F5 · 侧栏 #304156
+ *
+ * ★ 两处**刻意偏离** Element 原色，都写在这里免得下次有人"改回去"：
+ *
+ * 1. 强调色用 #2b7fd4 而不是 #409EFF。
+ *    #409EFF 在 #e4e7ed 的灰底上只有 **2.24:1**，连 3:1 的非文字下限都
+ *    不到 —— 它是**填充色**（配白字当按钮底），不是文字色。
+ *    拿它当链接色/描边色，在浅灰底上基本看不清。
+ *    #2b7fd4 是同一个色相压深一档：灰底 3.33、白卡 4.13、白字压其上 4.13。
+ *
+ * 2. 四级文字色整体压深：Element 的次要文字 #909399 在 #e4e7ed 上
+ *    只有 2.5:1 左右，而本项目的对比度回归要求四级全部 ≥4.5:1。
+ *    调完之后是 10.51 / 6.09 / 4.98 / 4.55，单调递减、层级没塌。
+ *
+ * 这两条不是"美化"，是**可读性底线**。若依原版的次要文字偏淡，
+ * 是它被吐槽最多的点之一。 */
+html[data-theme="ruoyi"] {
+  /* 页面底 → 面的阶梯。ink-800 是白卡，ink-1000 是 #f0f2f5 的内容区底 */
+  --color-ink-1000: #f0f2f5;
+  --color-ink-950: #eaeef3;
+  --color-ink-900: #e4e7ed;
+  --color-ink-850: #dcdfe6;
+  --color-ink-800: #ffffff;
+  --color-ink-700: #f5f7fa;
+  --color-ink-600: #ebeef5;
+  --color-veil: #000000;
+  --color-on-accent: #ffffff;
+  --color-glass-1: rgba(0, 0, 0, 0.02);
+  --color-glass-2: rgba(0, 0, 0, 0.035);
+  --color-glass-3: rgba(0, 0, 0, 0.05);
+  --color-hairline: #e4e7ed;
+  --color-hairline-strong: #dcdfe6;
+
+  --color-cyan: #2b7fd4;      /* Element 蓝压深一档（见上）*/
+  --color-blue: #3f6fc4;      /* 靛蓝 —— 链接 */
+  --color-violet: #6b46d6;
+  --color-magenta: #c2295c;
+  --color-emerald: #2f7d22;   /* Element 成功色压深 */
+  --color-amber: #8a5a0a;     /* Element 警告色压深 */
+  --color-rose: #c62828;      /* Element 危险色压深 */
+  --color-ok: #2f7d22;
+  --color-ok-soft: rgba(47, 125, 34, 0.12);
+  --color-bad: #c62828;
+  --color-bad-soft: rgba(198, 40, 40, 0.10);
+  --color-warn: #8a5a0a;
+  --color-warn-soft: rgba(138, 90, 10, 0.12);
+
+  --color-fg: #303133;
+  --color-fg-soft: #4d5560;
+  --color-fg-mute: #59626f;
+  --color-fg-faint: #5f6875;
+
+  --glass-sheet: rgba(255, 255, 255, 0.94);
+  --glass-sheet-strong: rgba(255, 255, 255, 0.98);
+  --glass-hi-1: rgba(255, 255, 255, 0.9);
+  --glass-hi-2: rgba(0, 0, 0, 0.01);
+  --glass-edge: rgba(0, 0, 0, 0.04);
+  --glass-shadow: rgba(0, 21, 41, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.015);
+  --halo-1: rgba(64, 158, 255, 0.05);
+  --halo-2: rgba(64, 158, 255, 0.04);
+  --mesh: rgba(0, 21, 41, 0.035);
+  --sel-bg: rgba(64, 158, 255, 0.18);
+  --code-bg: #f5f7fa;
+  --code-fg: #2b7fd4;
+  --skeleton: rgba(0, 21, 41, 0.05);
+  --sql-keyword: #6b46d6;
+  --sql-string: #2f7d22;
+  --sql-number: #8a5a0a;
+  --sql-comment: #909399;
+  --sql-func: #2b7fd4;
+  --sql-op: #c2295c;
+  color-scheme: light;
+}
+
 /* ============================================================
    古风主题的公共部分（砚秋 / 砚晨）
    ============================================================
@@ -816,7 +984,8 @@ html[data-theme="solarized"] {
 html[data-theme="paper"],
 html[data-theme="mint"],
 html[data-theme="solarized"],
-html[data-theme="ink-dawn"] {
+html[data-theme="ink-dawn"],
+html[data-theme="ruoyi"] {
   /* 亮色主题的"面"就是白纸本身 —— 各亮色主题的 ink-800 都是白/近白，
    * 直接拿来当卡片面即可（暗色那边不能这么干，见 :root 的说明）。 */
   --panel: var(--color-ink-800);
@@ -899,6 +1068,121 @@ html[data-fx="on"] body::after { display: block; }
 :focus-visible {
   outline: 2px solid var(--color-cyan);
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   布局变体：console（后台管理风 / 若依）
+   ============================================================
+   2026-10-02 新增。这是本项目第一次把**布局**也做成可切换的维度。
+
+   ── 为什么用「局部重定义令牌」而不是逐元素写样式 ──────────────
+   深色侧栏最麻烦的地方是：它和主题的明暗**相反**。
+   若依主题是亮色（白卡、深字），而侧栏是 #304156 的深色 ——
+   如果逐元素去写 `color: #fff`，那侧栏里每一个组件（导航项、
+   分组标题、徽章、底部的 XP 面板）都要单独照顾一遍，
+   漏一个就是"深底上的深字"。
+
+   所以这里直接**在侧栏作用域里重定义那一批令牌**：
+   `--color-fg` / `--color-fg-soft` / `--color-hairline` / `--panel` …
+   CSS 变量是就近解析的，侧栏里的所有组件会自动跟着变成"深底浅字"，
+   一行都不用改组件。
+
+   ★ 这个技巧的适用条件：组件本来就走令牌。这个项目从第一天起
+     就守着"颜色一律走令牌、不写死"，现在正好吃到回报。
+     反过来说，任何一处写死的 `text-white` 都会在这里露馅。
+
+   ── 和主题的关系 ────────────────────────────────────────────
+   console 是**布局**维度，配色仍归主题。所以这里只写"结构色"
+   （侧栏底、顶栏底、内容区底、标签栏），以及侧栏内部需要的
+   对比度补偿。换一个暗色主题配 console 布局也能用。 */
+html[data-layout="console"] {
+  --console-sidebar: #304156;        /* 若依的侧栏底色 */
+  --console-sidebar-deep: #263445;   /* 悬停 / 选中 */
+  --console-main: var(--color-ink-1000);
+  --console-topbar: var(--color-ink-800);
+}
+
+/* ---- 侧栏：深色，且**内部所有令牌跟着反转** ---- */
+html[data-layout="console"] .app-sidebar {
+  /* 内部令牌重定义 —— 一行顶几十行逐元素样式 */
+  --color-fg: #ffffff;
+  --color-fg-soft: #bfcbd9;
+  --color-fg-mute: #9dabbe;
+  --color-fg-faint: #8a97a8;
+  --color-hairline: rgba(255, 255, 255, 0.09);
+  --color-hairline-strong: rgba(255, 255, 255, 0.16);
+  --panel: var(--console-sidebar-deep);
+  --color-glass-1: rgba(255, 255, 255, 0.04);
+  --color-glass-2: rgba(255, 255, 255, 0.07);
+  --color-glass-3: rgba(255, 255, 255, 0.10);
+  --color-veil: #ffffff;
+  /* 语义色在深底上要提亮，否则"待复习 3"那个徽章是深底深字 */
+  --color-cyan: #409eff;
+  --color-warn: #f0b34a;
+  --color-bad: #ff7a75;
+  --color-ok: #95d475;
+
+  background: var(--console-sidebar);
+  border-right: 1px solid #263445;
+  /* 深色侧栏不需要毛玻璃 —— 它下面是纯色页面底，模糊没有意义，
+   * 而 backdrop-filter 在低端机上很贵。 */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* 选中项：若依的做法是整块变深 + 文字转白，没有左边那根竖条 */
+html[data-layout="console"] .app-sidebar .nav-item.is-active::before { display: none; }
+html[data-layout="console"] .app-sidebar .nav-item.is-active {
+  background: var(--console-sidebar-deep);
+  color: #ffffff;
+  font-weight: 500;
+}
+html[data-layout="console"] .app-sidebar .nav-item:hover {
+  background: var(--console-sidebar-deep);
+  color: #ffffff;
+}
+
+/* ---- 顶栏：白色，不透明，不模糊 ---- */
+html[data-layout="console"] .app-topbar {
+  background: var(--console-topbar);
+  border-bottom: 1px solid var(--color-hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* 顶栏底下那道渐变接缝是"无边框布局"的语言，后台布局用实线 */
+html[data-layout="console"] .app-topbar .hairline-fade { display: none; }
+
+/* ---- 内容区：灰底。若依的卡片是"灰底上的白块" ---- */
+html[data-layout="console"] .app-main {
+  background: var(--console-main);
+}
+
+/* ---- 标签页栏（TagsView）----
+ * 若依最有辨识度的一个组件：把访问过的页面横向排成标签，
+ * 点一下切回去，不用回侧栏找。 */
+html[data-layout="console"] .app-tabs {
+  background: var(--console-topbar);
+  border-bottom: 1px solid var(--color-hairline);
+}
+html[data-layout="console"] .app-tab {
+  border: 1px solid var(--color-hairline);
+  background: var(--console-topbar);
+  color: var(--color-fg-soft);
+  border-radius: 3px;
+}
+html[data-layout="console"] .app-tab:hover { color: var(--color-cyan); }
+html[data-layout="console"] .app-tab.is-active {
+  background: var(--color-cyan);
+  border-color: var(--color-cyan);
+  color: #ffffff;
+}
+html[data-layout="console"] .app-tab.is-active:hover { color: #ffffff; }
+
+/* 后台布局的圆角语言：4px。比默认的 6–8px 更"方正"，
+ * 这是 Element / 若依那一代的共同特征，也是它看起来"像管理系统"的原因。 */
+html[data-layout="console"] .app-main .panel,
+html[data-layout="console"] .app-main .card-grad,
+html[data-layout="console"] .app-tabs {
   border-radius: 4px;
 }
 

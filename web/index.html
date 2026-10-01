@@ -27,7 +27,11 @@
            *   只有赛博绿一个主题开 fx，所以这里直接判等，
            *   不引主题注册表（那会把 bundle 提前拉进来，得不偿失）。 */
           document.documentElement.setAttribute(
-            'data-fx', (t === 'cyber-lime') ? 'on' : 'off');
+            'data-fx', (t === 'cyber-lime' || t === 'nebula') ? 'on' : 'off');
+          /* 布局变体。同样要在这里设，否则 console 布局会先闪一下
+           * 默认布局的侧栏底色。只有若依用 console。 */
+          document.documentElement.setAttribute(
+            'data-layout', (t === 'ruoyi') ? 'console' : 'app');
         } catch (e) {}
       })();
     </script>

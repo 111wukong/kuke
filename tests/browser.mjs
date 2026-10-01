@@ -259,6 +259,44 @@ try {
     console.log(`  ✗ 古风主题截图 —— ${String(e.message).split('\n')[0]}`);
   }
 
+  /* 两套新界面各来一张：星云（动态 3D 背景）与若依（后台布局）。
+   *
+   * ★ 星云那张走 `?fx=settled`：无头截图只渲染一两帧，
+   *   不加这个参数拍到的永远是"开场第一帧"（网格还没淡入）。
+   *   详见 components/fx/Background.tsx 里 SETTLED 的说明。 */
+  try {
+    for (const [themeName, shots] of [
+      ['星云', [['26-dashboard-nebula', '/?fx=settled'], ['27-dashboard-nebula-plain', '/levels?fx=settled']]],
+      ['若依', [['28-dashboard-ruoyi', '/'], ['29-levels-ruoyi', '/levels'], ['30-settings-ruoyi', '/settings']]],
+    ]) {
+      const switched = await runProbe(srv.base, {
+        to: '/settings',
+        steps: [
+          { act: 'assert', expr: `document.body.textContent.includes(${JSON.stringify(themeName)})`, timeout: 8000 },
+          { act: 'click', text: themeName },
+          { act: 'assert', expr: `document.body.textContent.includes('当前：${themeName}')`, timeout: 8000 },
+        ],
+        budget: 90000,
+      });
+      const bad = switched.filter((r) => r.error || r.ok === false);
+      if (bad.length) throw new Error(`切到${themeName}失败：${JSON.stringify(bad).slice(0, 200)}`);
+
+      for (const [name, route] of shots) {
+        await screenshot(`${srv.base}${route}`, path.join(SHOT_DIR, `${name}.png`), {
+          width: 1440, height: 940, budget: 26000,
+        });
+        console.log(`  ✓ ${name}`);
+      }
+    }
+    await runProbe(srv.base, {
+      to: '/settings',
+      steps: [{ act: 'click', text: '深空' }],
+      budget: 60000,
+    });
+  } catch (e) {
+    console.log(`  ✗ 新主题截图 —— ${String(e.message).split('\n')[0]}`);
+  }
+
   if (shotsOnly) {
     await srv.stop();
     probe.cleanup();

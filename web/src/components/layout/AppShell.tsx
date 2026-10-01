@@ -10,8 +10,8 @@
  * 把前端藏起来当安全措施是最经典的自欺欺人 ——
  * 所以 Admin 页面自己也会在拿到 403 时给出明确提示，而不是白屏。
  */
-import { useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Network, Terminal, Flag, PenLine, Sigma, FlaskConical,
   CircleAlert, RotateCcw, ChartNoAxesColumn, Trophy, Settings,
@@ -20,7 +20,7 @@ import {
 import { CyberGrid, Starfield } from '@/components/fx/Background';
 import { Toaster, ThemePicker } from '@/components/ui/Toaster';
 import { KeepAlivePages } from '@/components/layout/KeepAlivePages';
-import { APP_PAGES } from '@/routes';
+import { APP_PAGES, PAGE_NAMES } from '@/routes';
 import { AppNavLink } from '@/lib/links';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
@@ -149,7 +149,7 @@ export function AppShell() {
       {/* 侧栏 */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-hairline bg-ink-950/95 backdrop-blur-md transition-transform duration-300 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0',
+          'app-sidebar fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-hairline bg-ink-950/95 backdrop-blur-md transition-transform duration-300 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0',
           navOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)' }}
@@ -188,10 +188,15 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setNavOpen(true)} />
 
+        {/* 标签页栏。只在 console 布局（若依）下渲染 ——
+            它是那套布局最有辨识度的组件：访问过的页面排成标签，
+            点一下切回去，不用回侧栏找。 */}
+        {theme.layout === 'console' && <TabsBar />}
+
         <main
           ref={mainRef}
           id="main-scroll"
-          className="min-w-0 flex-1 px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pt-6"
+          className="app-main min-w-0 flex-1 px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pt-6"
         >
           <div className="mx-auto w-full max-w-[1200px]">
             {/* 页面在这里切换。带保活 —— 切走的页面不卸载，只是藏起来，
@@ -242,9 +247,9 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
       to={to}
       end={to === '/'}
       className={({ isActive }: { isActive: boolean }) => cn(
-        'group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] transition-colors duration-150',
+        'nav-item group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] transition-colors duration-150',
         isActive
-          ? 'nav-active-bar bg-cyan/12 font-medium text-cyan'
+          ? 'nav-active-bar is-active bg-cyan/12 font-medium text-cyan'
           : 'text-fg-soft hover:bg-veil/6 hover:text-fg',
       )}
     >
@@ -266,6 +271,7 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
 function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
   const { snapshot } = useApp();
   const { user } = useAuth();
+  const { def: theme } = useTheme();
   if (!user) return null;
 
   const lv = snapshot?.level ?? 1;
@@ -284,9 +290,14 @@ function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
         <div className="flex items-center gap-2">
           <span
             /* ★ 去掉等级徽章上的发光。它是侧栏里一个 28px 的圆点，
-             *   发光除了让侧栏变吵没有任何作用。 */
+             *   发光除了让侧栏变吵没有任何作用。
+             *
+             * ★ 后台布局（若依）下改用主题强调色，不用头像色：
+             *   头像色是从用户 hue 生成的**渐变**，在一套刻意统一的
+             *   后台配色里是一块突兀的彩斑 —— 而侧栏里已经有
+             *   「当前在哪一页」这个用色任务了，两处抢色只会互相削弱。 */
             className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
-            style={avatarStyle(user.avatarHue)}
+            style={theme.layout === 'console' ? { background: 'var(--color-cyan)' } : avatarStyle(user.avatarHue)}
           >
             {lv}
           </span>
@@ -360,33 +371,98 @@ function UserRow() {
 
 /* ============ 顶栏 ============ */
 
+/* 从路由表反查页面名。带前缀匹配，所以 /levels/L03 也能落到「SQL 闯关」。
+ *
+ * ★ 这里原来内联了一份和 routes.tsx 的 PAGE_NAMES **一模一样**的列表。
+ *   那正是"迟早会漂移"的那张表 —— 加页面时改了 PAGE_NAMES，
+ *   面包屑和标签栏还停在旧的（而且不会报错，只是名字不对）。
+ *   现在只有一份，注释里那句"不单独维护一张映射表"才真的成立。 */
+function pageNameOf(pathname: string): string {
+  const entries = Object.entries(PAGE_NAMES);
+  const exact = entries.find(([p]) => p === pathname);
+  if (exact) return exact[1];
+  const pref = entries
+    .filter(([p]) => p !== '/' && pathname.startsWith(p))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  return pref?.[1] || '库课';
+}
+
+/* ============ 标签页栏（console 布局专用）============
+ *
+ * 若依 / Element 那套后台最有辨识度的组件：访问过的页面横向排成标签，
+ * 点一下切回去，不用回侧栏找。它解决的是一个真实问题 ——
+ * 后台有十几个入口，来回对比两个页面（比如"学生管理"和"作业"）
+ * 时，每次都要走侧栏。
+ *
+ * ★ 和保活的关系：关掉标签**不会**卸载页面（KeepAlivePages 仍在缓存里），
+ *   所以关掉再点回来，页面状态还在。这是刻意的 ——
+ *   标签栏管的是"导航"，不是"缓存生命周期"。 */
+function TabsBar() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [tabs, setTabs] = useState<string[]>(['/']);
+
+  // 访问过就进标签栏。首页常驻，不给关。
+  useEffect(() => {
+    setTabs((prev) => (prev.includes(pathname) ? prev : [...prev, pathname]));
+  }, [pathname]);
+
+  const close = (p: string) => {
+    if (p === '/') return;
+    const next = tabs.filter((x) => x !== p);
+    const safe = next.length ? next : ['/'];
+    setTabs(safe);
+    /* ★ navigate 必须在 setState **之外**调用。
+     *   写进 setTabs 的回调里的话，StrictMode 下更新函数会被调用两次，
+     *   于是跳转也执行两次 —— 表现是偶尔跳错页。 */
+    if (p === pathname) navigate(safe[safe.length - 1]);
+  };
+
+  return (
+    <div className="app-tabs flex items-center gap-1.5 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+      {tabs.map((p) => {
+        const active = p === pathname;
+        return (
+          <span
+            key={p}
+            className={cn(
+              'app-tab group flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[12.5px] transition-colors',
+              active && 'is-active',
+            )}
+          >
+            <button type="button" onClick={() => navigate(p)} className="max-w-[140px] truncate">
+              {pageNameOf(p)}
+            </button>
+            {p !== '/' && (
+              <button
+                type="button"
+                aria-label={`关闭 ${pageNameOf(p)}`}
+                onClick={() => close(p)}
+                className={cn(
+                  'grid h-3.5 w-3.5 place-items-center rounded-full text-[10px] leading-none',
+                  active ? 'hover:bg-white/25' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100',
+                )}
+              >
+                ✕
+              </button>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { snapshot } = useApp();
   const { user } = useAuth();
   const location = useLocation();
 
-  // 面包屑：从路由表反查当前在哪一层。不单独维护一张映射表 ——
-  // 那迟早会和路由漂移（加了个页面，面包屑里没有它）。
-  const crumb = useMemo(() => {
-    const all = [
-      { p: '/', n: '仪表盘' }, { p: '/learn', n: '知识树' }, { p: '/lab/sql', n: 'SQL 实训场' },
-      { p: '/levels', n: 'SQL 闯关' }, { p: '/practice', n: '每日一练' },
-      { p: '/normalize', n: '范式实验室' }, { p: '/lab', n: '索引与事务' },
-      { p: '/review', n: '复习队列' }, { p: '/mistakes', n: '错题本' },
-      { p: '/stats', n: '学习统计' }, { p: '/achievements', n: '成就' },
-      { p: '/settings', n: '设置' }, { p: '/assignments', n: '作业' },
-      { p: '/classes', n: '班级' }, { p: '/admin', n: '教师工作台' },
-    ];
-    const exact = all.find((x) => x.p === location.pathname);
-    if (exact) return exact.n;
-    const pref = all
-      .filter((x) => x.p !== '/' && location.pathname.startsWith(x.p))
-      .sort((a, b) => b.p.length - a.p.length)[0];
-    return pref?.n || '库课';
-  }, [location.pathname]);
+  // 面包屑：从路由表反查当前在哪一层。见 pageNameOf 的说明。
+  const crumb = useMemo(() => pageNameOf(location.pathname), [location.pathname]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-ink-1000/88 backdrop-blur-md">
+    <header className="app-topbar sticky top-0 z-30 border-b border-hairline bg-ink-1000/88 backdrop-blur-md">
       <div className="flex h-13 items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <button
           onClick={onMenu}

@@ -117,6 +117,49 @@
 
 <img src="docs/screenshots/24-settings-ink-autumn.png" alt="砚秋 · 设置页（主题选择器里名字用它自己的字体画）" width="100%">
 
+### 动态 3D 背景（星云）
+
+自研的 WebGL 网格地平线 + Canvas 星尘，零依赖（不引粒子库 ——
+tsparticles 是 60–200KB，这里两层加起来不到 400 行）。
+
+- **开场 1.8 秒**：地平线先亮 → 网格从地平线向外铺开 → 星尘最后浮出。
+  三条曲线错开节奏，比"一起淡入"更像一个场景在打开。
+- **网格按屏幕像素反推线宽**（`w = |dv/duv| / uRes.y`），
+  远近都是恒定 ~1.5 像素 —— 远处不闪（走样），近处不糊。
+- **星尘**用预渲染 sprite + `drawImage`，带景深（近的更大更亮）。
+- **性能**：60fps 上限、页面隐藏时整体暂停、`ResizeObserver` 而不是
+  每帧读 `clientWidth`（那会触发强制同步布局）、两层共用一个 rAF 调度。
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/26-dashboard-nebula.png" alt="星云 · 仪表盘"><br><sub>星云 · 仪表盘（网格只在页面下半部露出来）</sub></td>
+<td width="50%"><img src="docs/screenshots/27-dashboard-nebula-plain.png" alt="星云 · 关卡页"><br><sub>星云 · 关卡页</sub></td>
+</tr>
+</table>
+
+<img src="docs/screenshots/31-nebula-background.png" alt="星云 · 背景全貌" width="100%">
+
+> 最后这张是**背景全貌**（拍的时候把界面暂时隐藏了）——
+> 仪表盘那种密度下，网格基本被卡片盖住，不单独拍一张看不出来它长什么样。
+>
+> 所有动态主题的截图都带 `?fx=settled`（跳过开场）。无头截图只渲染
+> 一两帧，不加这个参数拍到的永远是开场第一帧，看起来像"特效坏了"。
+
+### 若依（后台管理）风格
+
+这套不只是换配色 —— **布局也跟着换**：深色侧栏 + 白色顶栏 +
+灰色内容区 + 标签页栏，配色对齐 Element UI 的调色板。
+
+<img src="docs/screenshots/28-dashboard-ruoyi.png" alt="若依 · 仪表盘" width="100%">
+
+<img src="docs/screenshots/29-levels-ruoyi.png" alt="若依 · SQL 闯关" width="100%">
+
+> 两处**刻意偏离** Element 原色（见 `index.css` 里 ruoyi 主题块的注释）：
+> `#409EFF` 在浅灰底上只有 **2.24:1**（它是填充色不是文字色），
+> Element 的次要文字 `#909399` 也只有 2.5:1 左右 —— 两条都过不了
+> 本项目的对比度回归。所以强调色压深到 `#2b7fd4`、四级文字整体压深。
+> 这不是美化，是可读性底线。
+
 ---
 
 ## 快速开始
@@ -124,7 +167,7 @@
 ```bash
 npm install
 npm run check        # 类型检查 + 构建前端
-npm test             # 十一组测试
+npm test             # 十三组测试
 npm start            # 打开 http://127.0.0.1:5180
 ```
 
@@ -328,13 +371,14 @@ UTC 还是前一天，会把「今天做的题」记到昨天头上 ——
 ## 测试
 
 ```bash
-npm test              # 全部十一组
+npm test              # 全部十三组
 npm run test:content  # 内容自检
 npm run test:unit     # 单元测试
 npm run test:api      # 接口冒烟
 npm run test:hardening # 加固回归
 npm run test:contrast # 主题对比度（纯静态）
 npm run test:fonts    # 古风字体（纯静态）
+npm run test:fx       # 开场 3D 着色器数学（纯静态）
 npm run test:browser  # 浏览器冒烟 + 截图（需要真实桌面环境）
 ```
 
@@ -344,9 +388,10 @@ npm run test:browser  # 浏览器冒烟 + 截图（需要真实桌面环境）
 | 单元测试 | **179** 项 | 判题 / 范式算法 / FSRS / 图谱诊断 / **前端渲染器的 XSS 与标记漏屏** |
 | 接口冒烟 | **194** 项 | 起真服务跑完整业务流程 + 权限边界 |
 | 加固回归 | **34** 项 | 安全头 / 限流 / 沙箱逃逸 / SPA 回退 |
-| 主题对比度 | **144** 项 | 10 套主题的四级文字色过 WCAG AA、强调色过 3:1、层级不塌 |
+| 主题对比度 | **176** 项 | 12 套主题的四级文字色过 WCAG AA、强调色过 3:1、层级不塌 |
 | 古风字体 | **20** 项 | 字体资产与 CSS 对齐、楷体栈有兜底、注册表与样式表一致 |
-| 浏览器冒烟 | 23 项 + 23 页截图 | 逐页断言 + 交互断言 + 截图（含古风主题） |
+| 开场 3D | **28** 项 | 着色器数学：网格极性、衰减因子、循环里有没有每帧 resize（纯静态，不需要 GPU） |
+| 浏览器冒烟 | 23 项 + 28 页截图 | 逐页断言 + 交互断言 + 截图（含古风 / 星云 / 若依） |
 
 全部零依赖：Node 内置能力 + Chrome CLI。
 
@@ -429,7 +474,7 @@ npm run test:browser:ai  # AI 课堂的浏览器冒烟
 kuke/
 ├── server/      Fastify + SQLite（含全部课程内容在 src/data/）
 ├── web/         React + Vite + Tailwind
-├── tests/       十一组零依赖测试
+├── tests/       十三组零依赖测试
 ├── bench/       300 并发压测工具（零依赖，可复现报告里的数字）
 ├── deploy/      Nginx 反代配置 + systemd 单元
 ├── scripts/     备份 / 重置密码 / AI 联通检查

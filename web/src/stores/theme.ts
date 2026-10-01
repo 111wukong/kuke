@@ -43,6 +43,11 @@ function apply(id: string) {
    *   （CyberGrid / Starfield）必须同进同出，否则会出现
    *   "WebGL 关了但网格还在"的半截状态。 */
   document.documentElement.setAttribute('data-fx', def.fx ? 'on' : 'off');
+  /* ★ data-layout：布局变体（app / console）。
+   *   和 data-theme 正交 —— 配色归配色，结构归结构。
+   *   现在只有「若依」一套用 console，但接口是通用的：
+   *   以后想让古风也走后台布局，改 themes.ts 一个字段就行。 */
+  document.documentElement.setAttribute('data-layout', def.layout);
   try { localStorage.setItem(THEME_STORAGE_KEY, id); } catch { /* 存不下就算了 */ }
 }
 
