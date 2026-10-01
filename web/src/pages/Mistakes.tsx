@@ -13,7 +13,7 @@ import {
   CircleAlert, ArrowRight, RotateCcw, Terminal, Sigma, FlaskConical,
   HelpCircle, Filter, TrendingDown,
 } from 'lucide-react';
-import { Card, SectionTitle, Badge, Button, Skeleton, Empty, Tabs, Progress } from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, TableSkeleton, Empty, Tabs, Progress } from '@/components/ui/Primitives';
 import { AppLink } from '@/lib/links';
 import { useAsync } from '@/lib/hooks';
 import { api } from '@/lib/api';
@@ -83,7 +83,7 @@ export default function Mistakes() {
     return [...m.values()].sort((a, b) => b.n - a.n);
   }, [data]);
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <TableSkeleton rows={6} cols={4} />;
   if (error) return <Card><Empty title="加载失败" desc={error.message} action={<Button onClick={reload}>重试</Button>} /></Card>;
 
   return (

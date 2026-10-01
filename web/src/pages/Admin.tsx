@@ -987,7 +987,7 @@ export function StudentDetail() {
     { ttl: 10000 },
   );
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <TableSkeleton rows={8} cols={5} />;
 
   if (error) {
     return (

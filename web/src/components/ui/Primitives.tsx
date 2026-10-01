@@ -451,6 +451,31 @@ export function DetailSkeleton() {
   );
 }
 
+/** 分栏页骨架。左边窄栏（表结构 / 题目列表）+ 右边主区（编辑器 / 结果）。
+ *
+ *  SQL 实训场、关卡详情、实验台都是这个形状 ——
+ *  它们的布局和「表格」「卡片网格」都不一样，套用别的骨架反而更假：
+ *  用户看到一个表格骨架，结果出来的是编辑器，会有一种「加载错了」的错觉。 */
+export function SplitSkeleton({ mainHeight = 320 }: { mainHeight?: number }) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-[280px_1fr] lg:gap-4">
+      {/* 左栏：几个小卡片（表结构那种） */}
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-24 rounded-md" />
+        <Skeleton className="h-28 rounded-lg" />
+        <Skeleton className="h-28 rounded-lg" />
+        <Skeleton className="h-20 rounded-lg" />
+      </div>
+      {/* 右栏：工具条 + 主编辑区 + 结果区 */}
+      <div className="space-y-2.5">
+        <Skeleton className="h-11 rounded-lg" />
+        <Skeleton className="rounded-lg" style={{ height: mainHeight }} />
+        <Skeleton className="h-24 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 /** 表格骨架屏。
  *
  * 加载态直接丢一个 `<Skeleton className="h-64" />` 是常见的偷懒做法 ——

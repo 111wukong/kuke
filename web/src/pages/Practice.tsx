@@ -19,9 +19,7 @@ import {
   CheckCircle2, XCircle, ChevronRight, RotateCcw, Sparkles, Trophy,
   Target, AlertTriangle, Lightbulb, BookOpen,
 } from 'lucide-react';
-import {
-  Card, Badge, Button, Skeleton, Empty, Progress, DifficultyDots,
-} from '@/components/ui/Primitives';
+import { Card, Badge, Button, DetailSkeleton, Empty, Progress, DifficultyDots } from '@/components/ui/Primitives';
 import { Markdown } from '@/lib/markdown';
 import { AppLink } from '@/lib/links';
 import { useAsync, invalidatePrefix } from '@/lib/hooks';
@@ -115,7 +113,7 @@ export default function Practice() {
     }
   };
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <DetailSkeleton />;
   if (error) return <Card><Empty title="加载失败" desc={error.message} action={<Button onClick={reload}>重试</Button>} /></Card>;
 
   if (!questions.length) {

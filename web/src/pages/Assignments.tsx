@@ -13,10 +13,7 @@ import {
   ArrowLeft, Save, MessageSquare, Terminal, HelpCircle, Sigma, FlaskConical,
   ChevronRight, Award,
 } from 'lucide-react';
-import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Progress, Callout,
-  Stat, Textarea, Input,
-} from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, Skeleton, DetailSkeleton, TableSkeleton, Empty, Progress, Callout, Stat, Textarea, Input } from '@/components/ui/Primitives';
 import { Markdown } from '@/lib/markdown';
 import { AppLink } from '@/lib/links';
 import { useAsync, invalidatePrefix } from '@/lib/hooks';
@@ -35,7 +32,7 @@ export function Assignments() {
     { ttl: 15000 },
   );
 
-  if (loading && !data) return <Skeleton className="h-72" />;
+  if (loading && !data) return <TableSkeleton rows={5} cols={4} />;
   if (error) return <Card><Empty title="加载失败" desc={error.message} /></Card>;
 
   const isTeacher = data?.role === 'teacher';
@@ -235,7 +232,7 @@ export function AssignmentDetail() {
     return Object.values(gradeDraft.items).reduce((s, n) => s + (Number(n) || 0), 0);
   }, [gradeDraft.items, subDetail]);
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <DetailSkeleton />;
   if (error || !data) {
     return (
       <Card>

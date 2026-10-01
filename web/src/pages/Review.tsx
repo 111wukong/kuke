@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import {
   RotateCcw, Brain, CheckCircle2, ChevronRight, CalendarClock, Sparkles,
 } from 'lucide-react';
-import { Card, SectionTitle, Badge, Button, Skeleton, Empty, Progress, Callout } from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, DetailSkeleton, Empty, Progress, Callout } from '@/components/ui/Primitives';
 import { AppLink } from '@/lib/links';
 import { useAsync, invalidatePrefix } from '@/lib/hooks';
 import { api } from '@/lib/api';
@@ -73,7 +73,7 @@ export default function Review() {
     }
   };
 
-  if (loading && !data) return <Skeleton className="h-96" />;
+  if (loading && !data) return <DetailSkeleton />;
 
   const finished = idx >= items.length;
 

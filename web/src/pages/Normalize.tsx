@@ -17,9 +17,7 @@ import {
   Sigma, CheckCircle2, XCircle, Eye, Plus, Trash2,
   FunctionSquare, KeyRound, Layers, Scissors,
 } from 'lucide-react';
-import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Callout, Progress,
-} from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, TableSkeleton, Empty, Callout, Progress } from '@/components/ui/Primitives';
 import { Markdown } from '@/lib/markdown';
 import { useAsync, invalidatePrefix } from '@/lib/hooks';
 import { api } from '@/lib/api';
@@ -105,7 +103,7 @@ export default function Normalize() {
     }
   };
 
-  if (loading && !tasks.length) return <Skeleton className="h-96" />;
+  if (loading && !tasks.length) return <TableSkeleton rows={6} cols={3} />;
 
   const solvedCount = tasks.filter((t) => t.solved).length;
 

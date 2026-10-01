@@ -16,9 +16,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Database, Play, Table2, History, Clock, AlertTriangle,
 } from 'lucide-react';
-import {
-  Card, Badge, Button, Skeleton, Empty, Select, Callout,
-} from '@/components/ui/Primitives';
+import { Card, Badge, Button, Empty, Select, Callout, SplitSkeleton } from '@/components/ui/Primitives';
 import { SqlEditor } from '@/components/sql/SqlEditor';
 import { ResultTable, SchemaBrowser, RunMeta, DdlView } from '@/components/sql/SqlParts';
 import { Modal } from '@/components/ui/Modal';
@@ -112,12 +110,7 @@ export default function SqlLab() {
   };
 
   if (dsLoading && !datasets.length) {
-    return (
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <Skeleton className="h-96" />
-        <Skeleton className="h-96" />
-      </div>
-    );
+    return <SplitSkeleton mainHeight={320} />;
   }
 
   return (

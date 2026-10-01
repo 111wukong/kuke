@@ -12,9 +12,7 @@ import {
   Flag, CheckCircle2, Circle, ChevronLeft, ChevronRight, Play, Lightbulb,
   Eye, Trophy, Sparkles, AlertTriangle, ArrowLeft,
 } from 'lucide-react';
-import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Progress, Callout, DifficultyDots,
-} from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, CardGridSkeleton, Empty, Progress, Callout, DifficultyDots, SplitSkeleton } from '@/components/ui/Primitives';
 import { SqlEditor } from '@/components/sql/SqlEditor';
 import { ResultTable, SchemaBrowser } from '@/components/sql/SqlParts';
 import { Markdown } from '@/lib/markdown';
@@ -53,7 +51,7 @@ export function Levels() {
   const total = data?.levels.length || 0;
 
   if (loading && !data) {
-    return <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-40" />)}</div>;
+    return <CardGridSkeleton count={3} height={160} />;
   }
 
   const DS_NAME: Record<string, string> = {
@@ -231,12 +229,7 @@ export function LevelDetail() {
   };
 
   if (loading && !data) {
-    return (
-      <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-        <Skeleton className="h-96" />
-        <Skeleton className="h-96" />
-      </div>
-    );
+    return <SplitSkeleton mainHeight={340} />;
   }
 
   if (error || !data) {

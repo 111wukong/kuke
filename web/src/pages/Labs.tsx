@@ -14,9 +14,7 @@ import {
   FlaskConical, Table2, GitBranch, CheckCircle2, XCircle, Lightbulb,
   ArrowRight, Zap, Info,
 } from 'lucide-react';
-import {
-  Card, SectionTitle, Badge, Button, Skeleton, Empty, Tabs, DifficultyDots,
-} from '@/components/ui/Primitives';
+import { Card, SectionTitle, Badge, Button, Empty, Tabs, DifficultyDots, SplitSkeleton } from '@/components/ui/Primitives';
 import { Markdown } from '@/lib/markdown';
 import { useAsync, invalidatePrefix } from '@/lib/hooks';
 import { api } from '@/lib/api';
@@ -71,7 +69,7 @@ export default function Labs() {
   };
 
   if (loading && !data) {
-    return <div className="grid gap-3 lg:grid-cols-[280px_1fr]"><Skeleton className="h-96" /><Skeleton className="h-96" /></div>;
+    return <SplitSkeleton mainHeight={320} />;
   }
 
   const payload = detail?.lab?.payload || {};
