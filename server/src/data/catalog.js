@@ -1923,6 +1923,58 @@ db.query(\`SELECT * FROM users WHERE name = '\${name}'\`);
 db.prepare('SELECT * FROM users WHERE name = ?').get(name);
 \`\`\``,
   },
+  {
+    id: 'k-mysql-engine', category_id: 'sql', chapter_id: 'ch-sql-ddl', sort_order: 10,
+    title: 'MySQL 存储引擎（InnoDB vs MyISAM）',
+    summary: 'InnoDB 与 MyISAM 的核心差异：事务、锁粒度、外键、聚簇索引、崩溃恢复',
+    difficulty: 2, importance: 3, tags: ['MySQL', '存储引擎'],
+    content: `MySQL 是插件式存储引擎架构：表的数据怎么存、怎么索引、支不支持事务，全由存储引擎决定。
+默认引擎 InnoDB 支持事务、行级锁、外键、崩溃恢复、聚簇索引；老引擎 MyISAM 读快，但不支持事务和外键、只有表级锁。
+
+选错引擎是很多性能与一致性问题的根因：
+- 在线交易、需要外键/回滚的表一律用 InnoDB
+- 只读或读多写少的报表可以容忍 MyISAM，但新项目几乎都该用 InnoDB
+- 聚簇索引让 InnoDB 按主键查极快，但自增主键比随机 UUID 更适合做主键`,
+  },
+  {
+    id: 'k-mysql-type', category_id: 'sql', chapter_id: 'ch-sql-ddl', sort_order: 11,
+    title: 'MySQL 数据类型选型',
+    summary: 'INT/VARCHAR/DECIMAL/DATETIME/ENUM 等类型的选型与常见坑',
+    difficulty: 2, importance: 3, tags: ['MySQL', '数据类型'],
+    content: `字段类型选错，轻则浪费空间、重则算错数据。
+
+- 整数用 INT / BIGINT，主键和可能暴涨的计数宁大勿小（钱和主键别用 INT 赌上限）
+- 定长编码（身份证、MD5）用 CHAR，变长文本用 VARCHAR
+- 金额必须用 DECIMAL，绝不用 FLOAT / DOUBLE（二进制浮点不精确）
+- 时间用 DATETIME（不带时区）或 TIMESTAMP（带时区、范围窄到 2038）
+- emoji 与生僻字需要 utf8mb4 字符集，旧的 utf8 只支持 3 字节装不下`,
+  },
+  {
+    id: 'k-mysql-func', category_id: 'sql', chapter_id: 'ch-sql-basic', sort_order: 5,
+    title: 'MySQL 常用函数与方言',
+    summary: 'GROUP_CONCAT、LIMIT、CASE WHEN、IFNULL/COALESCE 等常用函数与方言',
+    difficulty: 2, importance: 2, tags: ['MySQL', '函数'],
+    content: `MySQL 的函数分两类：标量函数（每行独立算，如 CONCAT、NOW、CASE WHEN）和聚合函数（一组行算一个值，如 COUNT、GROUP_CONCAT）。
+
+- GROUP_CONCAT 把分组内的值拼成逗号分隔的字符串
+- IFNULL(a, b) 二选一，COALESCE(a, b, c, ...) 取第一个非 NULL
+- LIMIT 做分页，深分页用延迟关联优化
+- 坑：CONCAT 遇 NULL 整体变 NULL；COUNT(*) 统计含 NULL 的行，COUNT(列) 排除 NULL`,
+  },
+  {
+    id: 'k-mysql-tune', category_id: 'query', chapter_id: 'ch-qo', sort_order: 3,
+    title: 'MySQL 实战优化',
+    summary: 'utf8mb4、EXPLAIN、索引最佳实践、最左前缀、深分页优化',
+    difficulty: 3, importance: 3, tags: ['MySQL', '优化'],
+    content: `MySQL 实战优化是「以写入换读取」的权衡艺术。
+
+- 新建库表一律用 utf8mb4 字符集
+- 用 EXPLAIN 看执行计划：key 看是否用索引、type 看访问方式、rows 看估算扫描量
+- 索引建在高频查询列、优先高选择性列、遵循最左前缀原则
+- 避免对列套函数、隐式类型转换、前导通配符导致索引失效
+- 深分页（LIMIT 100000, 20）用延迟关联：先取 id 再回表
+- SELECT * 不利于覆盖索引，明确列出需要的列`,
+  },
 ];
 
 export default { CATEGORIES, CHAPTERS, KNOWLEDGE };
