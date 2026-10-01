@@ -25,7 +25,7 @@ import { formatDateTime, avatarStyle } from '@/lib/utils';
 export default function Settings() {
   const { user, settings, patchSettings, logout } = useAuth();
   const { toast } = useApp();
-  const { id: themeId } = useTheme();
+  const { id: themeId, def } = useTheme();
 
   const [dailyGoal, setDailyGoal] = useState(settings?.dailyGoal ?? 20);
   const [editorFont, setEditorFont] = useState(settings?.editorFont ?? 14);
@@ -125,13 +125,21 @@ export default function Settings() {
       <Card>
         <SectionTitle
           title="外观"
-          desc="8 套主题，点一下立即生效。选择跟着账号走，换台电脑也是同一套。"
+          /* ★ 数字从 THEMES 推导，不要写死。
+           * 写死的后果不是"显示错了"这么轻 —— 它会诱导下一个人
+           * 「为了让文案对上而删主题」。测试里同样的坑踩过两次
+           * （表数量、主题数量），这里一次到位。 */
+          desc={`${THEMES.length} 套主题，点一下立即生效。选择跟着账号走，换台电脑也是同一套。`}
           icon={<Palette size={15} className="text-cyan" />}
         />
         <ThemePicker />
         <div className="mt-3 flex items-center gap-2 text-[11.5px] text-fg-faint">
           <Check size={12} className="text-ok" />
           当前：{THEMES.find((t) => t.id === themeId)?.name}
+          {def.fx ? '（带动态背景）' : ''}
+        </div>
+        <div className="mt-1.5 text-[11.5px] text-fg-faint">
+          古风主题（砚秋 / 砚晨）会同时切换为楷体，正文更松、字号略大。
         </div>
       </Card>
 

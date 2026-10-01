@@ -125,9 +125,22 @@ function ThemeGrid({ value, onChange }: { value: string; onChange: (id: string) 
                   <span key={i} style={{ background: c, width: 6, height: 22 }} />
                 ))}
               </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[12px] font-medium text-fg">{t.name}</span>
-                <span className="block text-[10px] text-fg-faint">{t.mode === 'dark' ? '暗' : '亮'}</span>
+              <span className="min-w-0 flex-1">
+                {/* ★ 名字用它**自己的字体**画。
+                 *  古风主题在这里就显示楷体，不用套上去才发现。
+                 *  fontFamily 走 CSS 变量而不是硬编码家族名 ——
+                 *  这样字体栈只有 index.css 一个来源，将来换字体
+                 *  （比如自托管的霞鹜文楷换成别的）这里不用跟着改。 */}
+                <span
+                  className="block truncate text-[12px] font-medium text-fg"
+                  style={{ fontFamily: t.font === 'kai' ? 'var(--font-kai)' : undefined }}
+                >
+                  {t.name}
+                </span>
+                <span className="block text-[10px] text-fg-faint">
+                  {t.mode === 'dark' ? '暗' : '亮'}
+                  {t.font === 'kai' && ' · 楷'}
+                </span>
               </span>
             </button>
           );

@@ -18,6 +18,8 @@
     "test:unit": "node tests/unit.mjs",
     "test:api": "node tests/api.mjs",
     "test:hardening": "node tests/hardening.mjs",
+    "test:contrast": "node tests/contrast.mjs",
+    "test:fonts": "node tests/fonts.mjs",
     "test:browser": "node tests/browser.mjs",
     "shots": "node tests/browser.mjs --shots",
     "start": "npm -w server run start",
@@ -30,6 +32,7 @@
     "smoke:ai": "node scripts/smoke-ai.mjs",
     "reset-password": "node scripts/reset-password.mjs",
     "backup": "node scripts/backup.mjs",
+    "fonts:import": "node scripts/fonts-import.mjs",
     "bench:session": "node bench/run.mjs session --c 300 --dur 60 --ip same",
     "bench:login": "node bench/run.mjs login --c 300 --ip same",
     "bench:submit": "node bench/bench-submit.mjs submit --c 300 --dur 20 --level L01"

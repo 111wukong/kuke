@@ -26,6 +26,17 @@ export interface ThemeDef {
   mode: ThemeMode;
   /** 要不要挂 WebGL 赛博网格 + 星尘。亮色主题一律不挂。 */
   fx: boolean;
+  /**
+   * 这套主题用哪套字。
+   *
+   * ★ 它**不是**「声明」，是**引用** —— 真正决定字体的是 index.css 里
+   *   那个 `--font-sans: var(--font-kai)`。这里这一项只干一件事：
+   *   让主题选择器用**这套主题自己的字**把名字画出来。
+   *   于是选之前就能看见字体长什么样，而不是选完才发现"怎么变楷体了"。
+   *   两处漂移的症状是「预览是楷体、套上去是黑体」——
+   *   tests/fonts.mjs 里有一条断言比对它们。
+   */
+  font: 'sans' | 'kai';
   /** 缩略图色板：[底, 面, 主强调, 次强调, 文字] */
   preview: [string, string, string, string, string];
 }
@@ -40,6 +51,7 @@ export const THEMES: ThemeDef[] = [
     desc: '青紫光谱 + 赛博网格地平线。默认主题，也是唯一带 WebGL 背景的。',
     mode: 'dark',
     fx: true,
+    font: 'sans',
     preview: ['#03040a', '#10151f', '#22d3ee', '#a855f7', '#e9ebf4'],
   },
   {
@@ -48,6 +60,7 @@ export const THEMES: ThemeDef[] = [
     desc: '磷光绿终端。长时间盯屏幕眼睛最不容易累的一套暗色。',
     mode: 'dark',
     fx: true,
+    font: 'sans',
     preview: ['#030803', '#0b2b17', '#a3e635', '#2dd4bf', '#e6f5ea'],
   },
   {
@@ -56,6 +69,7 @@ export const THEMES: ThemeDef[] = [
     desc: 'Nord 极地蓝灰。冷、静、低饱和，适合白天光线强的时候。',
     mode: 'dark',
     fx: true,
+    font: 'sans',
     preview: ['#1b1f27', '#3b4252', '#88c0d0', '#b48ead', '#eceff4'],
   },
   {
@@ -64,6 +78,7 @@ export const THEMES: ThemeDef[] = [
     desc: '暖橙暗底。夜里看书不刺眼，对比度仍然够。',
     mode: 'dark',
     fx: true,
+    font: 'sans',
     preview: ['#0a0504', '#2f1811', '#fb923c', '#f43f5e', '#f7ece6'],
   },
   {
@@ -72,27 +87,39 @@ export const THEMES: ThemeDef[] = [
     desc: '深紫底 + 品红强调。视觉最重的一套，适合做长时间专注块。',
     mode: 'dark',
     fx: true,
+    font: 'sans',
     preview: ['#08040d', '#1f132e', '#e879f9', '#a855f7', '#f1e9f7'],
   },
   {
     id: 'ink-autumn',
     name: '砚秋',
-    desc: '古风书房夜读。旧木家具深褐 + 朱砂印章 + 暖黄灯光。',
+    desc: '古风书房夜读。旧木家具深褐 + 朱砂印章 + 暖黄灯光 + 楷体。',
     mode: 'dark',
     /* 不挂 WebGL 赛博网格 —— 古风主题不需要赛博的东西。
      * fx 关闭后，halo-1/halo-2 这两层色斑也不会渲染，画面靠
      * mesh 那层细网格（暖黄色调）撑结构。 */
     fx: false,
-    preview: ['#2b1810', '#4a2c1c', '#c0392b', '#8a5a8a', '#f4e8d0'],
+    font: 'kai',
+    preview: ['#2b1810', '#4a2c1c', '#df8476', '#8bbebe', '#f4e8d0'],
   },
 
   /* ---------------- 亮色 ---------------- */
+  {
+    id: 'ink-dawn',
+    name: '砚晨',
+    desc: '古风书房晨窗。茶色宣纸 + 淡墨字 + 朱砂印章，砚秋的白天版。',
+    mode: 'light',
+    fx: false,
+    font: 'kai',
+    preview: ['#f7f0df', '#fffdf7', '#9c2619', '#356161', '#241608'],
+  },
   {
     id: 'paper',
     name: '宣纸',
     desc: '暖白纸面 + 靛蓝强调。要打印、要投屏、白天在窗边用，选它。',
     mode: 'light',
     fx: false,
+    font: 'sans',
     preview: ['#faf8f4', '#ffffff', '#4f46e5', '#0e7490', '#1c1917'],
   },
   {
@@ -101,6 +128,7 @@ export const THEMES: ThemeDef[] = [
     desc: '冷白 + 青绿。比宣纸更清爽，适合夏天和强光环境。',
     mode: 'light',
     fx: false,
+    font: 'sans',
     preview: ['#f2f8f6', '#ffffff', '#0d9488', '#0891b2', '#10201d'],
   },
   {
@@ -109,6 +137,7 @@ export const THEMES: ThemeDef[] = [
     desc: 'Solarized Light 米黄底。公认最省眼的低对比配色。',
     mode: 'light',
     fx: false,
+    font: 'sans',
     preview: ['#fdf6e3', '#fffdf5', '#268bd2', '#2aa198', '#073642'],
   },
 ];
