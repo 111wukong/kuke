@@ -19,13 +19,32 @@
 
 export type ThemeMode = 'dark' | 'light';
 
+/**
+ * 布局变体。
+ *
+ * ★ 为什么布局和配色分开成两个维度，而不是塞进"主题"里：
+ *   配色和布局是**正交**的两件事 —— "深色侧栏 + 白色顶栏"这套结构
+ *   和"用哪个蓝色"没有关系。分成两个维度之后：
+ *     · 以后想让古风主题也走 console 布局，加一行就行，不用重写配色
+ *     · 测试可以分别验（配色归 contrast.mjs，布局归 browser.mjs）
+ *   但**选择入口只有一个**（主题选择器），因为用户想的是
+ *   "我要一套若依那样的界面"，不是"我要 console 布局 + Element 配色"。
+ *
+ *   'app'     默认。侧栏与内容同色，顶栏 sticky，靠留白分区块。
+ *   'console' 后台管理风（若依/Element 那一套）。深色侧栏 + 白色顶栏
+ *             + 灰色内容区 + 标签页栏。见 index.css 的 console 布局一节。
+ */
+export type ThemeLayout = 'app' | 'console';
+
 export interface ThemeDef {
   id: string;
   name: string;
   desc: string;
   mode: ThemeMode;
-  /** 要不要挂 WebGL 赛博网格 + 星尘。亮色主题一律不挂。 */
+  /** 要不要挂 WebGL 网格 + 星尘。亮色主题一律不挂。 */
   fx: boolean;
+  /** 用哪套布局。见 ThemeLayout。 */
+  layout: ThemeLayout;
   /**
    * 这套主题用哪套字。
    *
@@ -59,20 +78,46 @@ export const THEMES: ThemeDef[] = [
      * 星尘在暗色正文上是一层噪点。数据密集的界面最不需要的就是
      * 会动的背景。
      *
-     * 没有删掉这套特效 —— 赛博绿（cyber-lime）仍然开着，
-     * 想要那个感觉的人可以选它。默认主题应该是安静的。 */
+     * ★ 2026-10-02：用户要求"保留开场的动态 3D 效果"，所以特效本身
+     *   做了大幅优化（抗锯齿、开场动画、性能），并给了它一个专门的
+     *   主题「星云」。深空保持安静 —— 想开背景的人去选星云/赛博绿。 */
     desc: '深蓝灰底 + 青紫强调。默认主题，安静的深色工作台。',
     mode: 'dark',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#03040a', '#10151f', '#22d3ee', '#a855f7', '#e9ebf4'],
   },
   {
-    id: 'cyber-lime',
-    name: '赛博绿',
-    desc: '磷光绿终端 + 赛博网格背景。**唯一带动态背景的主题**，想要炫技感选它。',
+    id: 'nebula',
+    name: '星云',
+    /* ★ 2026-10-02 新增。**这套就是"开场的动态 3D 效果"的正式落点。**
+     *
+     * 深空的青紫配色本来是为赛博网格挑的，但底色不够深 —— 网格和
+     * 辉光压在上面有点"糊在墙上"。星云把底色压到近黑的深靛，
+     * 让星蓝的网格和品红的辉光真的有地方发光；再把 fx 三色单独给
+     * （--fx-grid / --fx-glow / --fx-star），因为它们和"文字强调色"
+     * 的需求正好相反。
+     *
+     * 背景这一版做了四件事：网格按屏幕像素反推线宽（远近都不闪）、
+     * 2.4 秒的开场（地平线先亮、网格再铺开、星尘最后浮出）、
+     * 天空渐变 + 地平线辉光、星尘改成 sprite + 景深。
+     * 性能上修掉了"每帧读 clientWidth 触发强制同步布局"，
+     * 并加了 60fps 上限与页面隐藏暂停。 */
+    desc: '深靛底 + 星云辉光。**带动态 3D 背景**（网格地平线 + 星尘），有开场动画。',
     mode: 'dark',
     fx: true,
+    layout: 'app',
+    font: 'sans',
+    preview: ['#05030f', '#1e163c', '#d946ef', '#7c9cff', '#ece9fb'],
+  },
+  {
+    id: 'cyber-lime',
+    name: '赛博绿',
+    desc: '磷光绿终端 + 同一套动态 3D 背景。想长时间盯屏幕又想要动感，选它。',
+    mode: 'dark',
+    fx: true,
+    layout: 'app',
     font: 'sans',
     preview: ['#030803', '#0b2b17', '#a3e635', '#2dd4bf', '#e6f5ea'],
   },
@@ -82,6 +127,7 @@ export const THEMES: ThemeDef[] = [
     desc: 'Nord 极地蓝灰。冷、静、低饱和，适合白天光线强的时候。',
     mode: 'dark',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#1b1f27', '#3b4252', '#88c0d0', '#b48ead', '#eceff4'],
   },
@@ -91,6 +137,7 @@ export const THEMES: ThemeDef[] = [
     desc: '暖橙暗底。夜里看书不刺眼，对比度仍然够。',
     mode: 'dark',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#0a0504', '#2f1811', '#fb923c', '#f43f5e', '#f7ece6'],
   },
@@ -100,6 +147,7 @@ export const THEMES: ThemeDef[] = [
     desc: '深紫底 + 品红强调。视觉最重的一套，适合做长时间专注块。',
     mode: 'dark',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#08040d', '#1f132e', '#e879f9', '#a855f7', '#f1e9f7'],
   },
@@ -112,6 +160,7 @@ export const THEMES: ThemeDef[] = [
      * fx 关闭后，halo-1/halo-2 这两层色斑也不会渲染，画面靠
      * mesh 那层细网格（暖黄色调）撑结构。 */
     fx: false,
+    layout: 'app',
     font: 'kai',
     preview: ['#2b1810', '#4a2c1c', '#df8476', '#8bbebe', '#f4e8d0'],
   },
@@ -123,6 +172,7 @@ export const THEMES: ThemeDef[] = [
     desc: '古风书房晨窗。茶色宣纸 + 淡墨字 + 朱砂印章，砚秋的白天版。',
     mode: 'light',
     fx: false,
+    layout: 'app',
     font: 'kai',
     preview: ['#f7f0df', '#fffdf7', '#9c2619', '#356161', '#241608'],
   },
@@ -132,6 +182,7 @@ export const THEMES: ThemeDef[] = [
     desc: '暖白纸面 + 靛蓝强调。要打印、要投屏、白天在窗边用，选它。',
     mode: 'light',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#faf8f4', '#ffffff', '#4f46e5', '#0e7490', '#1c1917'],
   },
@@ -141,6 +192,7 @@ export const THEMES: ThemeDef[] = [
     desc: '冷白 + 青绿。比宣纸更清爽，适合夏天和强光环境。',
     mode: 'light',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#f2f8f6', '#ffffff', '#0d9488', '#0891b2', '#10201d'],
   },
@@ -150,8 +202,28 @@ export const THEMES: ThemeDef[] = [
     desc: 'Solarized Light 米黄底。公认最省眼的低对比配色。',
     mode: 'light',
     fx: false,
+    layout: 'app',
     font: 'sans',
     preview: ['#fdf6e3', '#fffdf5', '#268bd2', '#2aa198', '#073642'],
+  },
+  {
+    id: 'ruoyi',
+    name: '若依',
+    /* ★ 2026-10-02 新增。它不是"又一套配色"，而是**一整套视觉语言**：
+     *   配色（Element UI 调色板）+ 布局（深色侧栏 / 白色顶栏 / 灰色内容区
+     *   / 标签页栏）一起换。所以它是唯一一个 `layout: 'console'` 的主题。
+     *
+     *   两处刻意偏离 Element 原色，见 index.css 里 ruoyi 主题块的注释：
+     *   #409EFF 在浅灰底上只有 2.24:1（它是填充色不是文字色），
+     *   Element 的次要文字 #909399 也只有 2.5:1 左右 —— 两条都过不了
+     *   本项目的对比度回归。所以强调色压深到 #2b7fd4、四级文字整体压深。
+     *   这不是美化，是可读性底线。 */
+    desc: '后台管理风格（若依 / Element UI）。深色侧栏 + 白色顶栏 + 标签页栏，**布局也跟着换**。',
+    mode: 'light',
+    fx: false,
+    layout: 'console',
+    font: 'sans',
+    preview: ['#f0f2f5', '#ffffff', '#409eff', '#304156', '#303133'],
   },
 ];
 

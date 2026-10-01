@@ -83,7 +83,7 @@ export function ThemePicker({ compact }: { compact?: boolean }) {
         {open && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <div className="glass glass-strong absolute right-0 top-9 z-50 w-[290px] rounded-xl p-2.5">
+            <div className="glass glass-strong absolute right-0 top-9 z-50 max-h-[70vh] w-[300px] overflow-y-auto rounded-xl p-2.5">
               <ThemeGrid value={id} onChange={(v) => { set(v); setOpen(false); }} />
             </div>
           </>
@@ -140,6 +140,8 @@ function ThemeGrid({ value, onChange }: { value: string; onChange: (id: string) 
                 <span className="block text-[10px] text-fg-faint">
                   {t.mode === 'dark' ? '暗' : '亮'}
                   {t.font === 'kai' && ' · 楷'}
+                  {t.fx && ' · 动'}
+                  {t.layout === 'console' && ' · 后台'}
                 </span>
               </span>
             </button>

@@ -39,6 +39,7 @@ const SUITES = [
   { name: '加固回归', file: 'hardening.mjs', desc: '安全头 / 限流 / 沙箱逃逸 / 权限边界' },
   { name: '主题对比度', file: 'contrast.mjs', desc: '9 套主题的文字色是否过 WCAG AA（纯静态，最快）' },
   { name: '子路径部署', file: 'subpath.mjs', desc: '裸 href / window.location / basename 前缀没被绕过（纯静态）' },
+  { name: '开场3D', file: 'fx-shader.mjs', desc: '着色器数学：网格极性 / 衰减因子 / 循环里的 resize（纯静态，不需要 GPU）' },
   { name: '古风字体', file: 'fonts.mjs', desc: '字体资产与 CSS 对齐 / 楷体栈有兜底 / 主题与样式表一致（纯静态）' },
   { name: 'AI 纯函数', file: 'ai-unit.mjs', desc: '表达式求值器 / 出题清洗不变量 / 阶段状态机 / 工具白名单' },
   { name: 'AI 配置规则', file: 'ai-config.mjs', desc: '全局配置继承 / 自助注册不继承 / 个人覆盖 / 权限边界' },

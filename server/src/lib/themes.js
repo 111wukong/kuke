@@ -7,6 +7,7 @@
  */
 export const THEME_IDS = [
   'deep-space',
+  'nebula',
   'cyber-lime',
   'nord-frost',
   'ember',
@@ -16,6 +17,7 @@ export const THEME_IDS = [
   'mint',
   'solarized',
   'ink-dawn',
+  'ruoyi',
 ];
 
 export const DEFAULT_THEME = 'deep-space';

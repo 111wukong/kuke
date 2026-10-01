@@ -36,7 +36,8 @@
     "fonts:import": "node scripts/fonts-import.mjs",
     "bench:session": "node bench/run.mjs session --c 300 --dur 60 --ip same",
     "bench:login": "node bench/run.mjs login --c 300 --ip same",
-    "bench:submit": "node bench/bench-submit.mjs submit --c 300 --dur 20 --level L01"
+    "bench:submit": "node bench/bench-submit.mjs submit --c 300 --dur 20 --level L01",
+    "test:fx": "node tests/fx-shader.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

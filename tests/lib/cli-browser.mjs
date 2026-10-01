@@ -437,8 +437,26 @@ function runChrome(args, { timeout = 60000, reducedMotion = false } = {}) {
        *   不加这个标志它直接 FATAL 退出。测试用途、只访问本机服务，
        *   关掉进程沙箱是可接受的取舍。 */
       '--no-sandbox',
-      '--disable-gpu',
       '--disable-dev-shm-usage',
+      /* ★ 2026-10-02：把 WebGL 打开，改用 SwiftShader 软件渲染。
+       *
+       *   原来这里是 `--disable-gpu`，它会把 WebGL 一起关掉 ——
+       *   于是「星云 / 赛博绿」这两个带动态 3D 背景的主题，
+       *   截图里永远是空的（`getContext('webgl')` 返回 null，
+       *   CyberGrid 静默退出）。而背景正是那两套主题的全部卖点。
+       *
+       *   `--enable-unsafe-swiftshader` 是 Chrome 对"没有 GPU 时用软件
+       *   渲染 WebGL"的显式开关（不加它，新版 Chrome 会拒绝创建 context）。
+       *   顺带一提：`--disable-gpu` 还会让无头环境报告
+       *   `prefers-reduced-motion: reduce`，而那正是 fx 的另一个开关 ——
+       *   两个因素叠在一起，导致"背景永远不出现"这件事看起来像设计如此。
+       *
+       *   SwiftShader 是纯 CPU 渲染，慢，但这里只需要渲染几帧出图。
+       *   如果某个环境真的跑不了，WebGL 拿不到 context，
+       *   CyberGrid 会静默降级（CSS 光晕顶上来）—— 不会让测试变红。 */
+      '--use-gl=swiftshader',
+      '--enable-unsafe-swiftshader',
+      '--disable-gpu-sandbox',
       `--user-data-dir=${profile()}`,
       '--no-first-run',
       '--no-default-browser-check',
