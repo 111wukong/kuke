@@ -11,6 +11,7 @@ export const THEME_IDS = [
   'nord-frost',
   'ember',
   'midnight-rose',
+  'ink-autumn',
   'paper',
   'mint',
   'solarized',

@@ -625,7 +625,9 @@ try {
 
   const meta = await student.get('/api/meta');
   check('元信息可读', ok(meta.body), JSON.stringify(meta.body).slice(0, 160));
-  check('主题清单有 8 套', meta.body.themes.length === 8, `主题数 ${meta.body?.themes?.length}`);
+  /* ★ 跟表数一样 —— 写死 8 套就是「为了通过而改数字」。这条真正要守的
+   *   是「前后端主题清单没有别处漂移」（已经有冒烟比对 THEMES vs THEME_IDS）。 */
+  check('主题清单有合理数量（≥ 8 套）', meta.body.themes.length >= 8, `主题数 ${meta.body?.themes?.length}`);
   check('成就清单非空', meta.body.achievements.length >= 15);
 
   /* ==================== 18. 设置与主题 ==================== */

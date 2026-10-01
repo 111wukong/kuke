@@ -74,6 +74,17 @@ export const THEMES: ThemeDef[] = [
     fx: true,
     preview: ['#08040d', '#1f132e', '#e879f9', '#a855f7', '#f1e9f7'],
   },
+  {
+    id: 'ink-autumn',
+    name: '砚秋',
+    desc: '古风书房夜读。旧木家具深褐 + 朱砂印章 + 暖黄灯光。',
+    mode: 'dark',
+    /* 不挂 WebGL 赛博网格 —— 古风主题不需要赛博的东西。
+     * fx 关闭后，halo-1/halo-2 这两层色斑也不会渲染，画面靠
+     * mesh 那层细网格（暖黄色调）撑结构。 */
+    fx: false,
+    preview: ['#2b1810', '#4a2c1c', '#c0392b', '#8a5a8a', '#f4e8d0'],
+  },
 
   /* ---------------- 亮色 ---------------- */
   {

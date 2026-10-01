@@ -479,6 +479,106 @@ html[data-theme="mint"] {
   color-scheme: light;
 }
 
+/* ============================================================
+   砚秋 InkAutumn —— 古风书房 · 夜读
+   ============================================================
+   仿那张女子在灯下读书的图。
+   不是「古风颜色」赛板同款 —— 是真的从色调里感觉的：
+     暖黄灯光 · 旧木家具 · 深墨字 · 朱砂印章 · 竹帘半透
+   ──────────────────────────────────────────────────────
+   设计原则：
+     1. ink-1000 / ink-900 不是黑也不是浅米 —— 是旧木家具的深褐
+     2. fg 不是高纯 #000  —— 是「深墨字」那种偏暖的近黑
+     3. 语义色按古风理解：cyan=青瓷 · violet=紫檀 · emerald=苔绿 ·
+        amber=蜡黄 · rose=朱砂 · blue=靛蓝 · magenta=绛紫
+   配色板参考来源图背景的暖黄灯光 · 不能用冷色调（会失味） */
+html[data-theme="ink-autumn"] {
+  --color-ink-1000: #2b1810;     /* 旧木家具的深褐，像躺椅扶手 */
+  --color-ink-950: #3a2115;
+  --color-ink-900: #4a2c1c;      /* 页面底色 —— 比深色主题的 #080b14 暖 */
+  --color-ink-850: #5a3722;
+  --color-ink-800: #6b432a;
+  --color-ink-700: #85572f;
+  --color-ink-600: #9d6a3c;
+  --color-veil: #ffffff;
+  --color-on-accent: #fffaf0;    /* 朱砂底上的字 —— 暖米白 */
+  --color-glass-1: rgba(255, 248, 230, 0.04);
+  --color-glass-2: rgba(255, 248, 230, 0.025);
+  --color-glass-3: rgba(255, 248, 230, 0.06);
+  --color-hairline: rgba(180, 130, 80, 0.18);
+  --color-hairline-strong: rgba(180, 130, 80, 0.30);
+
+  /* 语义色（古风理解）*/
+  --color-cyan: #5c8a8a;        /* 青瓷釉色 —— 信息 */
+  --color-blue: #4a6a8a;         /* 靛蓝 —— 链接 */
+  --color-violet: #8a5a8a;       /* 紫檀 —— 信任 */
+  --color-magenta: #8a3a5a;      /* 绛紫 —— 强调 */
+  --color-emerald: #6a8a55;     /* 苔绿 —— 成功 */
+  --color-rose: #c0392b;         /* 朱砂红 —— 出错（也是印章色）*/
+  --color-amber: #c09030;        /* 蜡黄 —— 警告 */
+  --color-ok: #6a8a55;
+  --color-ok-soft: rgba(106, 138, 85, 0.18);
+  --color-bad: #c0392b;
+  --color-bad-soft: rgba(192, 57, 43, 0.14);
+  --color-warn: #c09030;
+  --color-warn-soft: rgba(192, 144, 48, 0.16);
+
+  /* 文字：墨色。不是黑也不是深灰 —— 是研的墨、笔尖触纸的色 */
+  --color-fg: #1a0f08;
+  --color-fg-soft: #4a3320;
+  --color-fg-mute: #7a5d40;
+  --color-fg-faint: #a0866a;
+
+  --glass-sheet: rgba(74, 44, 28, 0.65);
+  --glass-sheet-strong: rgba(74, 44, 28, 0.82);
+  --glass-hi-1: rgba(255, 240, 210, 0.08);
+  --glass-hi-2: rgba(0, 0, 0, 0.06);
+  --glass-edge: rgba(180, 130, 80, 0.12);
+  --glass-shadow: rgba(0, 0, 0, 0.55);
+  --glass-subtle-bg: rgba(255, 240, 210, 0.018);
+  --halo-1: rgba(192, 144, 48, 0.10);
+  --halo-2: rgba(192, 57, 43, 0.08);
+  --mesh: rgba(255, 240, 210, 0.030);
+  --sel-bg: rgba(192, 144, 48, 0.22);
+  --code-bg: rgba(28, 24, 18, 0.50);
+  --code-fg: #d6a050;             /* 行内代码 —— 暖橙，区别正文墨色 */
+  --skeleton: rgba(255, 240, 210, 0.06);
+  --sql-keyword: #c08040;        /* SQL 关键字 —— 朱砂偏暖 */
+  --sql-string: #8a7050;
+  --sql-number: #c09030;
+  --sql-comment: #7a5d40;
+  --sql-func: #5c8a8a;
+  --sql-op: #8a5a8a;
+  color-scheme: dark;
+}
+
+/* ============================================================
+   砚秋 InkAutumn 浅色（晨窗书房）
+   — 白天在书房里的版本：宣纸色背景 + 朱砂印章点缀
+   ============================================================ */
+html[data-theme="ink-autumn"][data-variant="light"],
+html[data-theme="paper"][data-variant="autumn"] {
+  --color-ink-1000: #f4e8d0;
+  --color-ink-950:  #ede0c2;
+  --color-ink-900:  #e8d8b4;
+  --color-ink-850:  #ddc89c;
+  --color-ink-800:  #d4be94;
+  --color-ink-700:  #c0a878;
+  --color-ink-600:  #a0865a;
+  --color-veil: #000000;
+  --color-cyan: #4a7a7a;
+  --color-blue: #3a5a7a;
+  --color-violet: #6a4a6a;
+  --color-magenta: #7a2a4a;
+  --color-emerald: #5a7a45;
+  --color-rose: #a8291b;
+  --color-amber: #a07020;
+  --color-fg: #2b1810;
+  --color-fg-soft: #5a4030;
+  --color-fg-mute: #8a7050;
+  --color-fg-faint: #b0966a;
+}
+
 /* ---- 护眼米 Solarized Light 米黄底。公认最省眼的低对比配色 ---- */
 html[data-theme="solarized"] {
   --color-ink-1000: #fdf6e3;
@@ -549,7 +649,8 @@ html[data-theme="solarized"] {
    ============================================================ */
 html[data-theme="paper"],
 html[data-theme="mint"],
-html[data-theme="solarized"] {
+html[data-theme="solarized"],
+html[data-theme="ink-autumn"] {
   --elev-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px -4px rgba(15, 23, 42, 0.10);
   --elev-2: 0 1px 3px rgba(15, 23, 42, 0.07), 0 10px 24px -12px rgba(15, 23, 42, 0.16);
   --elev-3: 0 3px 10px rgba(15, 23, 42, 0.08), 0 22px 48px -22px rgba(15, 23, 42, 0.20);
