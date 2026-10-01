@@ -1,3 +1,12 @@
+/* 古风主题用的楷体（霞鹜文楷 GB 子集）。
+ * 生成方式见 scripts/fonts-import.mjs，不要手改 wenkai.css。
+ *
+ * ★ 这一行必须在 `@import "tailwindcss"` 之前 ——
+ *   CSS 规范要求 @import 出现在其它规则之前，顺序颠倒的话
+ *   浏览器（和构建器）会直接忽略它，症状是「字体文件都在、
+ *   CSS 里也有 @font-face，但页面上就是黑体」。 */
+@import "./wenkai.css";
+
 @import "tailwindcss";
 
 /* ============================================================
@@ -95,8 +104,28 @@
   --color-fg-mute: #7f88a0;
   --color-fg-faint: #6e799b;
 
-  /* ---- 字体 ---- */
+  /* ---- 字体 ----
+   * 三个家族，各管一段：
+   *
+   *   --font-sans  默认界面。黑体/无衬线，屏幕可读性优先。
+   *   --font-kai   楷书。古风主题的正文与标题。**第一项是自托管的
+   *                霞鹜文楷**，见 styles/wenkai.css；后面一长串是系统楷体兜底。
+   *   --font-song  宋体。印刷感，用于需要「端正」而不是「手写」的场合。
+   *
+   * ★ 为什么 webfont 后面必须跟系统楷体，而不是直接落到 serif：
+   *   自托管字体是 GB2312 子集，落在 unicode-range 之外的字（生僻字、
+   *   扩展区汉字）不会命中任何 @font-face，浏览器会**沿着字体栈往下走**。
+   *   如果下一项直接是 `serif`，Linux 上就会变成 Noto Serif ——
+   *   同一个标题里「数据库」是楷体、「麒麟」是宋体，一眼就看出是坏的。
+   *   中间垫一层系统楷体，才接得住这个落差。
+   *
+   * ★ 为什么 --font-kai 不写进古风主题块、而是定义在 @theme 里：
+   *   写在 @theme 里才会生成 `font-kai` 这个工具类。
+   *   个别地方需要「即使在别的主题下也用楷体」（比如落款、印章文字），
+   *   有工具类才写得出来。 */
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-kai: "LXGW WenKai GB", "Kaiti SC", "STKaiti", "KaiTi", "楷体", "Kaiti TC", "TW-Kai", "AR PL UKai CN", "Noto Serif CJK SC", "Songti SC", "SimSun", serif;
+  --font-song: "Songti SC", "STSong", "SimSun", "宋体", "Noto Serif CJK SC", "Source Han Serif SC", serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace;
 
   /* ---- 动效曲线 ---- */
@@ -488,10 +517,19 @@ html[data-theme="mint"] {
    ──────────────────────────────────────────────────────
    设计原则：
      1. ink-1000 / ink-900 不是黑也不是浅米 —— 是旧木家具的深褐
-     2. fg 不是高纯 #000  —— 是「深墨字」那种偏暖的近黑
+     2. fg 是**灯下的宣纸色**（暖米白），不是黑
      3. 语义色按古风理解：cyan=青瓷 · violet=紫檀 · emerald=苔绿 ·
         amber=蜡黄 · rose=朱砂 · blue=靛蓝 · magenta=绛紫
-   配色板参考来源图背景的暖黄灯光 · 不能用冷色调（会失味） */
+   配色板参考来源图背景的暖黄灯光 · 不能用冷色调（会失味）
+
+   ★ 2026-10-01 修：这一块原来把文字色写成了**深色**（fg #1a0f08），
+   压在同样深的旧木底色上 —— 对比度 1.50:1，字基本看不见。
+   当时之所以没被发现，是因为守这件事的 tests/contrast.mjs
+   **压根没接进 CI**（CI 逐步跑 test:content / unit / api / hardening /
+   ai-unit / ai-e2e，唯独漏了 contrast）。测试写了、断言是对的、
+   就是没人跑它。
+   现在：文字改回暖米白一系，四级全部按 WCAG AA 算过；
+   同时把 contrast 接进了 CI，这类问题以后在 PR 上就会红。 */
 html[data-theme="ink-autumn"] {
   --color-ink-1000: #2b1810;     /* 旧木家具的深褐，像躺椅扶手 */
   --color-ink-950: #3a2115;
@@ -500,34 +538,37 @@ html[data-theme="ink-autumn"] {
   --color-ink-800: #6b432a;
   --color-ink-700: #85572f;
   --color-ink-600: #9d6a3c;
-  --color-veil: #ffffff;
-  --color-on-accent: #fffaf0;    /* 朱砂底上的字 —— 暖米白 */
+  --color-veil: #ffffff;         /* 暗色主题：叠白让面变亮 */
+  --color-on-accent: #2b1810;    /* 主按钮是青瓷→靛蓝的**浅**渐变，
+                                  * 压在上面的字必须是深色。写成米白
+                                  * 实测只有 1.98:1，等于按钮没字。 */
   --color-glass-1: rgba(255, 248, 230, 0.04);
   --color-glass-2: rgba(255, 248, 230, 0.025);
   --color-glass-3: rgba(255, 248, 230, 0.06);
   --color-hairline: rgba(180, 130, 80, 0.18);
   --color-hairline-strong: rgba(180, 130, 80, 0.30);
 
-  /* 语义色（古风理解）*/
-  --color-cyan: #5c8a8a;        /* 青瓷釉色 —— 信息 */
-  --color-blue: #4a6a8a;         /* 靛蓝 —— 链接 */
-  --color-violet: #8a5a8a;       /* 紫檀 —— 信任 */
-  --color-magenta: #8a3a5a;      /* 绛紫 —— 强调 */
-  --color-emerald: #6a8a55;     /* 苔绿 —— 成功 */
-  --color-rose: #c0392b;         /* 朱砂红 —— 出错（也是印章色）*/
-  --color-amber: #c09030;        /* 蜡黄 —— 警告 */
-  --color-ok: #6a8a55;
-  --color-ok-soft: rgba(106, 138, 85, 0.18);
-  --color-bad: #c0392b;
-  --color-bad-soft: rgba(192, 57, 43, 0.14);
-  --color-warn: #c09030;
-  --color-warn-soft: rgba(192, 144, 48, 0.16);
+  /* 语义色（古风理解）—— 暗底上要**提亮**，不是压深 */
+  --color-cyan: #8bbebe;         /* 青瓷釉色 —— 信息 */
+  --color-blue: #94b0cc;         /* 靛蓝 —— 链接 */
+  --color-violet: #c39cc3;       /* 紫檀 —— 信任 */
+  --color-magenta: #d693af;      /* 绛紫 —— 强调 */
+  --color-emerald: #9bc17f;      /* 苔绿 —— 成功 */
+  --color-rose: #df8476;         /* 朱砂 —— 出错（也是印章色）*/
+  --color-amber: #d9b45e;        /* 蜡黄 —— 警告 */
+  --color-ok: #9bc17f;
+  --color-ok-soft: rgba(155, 193, 127, 0.18);
+  --color-bad: #df8476;
+  --color-bad-soft: rgba(223, 132, 118, 0.16);
+  --color-warn: #d9b45e;
+  --color-warn-soft: rgba(217, 180, 94, 0.16);
 
-  /* 文字：墨色。不是黑也不是深灰 —— 是研的墨、笔尖触纸的色 */
-  --color-fg: #1a0f08;
-  --color-fg-soft: #4a3320;
-  --color-fg-mute: #7a5d40;
-  --color-fg-faint: #a0866a;
+  /* 文字：灯下宣纸色。四级实测 10.37 / 6.89 / 5.59 / 4.76（对 ink-900），
+   * 单调递减，且 fg 与 fg-faint 相差 2.18 倍 —— 层级没塌。 */
+  --color-fg: #f4e8d0;
+  --color-fg-soft: #d3bd98;
+  --color-fg-mute: #c1a98c;
+  --color-fg-faint: #b59b7c;
 
   --glass-sheet: rgba(74, 44, 28, 0.65);
   --glass-sheet-strong: rgba(74, 44, 28, 0.82);
@@ -539,44 +580,122 @@ html[data-theme="ink-autumn"] {
   --halo-1: rgba(192, 144, 48, 0.10);
   --halo-2: rgba(192, 57, 43, 0.08);
   --mesh: rgba(255, 240, 210, 0.030);
-  --sel-bg: rgba(192, 144, 48, 0.22);
+  --sel-bg: rgba(192, 144, 48, 0.28);
   --code-bg: rgba(28, 24, 18, 0.50);
-  --code-fg: #d6a050;             /* 行内代码 —— 暖橙，区别正文墨色 */
+  --code-fg: #e0b070;             /* 行内代码 —— 暖橙，区别正文墨色 */
   --skeleton: rgba(255, 240, 210, 0.06);
-  --sql-keyword: #c08040;        /* SQL 关键字 —— 朱砂偏暖 */
-  --sql-string: #8a7050;
-  --sql-number: #c09030;
-  --sql-comment: #7a5d40;
-  --sql-func: #5c8a8a;
-  --sql-op: #8a5a8a;
+  --sql-keyword: #d9a35e;        /* SQL 关键字 —— 朱砂偏暖 */
+  --sql-string: #9bc17f;
+  --sql-number: #d9b45e;
+  --sql-comment: #9c8867;
+  --sql-func: #8bbebe;
+  --sql-op: #c39cc3;
   color-scheme: dark;
 }
 
 /* ============================================================
-   砚秋 InkAutumn 浅色（晨窗书房）
-   — 白天在书房里的版本：宣纸色背景 + 朱砂印章点缀
-   ============================================================ */
-html[data-theme="ink-autumn"][data-variant="light"],
-html[data-theme="paper"][data-variant="autumn"] {
-  --color-ink-1000: #f4e8d0;
-  --color-ink-950:  #ede0c2;
-  --color-ink-900:  #e8d8b4;
-  --color-ink-850:  #ddc89c;
-  --color-ink-800:  #d4be94;
-  --color-ink-700:  #c0a878;
-  --color-ink-600:  #a0865a;
+   砚晨 InkDawn —— 古风书房 · 晨窗
+   ============================================================
+   砚秋的白天版本。同一个书房，把灯关了、把窗打开：
+     宣纸偏茶的底色 · 淡墨字 · 朱砂印章 · 竹帘透进来的冷光
+
+   ── 为什么是**独立主题 id**，而不是砚秋的一个变体 ──────────────
+   这一块原来写成 `html[data-theme="ink-autumn"][data-variant="light"]`，
+   挂在 `data-variant` 属性上。问题是**没有任何代码会去设那个属性** ——
+   前端不设、接口不返回、主题选择器里也没有这个维度。
+   所以那几十行 CSS 从来没生效过，而且不会有任何测试变红：
+   属性不存在 ≠ 选择器语法错，CSS 只是安静地不匹配。
+   （这类「声明了但没接线」的东西，症状永远是「看起来做了，其实没有」。）
+   现在把它提成独立主题，它就自动进了选择器、进了服务端白名单、
+   也进了对比度回归 —— 三个地方都不用再各记一笔。
+
+   配色要点：刻意和「宣纸」（中性暖白）拉开距离 ——
+   宣纸是灰白纸，砚晨是**茶色纸**，底色更深一档、黄一点。 */
+html[data-theme="ink-dawn"] {
+  --color-ink-1000: #f7f0df;
+  --color-ink-950:  #f2ebd8;
+  --color-ink-900:  #ece4d1;   /* 页面底色 —— 茶色宣纸 */
+  --color-ink-850:  #e3d9c2;
+  --color-ink-800:  #fffdf7;   /* 卡片面比底色亮：纸压上去的感觉 */
+  --color-ink-700:  #f0e8d6;
+  --color-ink-600:  #ddd2b8;
   --color-veil: #000000;
-  --color-cyan: #4a7a7a;
-  --color-blue: #3a5a7a;
-  --color-violet: #6a4a6a;
-  --color-magenta: #7a2a4a;
-  --color-emerald: #5a7a45;
-  --color-rose: #a8291b;
-  --color-amber: #a07020;
-  --color-fg: #2b1810;
-  --color-fg-soft: #5a4030;
-  --color-fg-mute: #8a7050;
-  --color-fg-faint: #b0966a;
+  --color-on-accent: #fffaf0;
+  --color-glass-1: rgba(0, 0, 0, 0.018);
+  --color-glass-2: rgba(0, 0, 0, 0.030);
+  --color-glass-3: rgba(0, 0, 0, 0.050);
+  --color-hairline: rgba(90, 62, 30, 0.16);
+  --color-hairline-strong: rgba(90, 62, 30, 0.28);
+
+  /* 语义色：和砚秋同一套古风理解，但因为是浅底，整体压深两档。
+   * 青瓷 · 靛蓝 · 紫檀 · 绛紫 · 苔绿 · 蜡黄 · 朱砂 */
+  --color-cyan: #356161;
+  --color-blue: #2f5578;
+  --color-violet: #6b4a6b;
+  --color-magenta: #8a2f52;
+  --color-emerald: #436134;
+  --color-amber: #7d5a0e;
+  --color-rose: #9c2619;
+  --color-ok: #436134;
+  --color-ok-soft: rgba(67, 97, 52, 0.14);
+  --color-bad: #9c2619;
+  --color-bad-soft: rgba(156, 38, 25, 0.11);
+  --color-warn: #7d5a0e;
+  --color-warn-soft: rgba(125, 90, 14, 0.13);
+
+  /* 文字：淡墨。四级都按 WCAG AA 算过（见 tests/contrast.mjs）。 */
+  --color-fg: #241608;
+  --color-fg-soft: #4d3a26;
+  --color-fg-mute: #6b563c;
+  --color-fg-faint: #77613f;
+
+  --glass-sheet: rgba(255, 253, 247, 0.82);
+  --glass-sheet-strong: rgba(255, 253, 247, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.90);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(90, 62, 30, 0.07);
+  --glass-shadow: rgba(43, 24, 16, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+  --halo-1: rgba(156, 38, 25, 0.055);
+  --halo-2: rgba(125, 90, 14, 0.055);
+  --mesh: rgba(90, 62, 30, 0.045);
+  --sel-bg: rgba(156, 38, 25, 0.16);
+  --code-bg: rgba(90, 62, 30, 0.07);
+  --code-fg: #8a4a12;             /* 行内代码 —— 赭石，区别正文墨色 */
+  --skeleton: rgba(90, 62, 30, 0.06);
+  --sql-keyword: #8a2f52;
+  --sql-string: #436134;
+  --sql-number: #7d5a0e;
+  --sql-comment: #9a8763;
+  --sql-func: #356161;
+  --sql-op: #6b4a6b;
+  color-scheme: light;
+}
+
+/* ============================================================
+   古风主题的公共部分（砚秋 / 砚晨）
+   ============================================================
+   ★ 只做两件事：换字体、补偿排版。颜色各自管各自的。
+
+   ── 为什么要补偿排版 ─────────────────────────────────────────
+   楷体和黑体在**同样的 px** 下不是同样大。楷体笔画细、字面收，
+   霞鹜文楷的字形又比黑体小一圈 —— 直接沿用黑体的字号，
+   古风主题会整体显得比别的主题小一号、也更"虚"。
+
+   抬根字号是最省事的杠杆：Tailwind 的字号、间距、圆角全是 rem，
+   改 html 这一个值等于全站等比放大，不用去动几百个 class。
+   用**百分比**而不是 px —— 写 `font-size: 16.5px` 会把用户在
+   浏览器里设的字号偏好一并覆盖掉，那是无障碍问题。
+
+   行高同理：楷体的笔画分布不如黑体均匀，行距紧一点就会糊在一起。 */
+html[data-theme="ink-autumn"],
+html[data-theme="ink-dawn"] {
+  --font-sans: var(--font-kai);
+  font-size: 103.5%;   /* 默认 100%（16px）→ 约 16.6px */
+}
+html[data-theme="ink-autumn"] body,
+html[data-theme="ink-dawn"] body {
+  line-height: 1.78;   /* 默认 1.7 */
 }
 
 /* ---- 护眼米 Solarized Light 米黄底。公认最省眼的低对比配色 ---- */
@@ -638,9 +757,15 @@ html[data-theme="solarized"] {
 /* ============================================================
    亮色主题的公共覆盖
    ============================================================
-   ★ 用一条合并选择器，而不是在三个亮色主题块里各抄一遍。
-   抄三遍的后果是：改了一处忘了另两处，然后「宣纸正常、薄荷不对」。
+   ★ 用一条合并选择器，而不是在四个亮色主题块里各抄一遍。
+   抄四遍的后果是：改了一处忘了另三处，然后「宣纸正常、薄荷不对」。
    这类"部分主题坏掉"的问题最难发现，因为默认主题（深空）永远是对的。
+
+   ★ 这份名单要跟着主题增删。**放错一个的代价是不对称的**：
+   把暗色主题误放进来，它的卡片会失去投影、变成一块没有厚度的色板
+   （砚秋就中过这一枪，是"亮色覆盖"里混进了一个暗色 id）；
+   把亮色主题漏出去，它的阴影会重得像盖了一层灰。
+   两种都不会报错，只能靠眼睛看。所以名单本身就是这份注释的一半价值。
 
    亮色下要压三样东西：
      1. 阴影 —— 暗色的重阴影在白底上会变成脏兮兮的灰块
@@ -650,7 +775,7 @@ html[data-theme="solarized"] {
 html[data-theme="paper"],
 html[data-theme="mint"],
 html[data-theme="solarized"],
-html[data-theme="ink-autumn"] {
+html[data-theme="ink-dawn"] {
   --elev-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px -4px rgba(15, 23, 42, 0.10);
   --elev-2: 0 1px 3px rgba(15, 23, 42, 0.07), 0 10px 24px -12px rgba(15, 23, 42, 0.16);
   --elev-3: 0 3px 10px rgba(15, 23, 42, 0.08), 0 22px 48px -22px rgba(15, 23, 42, 0.20);

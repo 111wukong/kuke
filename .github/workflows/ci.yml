@@ -42,6 +42,26 @@ jobs:
       - name: 加固回归
         run: npm run test:hardening
 
+      # ★ 主题对比度 + 古风字体。
+      #
+      #   这两组都是**纯静态**（只读 CSS / 资产文件，不起服务，秒级），
+      #   所以放在这里几乎没有成本。
+      #
+      #   它们守的是同一类东西：**不会报错、不会让截图变难看的缺陷**。
+      #   对比度低了页面照样渲染，字体掉回黑体截图照样清晰 ——
+      #   只是学生看不清 / 古风没了。
+      #
+      #   ★ 这两个脚本以前**没接进 CI**（只写在 tests/run-all.mjs 里，
+      #     而 CI 是逐步列 npm script 的，漏掉了它们）。后果很实在：
+      #     古风主题「砚秋」的文字色是深色压在深色底上（1.50:1，
+      #     基本看不见），CI 全绿、PR 全绿，一直到有人肉眼看才发现。
+      #     测试写了不跑，等于没写。
+      - name: 主题对比度
+        run: npm run test:contrast
+
+      - name: 古风字体
+        run: npm run test:fonts
+
       # AI 套件不打真模型 —— 用 mock 的 OpenAI 兼容上游，确定且不烧钱。
       - name: AI 纯函数
         run: npm run test:ai-unit

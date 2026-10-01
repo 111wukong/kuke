@@ -15,6 +15,7 @@ export const THEME_IDS = [
   'paper',
   'mint',
   'solarized',
+  'ink-dawn',
 ];
 
 export const DEFAULT_THEME = 'deep-space';

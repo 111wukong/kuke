@@ -219,6 +219,46 @@ try {
     console.log(`  ✗ 亮色主题截图 —— ${String(e.message).split('\n')[0]}`);
   }
 
+  /* 古风主题各来一张（砚秋=夜读 / 砚晨=晨窗）。
+   * 这两张是唯一能证明「字体也换了」的凭据 ——
+   * 断言能证明字体被加载了，但"好不好看"只能看图。
+   *
+   * ★ 编号从 23 起：20 已经被 browser-ai.mjs 的「AI 课堂」占了。
+   *   两边都从 20 开始编号的话，截图目录里会同时出现两个 20-*，
+   *   而它们来自两个不同的测试文件 —— 以后想按编号找图会找错。 */
+  try {
+    for (const [themeName, shots] of [
+      ['砚秋', [['23-dashboard-ink-autumn', '/'], ['24-settings-ink-autumn', '/settings']]],
+      ['砚晨', [['25-dashboard-ink-dawn', '/']]],
+    ]) {
+      const switched = await runProbe(srv.base, {
+        to: '/settings',
+        steps: [
+          { act: 'assert', expr: `document.body.textContent.includes(${JSON.stringify(themeName)})`, timeout: 8000 },
+          { act: 'click', text: themeName },
+          { act: 'assert', expr: `document.body.textContent.includes('当前：${themeName}')`, timeout: 8000 },
+        ],
+        budget: 90000,
+      });
+      const bad = switched.filter((r) => r.error || r.ok === false);
+      if (bad.length) throw new Error(`切到${themeName}失败：${JSON.stringify(bad).slice(0, 200)}`);
+
+      for (const [name, route] of shots) {
+        await screenshot(`${srv.base}${route}`, path.join(SHOT_DIR, `${name}.png`), {
+          width: 1440, height: 940, budget: 24000,
+        });
+        console.log(`  ✓ ${name}`);
+      }
+    }
+    await runProbe(srv.base, {
+      to: '/settings',
+      steps: [{ act: 'click', text: '深空' }],
+      budget: 60000,
+    });
+  } catch (e) {
+    console.log(`  ✗ 古风主题截图 —— ${String(e.message).split('\n')[0]}`);
+  }
+
   if (shotsOnly) {
     await srv.stop();
     probe.cleanup();
@@ -392,6 +432,64 @@ try {
         };
         const f = lum(s.color), b = lum(s.backgroundColor);
         return f !== null && b !== null && f < 0.5 && b > 0.5;
+      })()`,
+    },
+    { act: 'click', text: '深空' },
+  ]);
+
+  /* ---------- 古风主题 + 楷体 ----------
+   *
+   * ★ 这一条补的是「声明对了但根本没生效」这类缺陷。
+   *
+   *   tests/fonts.mjs 查的是**静态一致性**（文件在、CSS 引对了、
+   *   注册表对得上）。它查不出「浏览器到底有没有真的用上」——
+   *   比如 unicode-range 写错、字体文件 404、CSP 拦了 font-src，
+   *   静态检查全绿，页面上却还是黑体。
+   *   所以这一条必须在**真浏览器**里量。
+   *
+   *   三个独立信号，缺一不可：
+   *     ① 计算样式里字体栈第一项是自托管家族（声明接线了）
+   *     ② 网络里真的请求过 /fonts/*.woff2（浏览器认了这份 @font-face）
+   *     ③ 正文是「浅字压深底」（守住砚秋那次深压深的事故）
+   */
+  await probeCase('古风主题：楷体真的生效（含砚秋的深浅对比）', '/settings', [
+    { act: 'assert', expr: "document.body.textContent.includes('砚秋')", timeout: 8000 },
+    { act: 'click', text: '砚秋' },
+    { act: 'assert', expr: "document.documentElement.getAttribute('data-theme') === 'ink-autumn'", timeout: 8000 },
+    {
+      act: 'assert',
+      /* 样式重算要等一帧 —— 理由同上面那条亮色断言。 */
+      timeout: 8000,
+      expr: `(() => {
+        const fam = getComputedStyle(document.body).fontFamily || '';
+        const wired = fam.indexOf('LXGW WenKai GB') >= 0;
+        const fetched = performance.getEntriesByType('resource')
+          .some((r) => r.name.indexOf('/fonts/lxgwwenkai') >= 0);
+        return wired && fetched;
+      })()`,
+    },
+    {
+      act: 'assert',
+      /* 楷体的排版补偿：根字号被抬过（默认 16px）。
+       * 少了这一条，「字体换了但没补偿」会一直存在 ——
+       * 而它的症状只是"看起来小一号"，没人会为它提 issue。 */
+      timeout: 8000,
+      expr: "parseFloat(getComputedStyle(document.documentElement).fontSize) > 16",
+    },
+    {
+      act: 'assert',
+      /* 砚秋是暗色主题：字必须比底亮。
+       * 这条断言的存在本身就是记录 —— 上一版这里写反了（深字压深底，
+       * 1.50:1），而当时守它的对比度测试没接进 CI。 */
+      timeout: 8000,
+      expr: `(() => {
+        const s = getComputedStyle(document.body);
+        const lum = (c) => {
+          const m = c.match(/([0-9]+),[ ]*([0-9]+),[ ]*([0-9]+)/);
+          return m ? (+m[1] * 0.299 + +m[2] * 0.587 + +m[3] * 0.114) / 255 : null;
+        };
+        const f = lum(s.color), b = lum(s.backgroundColor);
+        return f !== null && b !== null && f > 0.6 && b < 0.4;
       })()`,
     },
     { act: 'click', text: '深空' },

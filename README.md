@@ -95,6 +95,28 @@
 
 <img src="docs/screenshots/19-sql-lab-light.png" alt="亮色主题 · SQL 实训场" width="100%">
 
+### 古风主题（砚秋 / 砚晨）
+
+两套古风主题，仿「灯下读书」那张参考图的调性做的：
+旧木家具的深褐 + 暖黄灯光 + 朱砂印章 —— 以及**楷体**。
+
+古风不是换个色板就能出来的。深棕底 + 朱砂色 + 黑体字，
+得到的只是「一个深棕色的普通界面」。所以这两套主题会把整站字体
+换成自托管的**霞鹜文楷**，并把根字号抬 3.5%、行高放到 1.78 ——
+楷体的笔画比黑体细、字面收，不做补偿会整体小一号。
+
+字体是 97 个 `unicode-range` 切片，浏览器只下载页面上真正出现的
+那几片（实测一个页面 6 片），不引任何 CDN。
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/23-dashboard-ink-autumn.png" alt="砚秋 · 夜读"><br><sub>砚秋 · 夜读（暗）</sub></td>
+<td width="50%"><img src="docs/screenshots/25-dashboard-ink-dawn.png" alt="砚晨 · 晨窗"><br><sub>砚晨 · 晨窗（亮）</sub></td>
+</tr>
+</table>
+
+<img src="docs/screenshots/24-settings-ink-autumn.png" alt="砚秋 · 设置页（主题选择器里名字用它自己的字体画）" width="100%">
+
 ---
 
 ## 快速开始
@@ -102,7 +124,7 @@
 ```bash
 npm install
 npm run check        # 类型检查 + 构建前端
-npm test             # 五组测试
+npm test             # 十一组测试
 npm start            # 打开 http://127.0.0.1:5180
 ```
 
@@ -274,6 +296,12 @@ Markdown 渲染器 · SQL 语法高亮 · SQL 编辑器 · 粒子背景 · WebGL
 写死 `bg-white/5` 的话，亮色主题下卡片边界会**凭空消失**，
 而页面依然「正常渲染」—— 元素在、颜色对、只是看不见。
 
+**古风主题连字体一起换**。砚秋 / 砚晨把 `--font-sans` 换成自托管的
+霞鹜文楷（97 个 `unicode-range` 切片，浏览器只下需要的几片），
+并抬 3.5% 根字号 + 放宽行高。字体栈里 webfont 后面**必须**跟系统楷体：
+子集外的字会沿着栈往下走，直接落到 `serif` 的话 Linux 上会变成宋体 ——
+同一个标题里一半楷体一半宋体。
+
 **日期口径**。全站用服务器本地时区的 `YYYY-MM-DD`，不用
 `toISOString().slice(0,10)`。后者是 UTC 日期，北京时间早上 7 点时
 UTC 还是前一天，会把「今天做的题」记到昨天头上 ——
@@ -284,11 +312,13 @@ UTC 还是前一天，会把「今天做的题」记到昨天头上 ——
 ## 测试
 
 ```bash
-npm test              # 全部五组
+npm test              # 全部十一组
 npm run test:content  # 内容自检
 npm run test:unit     # 单元测试
 npm run test:api      # 接口冒烟
 npm run test:hardening # 加固回归
+npm run test:contrast # 主题对比度（纯静态）
+npm run test:fonts    # 古风字体（纯静态）
 npm run test:browser  # 浏览器冒烟 + 截图（需要真实桌面环境）
 ```
 
@@ -298,7 +328,9 @@ npm run test:browser  # 浏览器冒烟 + 截图（需要真实桌面环境）
 | 单元测试 | **179** 项 | 判题 / 范式算法 / FSRS / 图谱诊断 / **前端渲染器的 XSS 与标记漏屏** |
 | 接口冒烟 | **194** 项 | 起真服务跑完整业务流程 + 权限边界 |
 | 加固回归 | **34** 项 | 安全头 / 限流 / 沙箱逃逸 / SPA 回退 |
-| 浏览器冒烟 | 19 页 + 13 组交互 | 逐页断言 + 截图 |
+| 主题对比度 | **144** 项 | 10 套主题的四级文字色过 WCAG AA、强调色过 3:1、层级不塌 |
+| 古风字体 | **20** 项 | 字体资产与 CSS 对齐、楷体栈有兜底、注册表与样式表一致 |
+| 浏览器冒烟 | 23 项 + 23 页截图 | 逐页断言 + 交互断言 + 截图（含古风主题） |
 
 全部零依赖：Node 内置能力 + Chrome CLI。
 
@@ -307,6 +339,11 @@ npm run test:browser  # 浏览器冒烟 + 截图（需要真实桌面环境）
 > 之后进程又会被外层杀掉；CDP 的页面级 WebSocket 通道也被阻断
 > （浏览器级能连、命令有响应，页面级握手后立刻 1006）。
 > 有桌面环境的机器上它会正常出图并断言。
+> （`chrome-headless-shell` 这个二进制是能跑的，README 里的实拍图就是它出的。）
+
+> ⚠️ **对比度 / 字体这两组一度没接进 CI** —— 它们写在 `tests/run-all.mjs` 里，
+> 而 CI 是逐个列 `npm run test:xxx` 的，漏掉了。后果是古风主题「砚秋」
+> 带着 1.50:1 的深底深字上线，CI 全绿。现在两个都在 `ci.yml` 里。
 
 ---
 
@@ -376,7 +413,7 @@ npm run test:browser:ai  # AI 课堂的浏览器冒烟
 kuke/
 ├── server/      Fastify + SQLite（含全部课程内容在 src/data/）
 ├── web/         React + Vite + Tailwind
-├── tests/       五组零依赖测试
+├── tests/       十一组零依赖测试
 ├── bench/       300 并发压测工具（零依赖，可复现报告里的数字）
 ├── deploy/      Nginx 反代配置 + systemd 单元
 ├── scripts/     备份 / 重置密码 / AI 联通检查
