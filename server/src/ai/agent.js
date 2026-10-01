@@ -466,7 +466,7 @@ function toolResultData(r) {
  */
 export async function runAgent(opts) {
   const {
-    role, system, messages = [], ctx, hooks = {}, maxSteps = 3, temperature = 0.7, signal,
+    role, system, messages = [], ctx, hooks = {}, maxSteps = 3, temperature = 0.7, signal, aiUserId,
   } = opts;
 
   assertStudentCannotWriteSolution();
@@ -482,7 +482,7 @@ export async function runAgent(opts) {
   for (let step = 0; step < maxSteps; step++) {
     let out;
     try {
-      out = await chat({ messages: compact(convo), tools, hooks, temperature, signal });
+      out = await chat({ messages: compact(convo), tools, hooks, temperature, signal, aiUserId });
     } catch (e) {
       /* ★ 降级链第二层：模型/网关不认原生 tools。
        *   去掉 tools，把工具清单写进 system，让它用文本协议输出。 */
@@ -548,7 +548,7 @@ export async function runAgent(opts) {
     /* 工具结果回灌之后，最后一步强制它出结论（不带 tools），
      * 否则模型可能无限调工具 —— 那是用户在花钱。 */
     if (step === maxSteps - 1) {
-      const final = await chat({ messages: compact(convo), tools: [], hooks, temperature, signal });
+      const final = await chat({ messages: compact(convo), tools: [], hooks, temperature, signal, aiUserId });
       return { text: final.content, toolCalls: allToolCalls, boardItems, steps: step + 2, degraded };
     }
   }
@@ -588,6 +588,7 @@ export const GENERATE_SYSTEM = `你是一个数据库课程的出题老师。请
  * @param {object} opts { kid, count, insert, ownerId }
  */
 export async function generateQuestions(opts = {}) {
+  const aiUserId = opts.aiUserId || null;
   const count = Math.max(1, Math.min(5, Number(opts.count) || 3));
   const kid = opts.kid ? findKid(opts.kid) : null;
   const mat = kid ? materialFor(kid, 'teacher') : null;
@@ -610,6 +611,7 @@ export async function generateQuestions(opts = {}) {
       stream: false,          // 结构化内容走非流式，一次性拿完整 JSON
       temperature: 0.8,
       maxTokens: 2400,
+      aiUserId,
     });
     raw = out.content;
   } catch (e) {
@@ -662,7 +664,7 @@ export async function generateQuestions(opts = {}) {
    只有「讲评」这一段交给模型 —— 那是它真正擅长的地方。
    ============================================================ */
 export async function explainAnswer(opts = {}) {
-  const { kid, stem, userAnswer, standard, correct, hooks, signal } = opts;
+  const { kid, stem, userAnswer, standard, correct, hooks, signal, aiUserId } = opts;
   const title = kid ? (db.prepare('SELECT title FROM knowledge WHERE id = ?').get(kid)?.title || kid) : '';
 
   const sys = `你是一个数据库课程的讲评老师。学生刚做错了一道题，你要做的是**讲清他错在哪**，不是重做一遍。
@@ -687,6 +689,7 @@ export async function explainAnswer(opts = {}) {
       hooks,
       temperature: 0.6,
       signal,
+      aiUserId,
     });
     return { ok: true, text: out.content };
   } catch (e) {

@@ -237,6 +237,7 @@ export async function directorCall(session, ctx) {
       { role: 'user', content: `考点：${session.kidTitle}\n当前阶段：${session.phase}\n已发言次数：${JSON.stringify(session.spoke)}\n最近发言：\n${recent}\n\n下一个该谁？` },
     ],
     tools: [], stream: false, temperature: 0.2, maxTokens: 40,
+    aiUserId: session.userId,
   });
   const m = String(out.content || '').match(/\{[\s\S]*?\}/);
   if (!m) return undefined;
@@ -287,6 +288,7 @@ async function teacherTurn(session, opts, hooks) {
 
   let streamed = '';
   const r = await runAgent({
+    aiUserId: session.userId,
     role: 'teacher',
     system,
     messages: [{ role: 'user', content: userParts.join('\n') }],
@@ -335,6 +337,7 @@ async function studentTurn(session, key, opts, hooks) {
   }
 
   const r = await runAgent({
+    aiUserId: session.userId,
     role: key,
     system,
     messages: [{ role: 'user', content: userParts.join('\n') }],

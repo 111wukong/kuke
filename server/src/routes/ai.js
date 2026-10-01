@@ -20,7 +20,7 @@ import { describeTools, TEACHER_TOOLS, STUDENT_TOOLS, MATERIAL_DEPTH } from '../
 import { profileCard, learningProfile } from '../ai/profile.js';
 import { db } from '../db/index.js';
 import { rl } from '../lib/rateLimit.js';
-import { aiConfigPublic, saveAiConfig, aiConfigIsCustom, aiConfig } from '../lib/appSettings.js';
+import { aiConfigPublic, saveAiConfig, saveUserAiConfig, aiConfigIsCustom, aiConfig } from '../lib/appSettings.js';
 import { chat } from '../ai/llm.js';
 
 /* ============================================================
@@ -58,7 +58,9 @@ function audit(req, action, { target = null, detail = {} } = {}) {
 
 export default async function aiRoutes(fastify) {
   /* ============ 密钥状态 ============ */
-  fastify.get('/api/ai/health', { preHandler: fastify.requireAuth }, async () => aiHealth());
+  /* 健康检查要按**当前用户**看 —— 自助注册的学生没配 key 时，
+   * 他看到的应该是「你需要自己配」，而不是「服务端没配」。 */
+  fastify.get('/api/ai/health', { preHandler: fastify.requireAuth }, async (req) => aiHealth(req.user.id));
 
   /* ============ AI 模型配置 ============
    *
@@ -75,20 +77,26 @@ export default async function aiRoutes(fastify) {
    * 这些都不该需要重新部署。
    */
 
-  fastify.get('/api/ai/config', { preHandler: fastify.requireTeacher }, async () => ({
-    ...aiConfigPublic(),
-    customized: aiConfigIsCustom(),
-  }));
+  /* 读：**任何人都能读自己的**。
+   *
+   * 学生也要能看到自己的 AI 是什么状态 —— 自助注册的学生没配 key 时，
+   * 界面要能告诉他「你需要自己配」，而不是让 AI 课堂默默报错。
+   *
+   * 返回里带 accountOrigin / canUseGlobal / effectiveSource，
+   * 前端据此决定显示哪种表单和哪段说明。 */
+  fastify.get('/api/ai/config', { preHandler: fastify.requireAuth }, async (req) => aiConfigPublic(req.user.id));
 
   /* 用 PATCH 而不是 PUT：这是「改其中几个字段」，
    * 没传的字段保持原样。PUT 的语义是「用这份完整替换掉旧的」，
    * 那样「只改模型名」就会把 key 清空 —— 是个很容易踩的坑。 */
   fastify.patch('/api/ai/config', {
-    preHandler: fastify.requireTeacher,
+    preHandler: fastify.requireAuth,
     schema: {
       body: {
         type: 'object',
         properties: {
+          /* 改哪一层。不传时的默认见下面 —— 老师默认改全局，学生只能改自己的。 */
+          scope: { type: 'string', enum: ['global', 'personal'] },
           apiKey: { type: 'string', maxLength: 400 },
           baseUrl: { type: 'string', maxLength: 400 },
           model: { type: 'string', maxLength: 160 },
@@ -98,6 +106,20 @@ export default async function aiRoutes(fastify) {
     },
   }, async (req, reply) => {
     const b = req.body || {};
+    const isStaff = req.user.role === 'teacher' || req.user.role === 'admin';
+
+    /* ★ 改哪一层：
+     *     老师 / 管理员  默认改**全局**（「给全班用」的那套）
+     *     学生           只能改**自己的**
+     *     老师显式传 scope:'personal'  → 配自己的，覆盖全局
+     *   全局配置用的是老师自己的额度，所以学生不能碰。 */
+    const scope = b.scope || (isStaff ? 'global' : 'personal');
+    if (scope === 'global' && !isStaff) {
+      return reply.code(403).send({
+        error: '只有老师能改全局配置',
+        hint: '你可以配置自己的 API Key —— 那只会影响你自己的 AI 课堂。',
+      });
+    }
 
     /* baseUrl 必须是 http(s)。填错了会让之后每一次 AI 请求都失败，
      * 而报错是「连不上上游」—— 看不出是配置写错了。
@@ -122,14 +144,17 @@ export default async function aiRoutes(fastify) {
       timeout = '';           // 显式清空 = 恢复默认
     }
 
-    const changed = saveAiConfig({
-      apiKey: b.apiKey, baseUrl, model: b.model, timeout,
-    }, req.user.id);
+    const patch = { apiKey: b.apiKey, baseUrl, model: b.model, timeout };
+    const changed = scope === 'global'
+      ? saveAiConfig(patch, req.user.id)
+      : saveUserAiConfig(req.user.id, patch);
 
     /* ★ 审计里只记「改了哪几个字段」，**不记值** ——
      *   值里可能有 API Key，写进审计表等于把它复制到第二个地方。 */
-    audit(req, 'ai_config_update', { detail: { fields: changed } });
-    return { ok: true, changed, config: aiConfigPublic() };
+    audit(req, scope === 'global' ? 'ai_config_update' : 'ai_config_personal_update', {
+      detail: { fields: changed, scope },
+    });
+    return { ok: true, scope, changed, config: aiConfigPublic(req.user.id) };
   });
 
   /* 测试连接。
@@ -139,7 +164,7 @@ export default async function aiRoutes(fastify) {
    *   测试本身成了风险源。
    *   前端没传的字段回落到当前已生效的配置。 */
   fastify.post('/api/ai/config/test', {
-    preHandler: fastify.requireTeacher,
+    preHandler: fastify.requireAuth,
     config: { rateLimit: rl(10, '1 minute') },
     schema: {
       body: {
@@ -153,7 +178,7 @@ export default async function aiRoutes(fastify) {
     },
   }, async (req) => {
     const b = req.body || {};
-    const cur = aiConfig();
+    const cur = aiConfig(req.user.id);
     const override = {
       /* 没传 key 就用已保存的；传了空串也用已保存的 ——
        * 前端拿到的 key 是打码的，用户不改时那个输入框里是空的。 */
@@ -347,6 +372,7 @@ export default async function aiRoutes(fastify) {
       kid: req.body.kid,
       count: req.body.count || 3,
       ownerId: req.user.id,
+      aiUserId: req.user.id,      // 按这个人解析用哪套 AI 配置
       insert: true,
     });
     /* ★ 返回里要带「丢了几道、为什么丢」。
@@ -389,6 +415,7 @@ export default async function aiRoutes(fastify) {
       userAnswer: req.body.answer,
       standard: verdict.correctAnswer ?? q.answer,
       correct: !!verdict.pass,
+      aiUserId: req.user.id,      // 按这个人解析用哪套 AI 配置
     });
     /* ★ 讲评失败也回 200 + ok:false。
      *   回 5xx 会走全局错误提示，用户看到「出错了」——

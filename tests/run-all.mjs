@@ -33,6 +33,7 @@ const SUITES = [
   { name: '加固回归', file: 'hardening.mjs', desc: '安全头 / 限流 / 沙箱逃逸 / 权限边界' },
   { name: '主题对比度', file: 'contrast.mjs', desc: '8 套主题的文字色是否过 WCAG AA（纯静态，最快）' },
   { name: 'AI 纯函数', file: 'ai-unit.mjs', desc: '表达式求值器 / 出题清洗不变量 / 阶段状态机 / 工具白名单' },
+  { name: 'AI 配置规则', file: 'ai-config.mjs', desc: '全局配置继承 / 自助注册不继承 / 个人覆盖 / 权限边界' },
   { name: 'AI 端到端', file: 'ai.mjs', desc: '多智能体课堂 / 工具调用 / 出题入库 / 讲评（mock 上游）' },
   { name: '浏览器冒烟', file: 'browser.mjs', desc: '真浏览器逐页断言 + 截图（跑不了会跳过）' },
   { name: 'AI 课堂冒烟', file: 'browser-ai.mjs', desc: '真浏览器跑一节 AI 课：开课 / 作答 / 黑板（跑不了会跳过）' },

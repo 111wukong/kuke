@@ -543,3 +543,29 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by INTEGER
 );
+
+-- ============ 每人的 AI 配置 ============
+/*
+ * 和 app_settings 的关系是「个人覆盖」：
+ *
+ *   ┌ 自己配了 key ──────────────→ 用自己配的
+ *   ├ 没配，且是老师建的账号 ────→ 用老师配的全局配置
+ *   ├ 没配，且是自助注册的 ──────→ 没有可用配置，提示去配
+ *   └ 都没有 ───────────────────→ 环境变量兜底
+ *
+ * ── 为什么要有「自助注册的学生必须自己配」这条 ──────────────────
+ * 全局配置用的是老师自己的 API Key，那是老师花钱买的额度。
+ * 老师批量建号（created_by 有值）是「我请的学生，额度我出」；
+ * 但一个陌生人自己注册进来，不该自动继承老师的额度 ——
+ * 那不是功能，是漏算。
+ *
+ * 区分依据就是 users.created_by：老师建号时写入教师 id，
+ * 自助注册时留空。这个字段本来就存在（权限模型在用），不用新增。
+ */
+CREATE TABLE IF NOT EXISTS user_ai_settings (
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key        TEXT    NOT NULL,
+  value      TEXT    NOT NULL DEFAULT '',
+  updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, key)
+);

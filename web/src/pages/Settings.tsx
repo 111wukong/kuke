@@ -25,9 +25,6 @@ import { formatDateTime, avatarStyle } from '@/lib/utils';
 export default function Settings() {
   const { user, settings, patchSettings, logout } = useAuth();
   const { toast } = useApp();
-  /* AI 配置只有教师/管理员能改。前端隐藏只是不给人添乱 ——
-   * 服务端的写接口也用 requireTeacher 挡住了，那才是真正的边界。 */
-  const canManageAi = user?.role === 'teacher' || user?.role === 'admin';
   const { id: themeId } = useTheme();
 
   const [dailyGoal, setDailyGoal] = useState(settings?.dailyGoal ?? 20);
@@ -171,10 +168,11 @@ export default function Settings() {
         </div>
       </Card>
 
-      {/* ---------- AI 模型（仅教师 / 管理员）----------
-          ★ 学生看不到这一块。不只是「隐藏入口」—— 服务端的写接口
-            也用 requireTeacher 挡住了，前端隐藏只是不给人添乱。 */}
-      {canManageAi && <AiConfigCard />}
+      {/* ---------- AI 模型（所有登录用户都能看到）----------
+          ★ 学生也要看得到 —— 自助注册的学生没配 key 时，
+            界面得能告诉他「你需要自己配」，而不是让 AI 课堂默默报错。
+            权限在服务端按 scope 判：全局配置只有老师能改。 */}
+      <AiConfigCard />
 
       {/* ---------- 改密码 ---------- */}
       <Card>
