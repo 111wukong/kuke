@@ -26,6 +26,7 @@ import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/stores/theme';
 import { useCountUp, useMediaQuery } from '@/lib/hooks';
+import { useHotkeys, HotkeyHelp, HotkeyHint } from './Hotkeys';
 import { cn, avatarStyle } from '@/lib/utils';
 
 interface NavItem { to: string; icon: any; label: string; badge?: 'due' | 'wrong' }
@@ -86,6 +87,9 @@ const isStaffRole = (r?: string) => r === 'teacher' || r === 'admin';
 
 export function AppShell() {
   const { snapshot, refreshSnapshot, navOpen, setNavOpen } = useApp();
+  /* 全局快捷键。跳转表在 Hotkeys.tsx —— 用「g 前缀」避免误触，
+   * 输入框里一律不响应。 */
+  const [hotkeyHelp, openHotkeyHelp, closeHotkeyHelp] = useHotkeys();
   const location = useLocation();
   const { user } = useAuth();
   const { def: theme } = useTheme();
@@ -177,7 +181,7 @@ export function AppShell() {
           </nav>
         </div>
 
-        <SideFooter />
+        <SideFooter onShowHotkeys={openHotkeyHelp} />
       </aside>
 
       {/* 主区 */}
@@ -198,6 +202,7 @@ export function AppShell() {
       </div>
 
       <Toaster />
+      <HotkeyHelp open={hotkeyHelp} onClose={closeHotkeyHelp} />
     </div>
   );
 }
@@ -254,7 +259,7 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
 
 /* ============ 侧栏底部：等级进度 ============ */
 
-function SideFooter() {
+function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
   const { snapshot } = useApp();
   const { user } = useAuth();
   if (!user) return null;
@@ -269,6 +274,8 @@ function SideFooter() {
 
   return (
     <div className="border-t border-hairline p-2.5">
+      {/* 快捷键入口。藏着的功能等于没有 —— 不摆出来，没人会去按 ? 试试。 */}
+      <HotkeyHint onClick={onShowHotkeys} />
       <div className="glass relative overflow-hidden rounded-lg p-2.5">
         <div className="flex items-center gap-2">
           <span
