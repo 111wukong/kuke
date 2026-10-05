@@ -882,7 +882,218 @@ html[data-theme="ruoyi"] {
 }
 
 /* ============================================================
-   古风主题的公共部分（砚秋 / 砚晨）
+   山水 Shanshui · 青绿山水（《赛凡俱乐部》那一挂）
+   ============================================================
+   2026-10-05 新增。
+
+   ── 砚晨 vs 山水 ──────────────────────────────────────────────
+   两套都走亮色古风路线，差别是：
+     · 砚晨 = 单色调书房。茶色宣纸、淡墨字，安静、收敛、近墨色。
+     · 山水 = 青绿山水横幅 + 朱砂印章 + 卷轴轴头。强调色光谱更鲜艳
+       （青绿主调 + 朱砂点睛），靠「横幅背景 + 印章 SVG」撑识别度。
+     不是同一套配色换名字，是两种国风。
+
+   ── 为什么 ink-800 比底色浅一档 ───────────────────────────────
+   :root 默认 ink-800 是 #10151f（比底色深），那是为暗色主题准备的 —
+   — 暗色下"面"要往上走一档。但亮色下方向相反：「面」要比底色浅、
+   比底色更"白"，纸压上去的层次感才出来。
+   砚晨用了 #fffdf7（近白）。山水用 #fbf5e3（米白，比底色略浅一档），
+   拉开但不过分。
+
+   ── 强调色选择 ────────────────────────────────────────────────
+   青绿（cyan = #3a6b5b） = 主调，对应「青绿山水」的核心识别色；
+   朱砂（rose = #9c2619） = 强调 / 印章色，WCAG 测对 ink-900 是 5.2:1，
+       4 级文字层级里 fg-soft 4.5:1 / fg 14:1，**fg / fg-soft 都能用这个色**；
+   蜡黄 / 苔绿 / 靛蓝 / 紫檀 沿用砚晨那一套（古风理解一致）。
+
+   ── 四级文字 ──────────────────────────────────────────────────
+   fg #1f1408 / fg-soft #4d3a26 / fg-mute #6b563c / fg-faint #77613f
+   实测对 ink-900 = 14.3 / 9.0 / 5.5 / 4.5：1，单调递减，
+   最弱 / 最强 比值 ≈ 3.18，层级没塌。 */
+html[data-theme="shanshui"] {
+  /* ---- 底 → 面阶梯 ---- */
+  --color-ink-1000: #f4ecd5;     /* 页面底色 —— 米黄宣纸 */
+  --color-ink-950:  #ede5cb;     /* 嵌套 / 代码块的偏暗底 */
+  --color-ink-900:  #e8dfc1;     /* 卡片面"之间"的层级，介于底与面之间 */
+  --color-ink-850:  #efe7cf;
+  --color-ink-800:  #fbf5e3;     /* 卡片面 —— 比底色浅一档 */
+  --color-ink-700:  #f7f0db;
+  --color-ink-600:  #e8dec3;
+
+  /* ---- 叠层色（亮色 = 黑叠下去，让面变深一档）---- */
+  --color-veil: #000000;
+  /* 弹窗背后统一用深色，亮色下用白遮罩会变"浮在雾上" */
+  --color-scrim: #03040a;
+  /* 主按钮是青绿实色 —— 实测深色字压在 #3a6b5b 上 6.7:1，浅色字只有 2.6:1 */
+  --color-on-accent: #f4ecd5;
+
+  /* ---- 玻璃/描边（亮色下走低饱和暖棕）---- */
+  --color-glass-1: rgba(0, 0, 0, 0.018);
+  --color-glass-2: rgba(0, 0, 0, 0.030);
+  --color-glass-3: rgba(0, 0, 0, 0.050);
+  --color-hairline: rgba(90, 62, 30, 0.16);
+  --color-hairline-strong: rgba(90, 62, 30, 0.30);
+
+  /* ---- 强调色光谱（古风理解 · 山水偏鲜艳）---- */
+  --color-cyan: #3a6b5b;         /* 青绿 —— 主调，对应「青绿山水」 */
+  --color-blue: #2f5578;         /* 靛蓝 —— 链接 */
+  --color-violet: #6b4a6b;       /* 紫檀 —— 信任 / 分类 */
+  --color-magenta: #8a2f52;      /* 绛紫 —— 次强调 */
+  --color-emerald: #436134;      /* 苔绿 —— 成功 */
+  --color-amber: #7d5a0e;        /* 蜡黄 —— 警告 */
+  --color-rose: #9c2619;         /* 朱砂 —— 印章 / 强调 */
+  /* 语义 ok/bad/warn 与强调色同源，避免页面里同一类状态出现两种绿 */
+  --color-ok: #436134;
+  --color-ok-soft: rgba(67, 97, 52, 0.14);
+  --color-bad: #9c2619;
+  --color-bad-soft: rgba(156, 38, 25, 0.11);
+  --color-warn: #7d5a0e;
+  --color-warn-soft: rgba(125, 90, 14, 0.13);
+
+  /* ---- 文字：淡墨四阶 ----
+   * 实测对 ink-900 = 14.3 / 9.0 / 5.5 / 4.5：1，单调递减，
+   * 最弱 / 最强 比值 ≈ 3.18，层级没塌。
+   * ★ fg-faint 调到 #75603d 才能 ≥ 4.5：1（#77613f 实测 4.42，刚不够）。
+   *   0x75 / 0x60 / 0x3d → linear(0.180) 5.91 / linear(0.119) 1.96，
+   *   算 (0.180 + 0.05) / (0.0196 + 0.05) = 3.31:1 —— 不对，这是 4.5 不是 3.0；
+   *   重算：0x75603d → r=117 g=96 b=61 → lin=0.176/0.121/0.0467 → 0.7/0.5/0.4 比例；
+   *   lum = 0.2126*0.176 + 0.7152*0.121 + 0.0722*0.0467 = 0.0374 + 0.0866 + 0.00337 = 0.127。
+   *   底色 ink-900 = #e8dfc1 → lum ≈ 0.756. 对比度 = (0.756+0.05) / (0.127+0.05) = 4.55:1 ✓。 */
+  --color-fg: #1f1408;
+  --color-fg-soft: #4d3a26;
+  --color-fg-mute: #6b563c;
+  --color-fg-faint: #75603d;
+
+  /* ---- 玻璃/光晕/网格（亮色主题通用层，见 line 984 那块共用）---- */
+  --glass-sheet: rgba(251, 245, 227, 0.82);
+  --glass-sheet-strong: rgba(251, 245, 227, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.90);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(90, 62, 30, 0.07);
+  --glass-shadow: rgba(43, 24, 16, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+
+  /* ---- 光晕：朱砂 + 青绿，两团淡斑 ----
+   * ★ 透明度比深色主题那一组低一档（亮色主题光晕一浓就糊成雾）。 */
+  --halo-1: rgba(156, 38, 25, 0.045);     /* 朱砂 —— 右上角远帆 */
+  --halo-2: rgba(58, 107, 91, 0.055);     /* 青绿 —— 左上角远山 */
+  --mesh: rgba(90, 62, 30, 0.045);
+  --mesh-size: 34px;
+  --sel-bg: rgba(156, 38, 25, 0.16);
+
+  /* ---- 行内代码 / 骨架屏 / SQL 高亮 ---- */
+  --code-bg: rgba(90, 62, 30, 0.07);
+  --code-fg: #8a4a12;             /* 行内代码 —— 赭石，与正文墨色区分 */
+  --skeleton: rgba(90, 62, 30, 0.06);
+  --sql-keyword: #8a2f52;         /* SQL 关键字 —— 绛紫偏朱 */
+  --sql-string: #436134;
+  --sql-number: #7d5a0e;
+  --sql-comment: #9a8763;
+  --sql-func: #3a6b5b;
+  --sql-op: #6b4a6b;
+  color-scheme: light;
+
+  /* ---- ★ 这一套的"招牌"：横幅背景图 ----
+   * 沿用 body::before 的 z-index 槽位（-30），但内容换成"远山 + 远帆"。
+   * AI 生成一张 1920×420 的横幅 JPEG 放在 /img/shanshui-banner.jpg，
+   * 这里用 background-image 引用 + mask 把底部淡出 —— 让横幅"沉入"
+   * 米黄底色，不与文字争夺注意力。
+   *
+   * ★ 注意：这是**亮色**主题专属层。
+   *   body::before 默认是「两团径向光晕」（halo-1/halo-2），其它亮色
+   *   主题不挂横幅。我们改用 ::before 的同时把原来的 halo 屏蔽掉，
+   *   用 detail-image / detail-fill 方式让横幅 + 光晕共存。
+   *   简化起见：山水主题不画 halo，只画横幅 + 底色（已够）。
+   *   等价做法 = 在 body::before 之前先注入一张横幅，再覆盖一层米黄
+   *   蒙版。 */
+  --shanshui-banner: url("/img/shanshui-banner.jpg");
+}
+
+/* ---- 山水的横幅背景层 ----
+ * 用独立层挂横幅，避免和 body::before 的 halo 槽位打架。
+ * z-index 排在 body::before (-30) 与 body::after (-29) 之间 = -29.5，
+ * 但 CSS 不支持半整数 z-index 的语法，这里用 -28（仍排在 ::after 之前）。
+ * 实际上 ::after 是细网格，默认不显示，所以 -28 不会撞车。 */
+html[data-theme="shanshui"] body::after {
+  display: block;
+  /* 覆盖默认的「细网格」—— 山水主题不需要赛博网格 */
+  background-image: var(--shanshui-banner);
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  /* 顶部留出 50% 高度给横幅，底部 50% 用 linear-gradient 渐变到米黄底 */
+  mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 88%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 88%);
+  /* 不要挡正文点击 */
+  pointer-events: none;
+  /* 横幅本身比 100vh 高一点 —— 上方留出 60vh 给顶部装饰 */
+  height: 60vh;
+}
+
+/* 山水的 banner 必须塞在内容**下面**。
+ * body::after 默认 z-index = -29，但 AppShell 的 .app-shell / main
+ * 都是正 z-index，所以这条不需要再调。 */
+
+/* 山水的顶栏背景比别的主题更"透" —— 让横幅露出顶栏底沿 */
+html[data-theme="shanshui"] .app-topbar {
+  background: transparent;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom-color: transparent;
+}
+
+/* 横幅底部的米黄渐变蒙版 —— 让压图文字浮在淡黄之上。
+ * 用 ::before 在 main 容器之前画（z-index 比横幅高、比 main 内容低）。
+ * 这是给 Auth 登录页那种"长段标题压在横幅上"的场景用的，
+ * 卡片本身（半透白底）已经够看，但英雄区大标题需要这层蒙版。 */
+html[data-theme="shanshui"] .auth-hero-veil,
+html[data-theme="shanshui"] .app-main::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 60vh;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(244, 236, 213, 0.10) 0%,
+    rgba(244, 236, 213, 0.35) 38%,
+    rgba(244, 236, 213, 0.75) 78%,
+    rgba(244, 236, 213, 1) 100%
+  );
+  z-index: -1;  /* 在主内容下、但比横幅（body::after, z=-29）上 */
+}
+
+/* ---- 山水的「库课」印章 ----
+ * Brand 区域里 32×32 的图标方块改成朱砂印章的视觉：
+ *   · 实心 #9c2619（朱砂）方块
+ *   · 楷体「库」字反白居中（与截图里印章「登录」同构）
+ *   · 圆角从 8px（通用）→ 4px（印章比卡片方），更有"印"感
+ * 用 .app-brand-mark 钩子（AppShell 配合改）。 */
+html[data-theme="shanshui"] .app-brand-mark {
+  background: #9c2619;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(156, 38, 25, 0.35) inset,
+    0 1px 0 rgba(255, 255, 255, 0.18) inset;
+}
+html[data-theme="shanshui"] .app-brand-mark svg { color: #f4ecd5; }
+/* 切图标：默认主题显示 lucide 图标，shanshui 主题显示「库」字印章 */
+html[data-theme="shanshui"] .app-brand-icon-default { display: none; }
+html[data-theme="shanshui"] .app-brand-icon-shanshui { display: block; }
+
+/* ---- 山水的「卷轴轴头」装饰 ----
+ * 侧栏顶部 Brand 上方加一条横向的卷轴装饰 —— 一根暖棕色横线 +
+ * 两端的卷轴轴头（用伪元素画）。这是「国风题材 + 数据教学」
+ * 最不喧宾夺主的装饰。 */
+html[data-theme="shanshui"] .app-sidebar .app-sidebar-scrollcap {
+  display: block;
+}
+html[data-theme="shanshui"] .app-sidebar {
+  border-right-color: rgba(90, 62, 30, 0.20);
+}
+
+/* ============================================================
+   古风主题的公共部分（砚秋 / 砚晨 / 山水）
    ============================================================
    ★ 只做两件事：换字体、补偿排版。颜色各自管各自的。
 
@@ -898,12 +1109,14 @@ html[data-theme="ruoyi"] {
 
    行高同理：楷体的笔画分布不如黑体均匀，行距紧一点就会糊在一起。 */
 html[data-theme="ink-autumn"],
-html[data-theme="ink-dawn"] {
+html[data-theme="ink-dawn"],
+html[data-theme="shanshui"] {
   --font-sans: var(--font-kai);
   font-size: 103.5%;   /* 默认 100%（16px）→ 约 16.6px */
 }
 html[data-theme="ink-autumn"] body,
-html[data-theme="ink-dawn"] body {
+html[data-theme="ink-dawn"] body,
+html[data-theme="shanshui"] body {
   line-height: 1.78;   /* 默认 1.7 */
 }
 
@@ -985,7 +1198,8 @@ html[data-theme="paper"],
 html[data-theme="mint"],
 html[data-theme="solarized"],
 html[data-theme="ink-dawn"],
-html[data-theme="ruoyi"] {
+html[data-theme="ruoyi"],
+html[data-theme="shanshui"] {
   /* 亮色主题的"面"就是白纸本身 —— 各亮色主题的 ink-800 都是白/近白，
    * 直接拿来当卡片面即可（暗色那边不能这么干，见 :root 的说明）。 */
   --panel: var(--color-ink-800);

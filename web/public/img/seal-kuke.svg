@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  「库课」朱砂印章
+  - 64×64 朱砂方块 + 反白「库」字
+  - 边框微做旧（一道浅阴影内嵌）
+  - 用法：背景色已在 .app-brand-mark 里设好，svg 本身只管字形
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <text
+    x="32" y="32"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'LXGW WenKai GB', 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif"
+    font-size="34"
+    font-weight="700"
+    fill="currentColor"
+    letter-spacing="-1"
+  >库</text>
+</svg>

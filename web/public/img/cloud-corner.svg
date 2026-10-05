@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  山水中角落祥云（赛凡同款）
+  - 嵌在卡片或页角，给一层「纸被云托着」的层次
+  - 用 mask-image 软化边缘，注入颜色用 currentColor
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" aria-hidden="true">
+  <g stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55">
+    <!-- 主云团：左下向右上方翻卷 -->
+    <path d="M 12,128
+             C 18,118 28,112 38,116
+             C 42,98 60,90 76,98
+             C 86,82 110,80 122,92
+             C 138,84 158,92 162,108
+             C 174,112 178,128 168,138
+             C 158,150 138,150 128,140
+             C 116,150 96,148 88,136
+             C 74,146 54,144 46,132
+             C 32,138 18,138 12,128 Z"/>
+    <!-- 云团上小卷钩：传统祥云的「勾卷」 -->
+    <path d="M 76,98 C 82,90 92,88 98,94"/>
+    <path d="M 122,92 C 130,86 140,90 144,98"/>
+    <path d="M 162,108 C 170,108 174,114 170,120"/>
+  </g>
+  <!-- 远云点缀 -->
+  <g stroke="currentColor" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.30">
+    <path d="M 192,46 C 200,40 214,42 218,52 C 226,52 230,60 224,66"/>
+  </g>
+</svg>

@@ -156,6 +156,22 @@ export function AppShell() {
       >
         <Brand />
 
+        {/* 卷轴轴头 —— 山水中（shanshui）主题才有，其它主题默认隐藏。 */}
+        <div className="app-sidebar-scrollcap hidden px-4 pb-2" aria-hidden="true">
+          <svg viewBox="0 0 240 16" className="h-3 w-full text-[#8a6a3a]" fill="none">
+            <g stroke="currentColor" strokeWidth="1" fill="none" opacity="0.85">
+              <ellipse cx="6" cy="8" rx="5.5" ry="7" />
+              <ellipse cx="6" cy="8" rx="3" ry="4.5" />
+              <ellipse cx="6" cy="8" rx="1" ry="1.5" />
+              <ellipse cx="234" cy="8" rx="5.5" ry="7" />
+              <ellipse cx="234" cy="8" rx="3" ry="4.5" />
+              <ellipse cx="234" cy="8" rx="1" ry="1.5" />
+            </g>
+            <line x1="14" y1="8" x2="226" y2="8" stroke="currentColor" strokeWidth="1.2" opacity="0.55" />
+            <line x1="14" y1="10" x2="226" y2="10" stroke="currentColor" strokeWidth="0.5" opacity="0.30" />
+          </svg>
+        </div>
+
         <div className="flex-1 overflow-y-auto px-2.5 pb-3">
           <nav aria-label="主导航">
             {NAV.map((g) => (
@@ -227,9 +243,32 @@ function Brand() {
        *
        *   现在是一个 32px 的实心强调色方块 + 反白图标 —— 这是从
        *   Linear 到 Stripe 到 GitHub 都在用的做法，因为它清晰、可缩放、
-       *   且在亮暗两种主题下都成立。 */}
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
-        <Database size={17} />
+       *   且在亮暗两种主题下都成立。
+       *
+       * ★ 2026-10-05：山水（shanshui）主题下，这个方块由 .app-brand-mark
+       *   钩子统一接管 —— 改成朱砂印章 + 反白「库」字，与《赛凡俱乐部》
+       *   那套国风调子对齐。其它主题仍走默认 Database 图标。 */}
+      <span className="app-brand-mark grid h-8 w-8 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
+        <Database size={17} className="app-brand-icon-default" />
+        <svg
+          viewBox="0 0 64 64"
+          className="app-brand-icon-shanshui hidden"
+          aria-hidden="true"
+        >
+          <text
+            x="32"
+            y="32"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="'LXGW WenKai GB', 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif"
+            fontSize="34"
+            fontWeight="700"
+            fill="currentColor"
+            letterSpacing="-1"
+          >
+            库
+          </text>
+        </svg>
       </span>
       <div className="min-w-0">
         <div className="text-[15px] font-semibold leading-tight tracking-tight text-fg">库课</div>

@@ -18,6 +18,7 @@ export const THEME_IDS = [
   'solarized',
   'ink-dawn',
   'ruoyi',
+  'shanshui',
 ];
 
 export const DEFAULT_THEME = 'deep-space';
