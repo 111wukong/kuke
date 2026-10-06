@@ -17,6 +17,7 @@ import {
   CircleAlert, RotateCcw, ChartNoAxesColumn, Trophy, Settings,
   ClipboardList, Users, ShieldCheck, Menu, Flame, Zap, Database, GraduationCap,
 } from 'lucide-react';
+import { GuofengIcon, type GuofengIconName } from '@/components/ui/GuofengIcon';
 import { CyberGrid, Starfield } from '@/components/fx/Background';
 import { Toaster, ThemePicker } from '@/components/ui/Toaster';
 import { KeepAlivePages } from '@/components/layout/KeepAlivePages';
@@ -28,6 +29,48 @@ import { useTheme } from '@/stores/theme';
 import { useCountUp, useMediaQuery } from '@/lib/hooks';
 import { useHotkeys, HotkeyHelp, HotkeyHint } from './Hotkeys';
 import { cn, avatarStyle } from '@/lib/utils';
+
+/* ── 国风图标映射 ──────────────────────────────────────────────
+ * 山水主题下，侧栏的 lucide 线性图标会换成国风 SVG。
+ * 映射表按路由 path 索引，每个路径对应一个 GuofengIconName。
+ * 其他主题不受影响 —— 仍然用 lucide-react。
+ *
+ * 设计意图：不是随机挑一个「中式」物件贴上去，而是按功能语义匹配——
+ *   仪表盘 → 罗盘（司南）：导航 / 定位
+ *   知识树 → 枝叶：知识如树，枝叶繁茂
+ *   AI 课堂 → 书卷：课堂的本质是读书
+ *   SQL 实训场 → 竹简：数据如简，一片一片刻
+ *   SQL 闯关 → 令箭：闯关如行令
+ *   每日一练 → 毛笔：练 = 写
+ *   范式实验室 → 天平：范式 = 度量
+ *   索引与事务 → 葫芦：炼器 / 调和
+ *   复习队列 → 回纹：反复 / 回环
+ *   错题本 → 朱批：红笔批注
+ *   学习统计 → 卦象：数术 / 推演
+ *   成就 → 玉璧：璧 = 圆满
+ *   设置 → 太极：阴阳调衡
+ *   作业 → 文牒：文书往来
+ *   班级 → 学塾匾：门楣匾额
+ *   教师工作台 → 官印：权责印信
+ */
+const GUOFENG_MAP: Record<string, GuofengIconName> = {
+  '/': 'compass',
+  '/learn': 'branches',
+  '/classroom': 'scroll',
+  '/lab/sql': 'bamboo',
+  '/levels': 'token',
+  '/practice': 'brush',
+  '/normalize': 'balance',
+  '/lab': 'gourd',
+  '/review': 'meander',
+  '/mistakes': 'vermilion',
+  '/stats': 'trigram',
+  '/achievements': 'jadebi',
+  '/settings': 'taiji',
+  '/assignments': 'document',
+  '/classes': 'academy',
+  '/admin': 'official',
+};
 
 interface NavItem { to: string; icon: any; label: string; badge?: 'due' | 'wrong' }
 
@@ -280,7 +323,18 @@ function Brand() {
 
 /* ============ 导航项 ============ */
 
+/* ★ 山水主题下用国风 SVG 图标，其它主题用 lucide-react。
+ *   切换逻辑在 NavItemRow 内部，通过 useTheme() 读当前主题，
+ *   若为 shanshui 且该路由在 GUOFENG_MAP 中有映射，
+ *   则渲染 <GuofengIcon> 代替 <Icon>。
+ *
+ *   这和 Brand 区的双图标切换是同一套思路：不做全局替换，
+ *   只在山水主题下切换，确保其他主题零影响。 */
 function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCount: number }) {
+  const { def: theme } = useTheme();
+  const guofengName = GUOFENG_MAP[to];
+  const useGuofeng = theme.id === 'shanshui' && guofengName != null;
+
   return (
     <AppNavLink
       to={to}
@@ -294,7 +348,9 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
     >
       {/* ★ 去掉悬停时图标的放大动画（group-hover:scale-[1.08]）——
        *   侧栏有 14 个条目，鼠标扫过时图标逐个弹跳，是很吵的动效。 */}
-      <Icon size={16} className="shrink-0" />
+      {useGuofeng
+        ? <GuofengIcon name={guofengName!} size={16} className="shrink-0" />
+        : <Icon size={16} className="shrink-0" />}
       <span className="truncate">{label}</span>
       {badgeCount > 0 && (
         <span className="ml-auto shrink-0 rounded-full bg-rose/20 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-rose">
