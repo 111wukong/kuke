@@ -1092,6 +1092,20 @@ html[data-theme="shanshui"] .app-sidebar {
   border-right-color: rgba(90, 62, 30, 0.20);
 }
 
+/* ---- 山水的国风侧栏图标 ----
+ * NavItemRow 在山水主题下会渲染 <GuofengIcon> 代替 lucide 图标。
+ * 这里只做微调——线宽略细（从 lucide 默认 2 → 1.6），让线条更接近
+ * 工笔线描的视觉，而不是 lucide 那种粗线描。
+ *
+ * 颜色不在这里设——继承 .nav-item 的 currentColor，
+ * 激活态是青绿（--color-cyan），默认态是墨色（--color-fg-soft）。
+ *
+ * ★ 不改 stroke-width 的另一个理由：GuofengIcon 组件内部已经设了 1.6，
+ *   这里只做兜底——如果以后有人把 strokeWidth 改掉，CSS 这层会兜住。 */
+html[data-theme="shanshui"] .nav-item svg {
+  stroke-width: 1.6;
+}
+
 /* ============================================================
    古风主题的公共部分（砚秋 / 砚晨 / 山水）
    ============================================================
