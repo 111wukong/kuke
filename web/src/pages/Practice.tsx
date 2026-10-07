@@ -150,7 +150,7 @@ export default function Practice() {
                 <div className="text-[15px] font-semibold tabular-nums text-ok">
                   {session.ok}/{session.n}
                 </div>
-                <div className="text-[10px] text-fg-faint">本轮正确</div>
+                <div className="text-[12px] text-fg-faint">本轮正确</div>
               </div>
             )}
             <Badge tone="neutral">{idx + 1} / {questions.length}</Badge>
@@ -167,7 +167,7 @@ export default function Practice() {
           <Badge tone="accent">{TYPE_LABEL[q.type]}</Badge>
           <DifficultyDots value={q.difficulty} />
           {!kid && q.kid && (
-            <AppLink to={`/learn/${q.kid}`} className="text-[11.5px] text-fg-mute hover:text-cyan">
+            <AppLink to={`/learn/${q.kid}`} className="text-[12px] text-fg-mute hover:text-cyan">
               查看相关知识点 →
             </AppLink>
           )}
@@ -206,7 +206,7 @@ export default function Practice() {
                   )}
                 >
                   <span className={cn(
-                    'grid h-5 w-5 shrink-0 place-items-center rounded border text-[11px] font-semibold',
+                    'grid h-5 w-5 shrink-0 place-items-center rounded border text-[12px] font-semibold',
                     picked || isCorrect ? 'border-transparent bg-cyan text-[var(--color-on-accent)]' : 'border-hairline text-fg-mute',
                     isCorrect && 'bg-ok',
                     isWrongPick && 'bg-bad',
@@ -323,7 +323,7 @@ export default function Practice() {
               <ul className="space-y-1">
                 {verdict.steps.map((s, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12.5px] text-fg-soft">
-                    <span className="shrink-0 rounded bg-veil/10 px-1.5 text-[10.5px] tabular-nums text-fg-mute">
+                    <span className="shrink-0 rounded bg-veil/10 px-1.5 text-[12px] tabular-nums text-fg-mute">
                       {s.pts}分
                     </span>
                     {s.t}
@@ -363,7 +363,7 @@ export default function Practice() {
       )}
 
       {!verdict && (
-        <div className="flex items-center justify-center gap-2 text-[11.5px] text-fg-faint">
+        <div className="flex items-center justify-center gap-2 text-[12px] text-fg-faint">
           <BookOpen size={12} />
           答错会自动进错题本，并按间隔重复安排复习
         </div>

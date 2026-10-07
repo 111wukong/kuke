@@ -84,7 +84,7 @@ export default function Labs() {
             <FlaskConical size={16} className="text-emerald" />
             实验台
           </h2>
-          <p className="mt-0.5 text-[11.5px] text-fg-mute">
+          <p className="mt-0.5 text-[12px] text-fg-mute">
             已解出 {solvedCount}/{list.length}
           </p>
           <div className="mt-3">
@@ -146,7 +146,7 @@ export default function Labs() {
             {/* 索引实验：把查询和数据集亮出来 */}
             {kind === 'index' && payload.query && (
               <div className="mt-3 rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-fg-faint">
+                <div className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-fg-faint">
                   <Zap size={11} />要分析的查询
                   {detail?.lab?.dataset && (
                     <span className="ml-1 normal-case text-fg-mute">· {detail.lab.dataset.title}</span>
@@ -162,20 +162,20 @@ export default function Labs() {
                 <table className="w-full border-collapse text-[12.5px]">
                   <thead>
                     <tr className="bg-veil/6">
-                      <th className="border-b border-hairline px-3 py-1.5 text-left font-medium text-fg-mute">顺序</th>
+                      <th className="border-b border-hairline px-3 py-1.5 text-right font-medium text-fg-mute">顺序</th>
                       <th className="border-b border-hairline px-3 py-1.5 text-left font-medium text-fg-mute">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payload.schedule.map((op: any, i: number) => (
                       <tr key={i} className="odd:bg-veil/2">
-                        <td className="border-b border-hairline px-3 py-1.5 tabular-nums text-fg-faint">{i + 1}</td>
+                        <td className="border-b border-hairline px-3 py-1.5 text-right tabular-nums text-fg-faint">{i + 1}</td>
                         <td className="border-b border-hairline px-3 py-1.5 font-mono text-fg">
                           <span className={op.op === 'w' ? 'text-bad' : 'text-cyan'}>{op.op}</span>
                           <sub className="text-fg-mute">{op.t.replace('T', '')}</sub>
                           <span className="text-fg-soft">({op.item})</span>
-                          {op.op === 'w' && <span className="ml-2 text-[11px] text-fg-mute">写</span>}
-                          {op.op === 'r' && <span className="ml-2 text-[11px] text-fg-mute">读</span>}
+                          {op.op === 'w' && <span className="ml-2 text-[12px] text-fg-mute">写</span>}
+                          {op.op === 'r' && <span className="ml-2 text-[12px] text-fg-mute">读</span>}
                         </td>
                       </tr>
                     ))}
@@ -208,7 +208,7 @@ export default function Labs() {
                     )}
                   >
                     <span className={cn(
-                      'grid h-5 w-5 shrink-0 place-items-center rounded border text-[11px] font-semibold',
+                      'grid h-5 w-5 shrink-0 place-items-center rounded border text-[12px] font-semibold',
                       on || isCorrect ? 'border-transparent bg-cyan text-[var(--color-on-cyan)]' : 'border-hairline text-fg-mute',
                       isCorrect && 'bg-ok',
                       isWrongPick && 'bg-bad',
@@ -273,15 +273,15 @@ export default function Labs() {
                         )}
                       >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="grid h-5 w-5 place-items-center rounded bg-veil/10 text-[11px] font-semibold text-fg-soft">
+                          <span className="grid h-5 w-5 place-items-center rounded bg-veil/10 text-[12px] font-semibold text-fg-soft">
                             {p.key}
                           </span>
-                          <span className="break-all font-mono text-[11.5px] text-fg-mute">{p.label}</span>
+                          <span className="break-all font-mono text-[12px] text-fg-mute">{p.label}</span>
                           {p.usesIndex
                             ? <Badge tone="ok">走索引</Badge>
                             : <Badge tone="neutral">全表扫描</Badge>}
                         </div>
-                        <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-fg-soft">
+                        <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-fg-soft">
                           {p.detail}
                         </pre>
                       </div>
@@ -300,7 +300,7 @@ export default function Labs() {
           )}
 
           {!result && (
-            <div className="flex items-center justify-center gap-1.5 text-[11.5px] text-fg-faint">
+            <div className="flex items-center justify-center gap-1.5 text-[12px] text-fg-faint">
               提交后会把真实的执行计划展示出来
               <ArrowRight size={11} />
             </div>

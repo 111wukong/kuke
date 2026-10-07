@@ -117,14 +117,14 @@ export default function Achievements() {
                     </span>
                     <Badge tone={have ? 'ok' : 'neutral'}>{tier.label}</Badge>
                   </div>
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-fg-mute">{a.desc}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-fg-mute">{a.desc}</p>
                   {have ? (
-                    <div className="mt-1 text-[10.5px] text-ok">
+                    <div className="mt-1 text-[12px] text-ok">
                       <Sparkles size={10} className="mr-0.5 inline" />
                       {have.date ? formatDate(have.date) : ''} 解锁
                     </div>
                   ) : prog ? (
-                    <div className="mt-1 text-[10.5px] tabular-nums text-fg-faint">进度 {prog}</div>
+                    <div className="mt-1 text-[12px] tabular-nums text-fg-faint">进度 {prog}</div>
                   ) : null}
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function Achievements() {
           <li>· <b className="text-fg">错题清零</b>：需要错题本里曾经有 20 道以上、且全部答对过。</li>
           <li>· <b className="text-fg">翻身</b>：把曾经掌握度低于 40% 的知识点练到 80% 以上，5 个。</li>
         </ul>
-        <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-fg-faint">
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] text-fg-faint">
           <FlaskConical size={12} />
           所有判定都在服务端完成，前端只负责展示。
         </div>

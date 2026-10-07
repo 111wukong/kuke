@@ -165,7 +165,7 @@ export default function KnowledgeDetail() {
               {Math.round(mastery * 100)}%
             </span>
             <div className="flex-1"><Progress value={mastery} /></div>
-            <span className="text-[11.5px] text-fg-faint">
+            <span className="text-[12px] text-fg-faint">
               {data.myStats.correct}/{data.myStats.attempts} 题
             </span>
           </div>
@@ -269,7 +269,7 @@ export default function KnowledgeDetail() {
                         <Trash2 size={13} />
                       </button>
                     </div>
-                    <div className="mt-1 text-[10.5px] text-fg-faint">{formatDate(n.created_at)}</div>
+                    <div className="mt-1 text-[12px] text-fg-faint">{formatDate(n.created_at)}</div>
                   </div>
                 ))}
               </div>
@@ -301,7 +301,7 @@ export default function KnowledgeDetail() {
                         {p.strength === 'hard' ? '硬前置' : '软前置'}
                       </Badge>
                     </div>
-                    {p.reason && <p className="mt-1 text-[11.5px] leading-relaxed text-fg-mute">{p.reason}</p>}
+                    {p.reason && <p className="mt-1 text-[12px] leading-relaxed text-fg-mute">{p.reason}</p>}
                   </AppLink>
                 ))}
               </div>
@@ -328,7 +328,7 @@ export default function KnowledgeDetail() {
                         {u.strength === 'hard' ? '硬前置' : '软前置'}
                       </Badge>
                     </div>
-                    {u.reason && <p className="mt-1 text-[11.5px] leading-relaxed text-fg-mute">{u.reason}</p>}
+                    {u.reason && <p className="mt-1 text-[12px] leading-relaxed text-fg-mute">{u.reason}</p>}
                   </AppLink>
                 ))}
               </div>
@@ -350,7 +350,7 @@ export default function KnowledgeDetail() {
                     className="block rounded-lg border border-hairline bg-veil/2 p-2.5 transition-colors hover:border-rose/40 hover:bg-rose/6"
                   >
                     <span className="text-[13px] font-medium text-fg">{c.title}</span>
-                    {c.reason && <p className="mt-1 text-[11.5px] leading-relaxed text-fg-mute">{c.reason}</p>}
+                    {c.reason && <p className="mt-1 text-[12px] leading-relaxed text-fg-mute">{c.reason}</p>}
                   </AppLink>
                 ))}
               </div>
@@ -381,7 +381,7 @@ export default function KnowledgeDetail() {
               <summary className="cursor-pointer list-none text-[12.5px] text-cyan hover:underline">
                 展开「学生选课库」的表结构
               </summary>
-              <pre className="code-block mt-2 max-h-64 overflow-auto p-3 text-[11.5px] leading-relaxed text-fg-soft">
+              <pre className="code-block mt-2 max-h-64 overflow-auto p-3 text-[12px] leading-relaxed text-fg-soft">
                 {ddlData?.ddl || '加载中…'}
               </pre>
             </details>

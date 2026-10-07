@@ -51,6 +51,12 @@ function isTyping(e: KeyboardEvent): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable;
 }
 
+/** 帮助面板里显示哪个修饰键。Mac 显示 ⌘，其他平台显示 Ctrl ——
+ *  给 Mac 用户看「Ctrl+K」他会真的去按 Control 键，然后发现没反应。 */
+const MOD_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+  ? '⌘'
+  : 'Ctrl';
+
 /**
  * 注册全局快捷键。
  * 返回 [面板是否打开, 打开, 关闭]。
@@ -64,6 +70,29 @@ export function useHotkeys() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      /* ★ Cmd/Ctrl + K：聚焦当前页面的搜索框。
+       *
+       *   必须写在下面那行「修饰键一律放行」**之前** —— 它本身就是
+       *   带修饰键的组合，放到后面会被那行直接吞掉。
+       *
+       *   页面自己声明搜索框：给 <Input> 加 data-search-input 即可。
+       *   用属性而不是全局 ref，是因为搜索框属于页面、不属于快捷键模块 ——
+       *   页面卸载时它自然消失，不需要谁去注销。
+       *
+       *   没有搜索框的页面静默不响应（和下面 g 前缀找不到匹配键一样），
+       *   不弹提示：连按几下会一直弹，比不响应更烦。 */
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        const el = document.querySelector<HTMLInputElement>('[data-search-input]');
+        if (el) {
+          e.preventDefault();
+          el.focus();
+          /* 已有内容就全选 —— 按快捷键的人多半是要换个词搜，
+           * 而不是接着原来的词往后打。 */
+          el.select();
+        }
+        return;
+      }
+
       /* 输入框里什么都不做。Ctrl / Cmd / Alt 组合也放行给浏览器。 */
       if (isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
 
@@ -109,7 +138,7 @@ export function HotkeyHelp({ open, onClose }: { open: boolean; onClose: () => vo
             >
               <span className="flex shrink-0 items-center gap-1">
                 <Kbd>g</Kbd>
-                <span className="text-[10px] text-fg-faint">然后</span>
+                <span className="text-[12px] text-fg-faint">然后</span>
                 <Kbd>{g.key}</Kbd>
               </span>
               <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg-soft">{g.label}</span>
@@ -118,6 +147,10 @@ export function HotkeyHelp({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
 
         <div className="space-y-2 border-t border-hairline pt-3.5">
+          <div className="flex items-center gap-2.5 text-[12.5px] text-fg-soft">
+            <Kbd>{MOD_KEY}</Kbd><span className="text-fg-faint">+</span><Kbd>K</Kbd>
+            <span>聚焦本页搜索框</span>
+          </div>
           <div className="flex items-center gap-2.5 text-[12.5px] text-fg-soft">
             <Kbd>?</Kbd>
             <span>打开 / 关闭这个面板</span>
@@ -132,7 +165,7 @@ export function HotkeyHelp({ open, onClose }: { open: boolean; onClose: () => vo
           </div>
         </div>
 
-        <p className="text-[11.5px] leading-relaxed text-fg-faint">
+        <p className="text-[12px] leading-relaxed text-fg-faint">
           在输入框里打字时快捷键不生效 —— 不然你在 SQL 编辑器里写{' '}
           <code className="rounded bg-veil/6 px-1 font-mono">GROUP BY</code>{' '}
           会一路触发跳转。
@@ -148,7 +181,7 @@ export function HotkeyHint({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[11.5px] text-fg-faint transition-colors hover:bg-veil/6 hover:text-fg-mute"
+      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-fg-faint transition-colors hover:bg-veil/6 hover:text-fg-mute"
       title="查看键盘快捷键"
     >
       <Command size={12} />

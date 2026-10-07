@@ -101,15 +101,15 @@ export default function Settings() {
             <div className="flex gap-4">
               <div className="text-center">
                 <div className="text-[18px] font-semibold tabular-nums text-cyan">{s.level}</div>
-                <div className="text-[10.5px] text-fg-faint">等级</div>
+                <div className="text-[12px] text-fg-faint">等级</div>
               </div>
               <div className="text-center">
                 <div className="text-[18px] font-semibold tabular-nums text-amber">{s.streak}</div>
-                <div className="text-[10.5px] text-fg-faint">连续天数</div>
+                <div className="text-[12px] text-fg-faint">连续天数</div>
               </div>
               <div className="text-center">
                 <div className="text-[18px] font-semibold tabular-nums text-fg">{s.totals.attempts}</div>
-                <div className="text-[10.5px] text-fg-faint">累计题数</div>
+                <div className="text-[12px] text-fg-faint">累计题数</div>
               </div>
             </div>
           )}
@@ -133,12 +133,12 @@ export default function Settings() {
           icon={<Palette size={15} className="text-cyan" />}
         />
         <ThemePicker />
-        <div className="mt-3 flex items-center gap-2 text-[11.5px] text-fg-faint">
+        <div className="mt-3 flex items-center gap-2 text-[12px] text-fg-faint">
           <Check size={12} className="text-ok" />
           当前：{THEMES.find((t) => t.id === themeId)?.name}
           {def.fx ? '（带动态背景）' : ''}
         </div>
-        <div className="mt-1.5 text-[11.5px] text-fg-faint">
+        <div className="mt-1.5 text-[12px] text-fg-faint">
           古风主题（砚秋 / 砚晨）会同时切换为楷体，正文更松、字号略大。
         </div>
       </Card>
@@ -253,8 +253,8 @@ export default function Settings() {
                 <span className="min-w-0 flex-1 truncate text-[12px] text-fg-soft">
                   {shortUa(x.user_agent)}
                 </span>
-                <span className="shrink-0 font-mono text-[11px] text-fg-faint">{x.ip || '—'}</span>
-                <span className="shrink-0 text-[11px] text-fg-faint">{formatDateTime(x.last_seen_at)}</span>
+                <span className="shrink-0 font-mono text-[12px] text-fg-faint">{x.ip || '—'}</span>
+                <span className="shrink-0 text-[12px] text-fg-faint">{formatDateTime(x.last_seen_at)}</span>
               </div>
             ))}
           </div>
@@ -281,11 +281,11 @@ export default function Settings() {
                 }>
                   {EVENT_LABEL[l.event] || l.event}
                 </Badge>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] text-fg-mute">
+                <span className="min-w-0 flex-1 truncate text-[12px] text-fg-mute">
                   {shortUa(l.user_agent)}
                 </span>
-                <span className="shrink-0 font-mono text-[11px] text-fg-faint">{l.ip || '—'}</span>
-                <span className="shrink-0 text-[11px] text-fg-faint">{formatDateTime(l.at)}</span>
+                <span className="shrink-0 font-mono text-[12px] text-fg-faint">{l.ip || '—'}</span>
+                <span className="shrink-0 text-[12px] text-fg-faint">{formatDateTime(l.at)}</span>
               </div>
             ))}
           </div>

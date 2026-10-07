@@ -93,7 +93,7 @@ export default function Stats() {
                 <div key={r.kid} className="rounded-lg border border-hairline bg-veil/3 p-3">
                   <div className="flex items-start gap-2.5">
                     <span className={cn(
-                      'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold',
+                      'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold',
                       i === 0 ? 'bg-bad/20 text-bad' : 'bg-veil/10 text-fg-mute',
                     )}>
                       {i + 1}
@@ -103,22 +103,22 @@ export default function Stats() {
                         <AppLink to={`/learn/${r.kid}`} className="text-[13.5px] font-medium text-fg hover:text-cyan">
                           {r.title}
                         </AppLink>
-                        <span className="text-[11.5px] font-semibold tabular-nums"
+                        <span className="text-[12px] font-semibold tabular-nums"
                           style={{ color: masteryColor(r.mastery) }}>
                           {Math.round(r.mastery * 100)}% · {masteryLabel(r.mastery)}
                         </span>
-                        <span className="text-[11px] text-fg-faint">{r.attempts} 题样本</span>
+                        <span className="text-[12px] text-fg-faint">{r.attempts} 题样本</span>
                       </div>
                       <p className="mt-0.5 text-[12px] text-fg-mute">{r.reason}</p>
                       {r.symptoms?.length > 0 && (
                         <div className="mt-1.5">
-                          <span className="text-[10.5px] text-fg-faint">它拖累的知识点：</span>
+                          <span className="text-[12px] text-fg-faint">它拖累的知识点：</span>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {r.symptoms.slice(0, 6).map((sym: any) => (
                               <AppLink
                                 key={sym.kid}
                                 to={`/learn/${sym.kid}`}
-                                className="rounded border border-hairline px-1.5 py-0.5 text-[11px] text-fg-soft hover:border-cyan/40 hover:text-cyan"
+                                className="rounded border border-hairline px-1.5 py-0.5 text-[12px] text-fg-soft hover:border-cyan/40 hover:text-cyan"
                               >
                                 {sym.title} · {Math.round(sym.mastery * 100)}%
                               </AppLink>
@@ -155,7 +155,7 @@ export default function Stats() {
                 <AppLink
                   to={`/learn/${p.kid}`}
                   className={cn(
-                    'rounded-lg border px-2 py-1 text-[11.5px] transition-colors',
+                    'rounded-lg border px-2 py-1 text-[12px] transition-colors',
                     p.isGap
                       ? 'border-bad/40 bg-bad-soft text-bad hover:border-bad/60'
                       : 'border-hairline bg-veil/3 text-fg-soft hover:border-cyan/40 hover:text-cyan',
@@ -168,7 +168,7 @@ export default function Stats() {
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[11.5px] text-fg-faint">
+          <p className="mt-2 text-[12px] text-fg-faint">
             红色的是薄弱点，其余是它的前置（已掌握，作为复习节点）
           </p>
         </Card>
@@ -229,7 +229,7 @@ export default function Stats() {
                   <div key={c.id} className="flex items-center gap-3">
                     <span className="w-24 shrink-0 truncate text-[12.5px] text-fg-soft">{c.name}</span>
                     <div className="flex-1"><Progress value={c.accuracy / 100} /></div>
-                    <span className="w-20 shrink-0 text-right text-[11.5px] tabular-nums text-fg-mute">
+                    <span className="w-20 shrink-0 text-right text-[12px] tabular-nums text-fg-mute">
                       {c.accuracy}% · {c.n} 题
                     </span>
                   </div>
@@ -253,14 +253,14 @@ export default function Stats() {
                   <AppLink to={`/learn/${n.kid}`} className="min-w-0 flex-1 truncate text-[13px] text-fg hover:text-cyan">
                     {n.title}
                   </AppLink>
-                  <span className="shrink-0 text-[11px] text-fg-faint">{n.chapterName}</span>
+                  <span className="shrink-0 text-[12px] text-fg-faint">{n.chapterName}</span>
                   <div className="w-24 shrink-0"><Progress value={n.mastery / 100} tone="bad" /></div>
                   <span className="w-12 shrink-0 text-right text-[12px] font-semibold tabular-nums"
                     style={{ color: masteryColor(n.mastery / 100) }}>
                     {n.mastery}%
                   </span>
                   <AppLink to={`/practice?kid=${n.kid}`}
-                    className="shrink-0 text-[11.5px] text-cyan hover:underline">
+                    className="shrink-0 text-[12px] text-cyan hover:underline">
                     练
                   </AppLink>
                 </div>
@@ -283,7 +283,7 @@ export default function Stats() {
                     {String(r.title || r.refId).slice(0, 60)}
                   </span>
                   <Badge tone="neutral">{r.kind}</Badge>
-                  <span className="shrink-0 text-[10.5px] text-fg-faint">{formatDate(r.ts)}</span>
+                  <span className="shrink-0 text-[12px] text-fg-faint">{formatDate(r.ts)}</span>
                 </div>
               ))}
             </div>

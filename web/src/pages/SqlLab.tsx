@@ -124,7 +124,7 @@ export default function SqlLab() {
             </span>
             <div>
               <div className="text-[14.5px] font-semibold text-fg">SQL 实训场</div>
-              <div className="text-[11px] text-fg-faint">
+              <div className="text-[12px] text-fg-faint">
                 写查询、立刻执行、看真实结果。数据是你的私有副本，随便改。
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function SqlLab() {
                 <Table2 size={13} className="text-cyan" />
                 表结构
               </div>
-              <p className="mt-0.5 text-[10.5px] text-fg-faint">
+              <p className="mt-0.5 text-[12px] text-fg-faint">
                 点表名或列名可以插入到编辑器
               </p>
             </div>
@@ -210,7 +210,7 @@ export default function SqlLab() {
               {res.results?.map((r, i) => (
                 <div key={i} className="space-y-1.5">
                   {res.results.length > 1 && (
-                    <div className="flex items-center gap-2 text-[11px] text-fg-faint">
+                    <div className="flex items-center gap-2 text-[12px] text-fg-faint">
                       <span className="rounded bg-veil/8 px-1.5 py-0.5 font-mono">第 {i + 1} 条</span>
                       <code className="truncate font-mono">{r.sql}</code>
                     </div>
@@ -265,19 +265,19 @@ export default function SqlLab() {
                   r.ok ? 'border-hairline bg-veil/2' : 'border-bad/25 bg-bad-soft',
                 )}
               >
-                <div className="flex items-center gap-2 text-[10.5px] text-fg-faint">
+                <div className="flex items-center gap-2 text-[12px] text-fg-faint">
                   {r.ok ? <Clock size={11} /> : <AlertTriangle size={11} className="text-bad" />}
                   <span>{formatDate(r.ts)}</span>
                   <span className="text-fg-mute">{r.datasetId}</span>
                   {r.ok && <span>{r.ms} ms · {r.rowCount} 行</span>}
                 </div>
-                <pre className="mt-1.5 max-h-24 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-fg-soft">
+                <pre className="mt-1.5 max-h-24 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] text-fg-soft">
                   {r.sql}
                 </pre>
-                {r.error && <div className="mt-1 text-[11.5px] text-bad">{r.error}</div>}
+                {r.error && <div className="mt-1 text-[12px] text-bad">{r.error}</div>}
                 <button
                   onClick={() => { setSql(r.sql); setHistoryOpen(false); }}
-                  className="mt-1.5 text-[11.5px] text-cyan hover:underline"
+                  className="mt-1.5 text-[12px] text-cyan hover:underline"
                 >
                   放回编辑器
                 </button>

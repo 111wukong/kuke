@@ -146,9 +146,9 @@ export default function Dashboard() {
                 <div className="text-center leading-none">
                   <div className="text-[20px] font-semibold tabular-nums text-fg">
                     {Math.round(goalProgress * 100)}
-                    <span className="text-[11px] text-fg-mute">%</span>
+                    <span className="text-[12px] text-fg-mute">%</span>
                   </div>
-                  <div className="mt-0.5 text-[9.5px] text-fg-faint">今日目标</div>
+                  <div className="mt-0.5 text-[12px] text-fg-faint">今日目标</div>
                 </div>
               </div>
 
@@ -157,11 +157,11 @@ export default function Dashboard() {
                   <span className="grad-text text-[30px] font-semibold leading-none tabular-nums">
                     <CountUp value={s.level} />
                   </span>
-                  <span className="text-[11px] text-fg-mute">级</span>
+                  <span className="text-[12px] text-fg-mute">级</span>
                 </div>
-                <div className="text-[11.5px] text-fg-soft">{s.levelTitle}</div>
+                <div className="text-[12px] text-fg-soft">{s.levelTitle}</div>
                 {s.streak > 0 && (
-                  <div className="flex items-center gap-1 text-[11.5px] font-medium text-amber">
+                  <div className="flex items-center gap-1 text-[12px] font-medium text-amber">
                     <Flame size={12} />
                     连续 {s.streak} 天
                   </div>
@@ -289,7 +289,7 @@ export default function Dashboard() {
                     >
                       <div className="flex items-start gap-2.5">
                         <span className={cn(
-                          'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold',
+                          'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold',
                           i === 0 ? 'bg-bad/20 text-bad' : 'bg-veil/10 text-fg-mute',
                         )}>
                           {i + 1}
@@ -300,7 +300,7 @@ export default function Dashboard() {
                               {r.title}
                             </AppLink>
                             <span
-                              className="text-[11.5px] font-semibold tabular-nums"
+                              className="text-[12px] font-semibold tabular-nums"
                               style={{ color: masteryColor(r.mastery) }}
                             >
                               掌握度 {Math.round(r.mastery * 100)}%
@@ -355,7 +355,7 @@ export default function Dashboard() {
                 >
                   <x.icon size={16} className="text-cyan" />
                   <div className="text-[13px] font-medium text-fg">{x.label}</div>
-                  <div className="text-[11px] text-fg-mute">{x.desc}</div>
+                  <div className="text-[12px] text-fg-mute">{x.desc}</div>
                   <ArrowRight size={13} className="mt-0.5 text-fg-faint transition-transform group-hover:translate-x-0.5 group-hover:text-cyan" />
                 </AppLink>
               ))}
@@ -368,7 +368,7 @@ export default function Dashboard() {
                 <Zap size={20} className="text-amber" />
                 <div>
                   <div className="text-[14px] font-semibold text-fg">连对 {s.combo} 题</div>
-                  <div className="text-[11.5px] text-fg-mute">
+                  <div className="text-[12px] text-fg-mute">
                     最高连击 {s.bestCombo} · 连对越多 XP 加成越高
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="pt-1 text-center text-[11px] text-fg-faint">
+      <div className="pt-1 text-center text-[12px] text-fg-faint">
         数据更新于刚刚 ·{' '}
         <button onClick={() => { reload(); refreshSnapshot(); }} className="text-cyan hover:underline">
           刷新

@@ -5,7 +5,7 @@
  * 而这门课里 NULL 语义是重点，混淆这两者会直接导致做错题。
  * 所以 NULL 用斜体灰色字显式写出来，空字符串则显示成一对引号。
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Table2, Key, Link2, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { cn, copyText } from '@/lib/utils';
 import { Badge } from '@/components/ui/Primitives';
@@ -48,6 +48,34 @@ export function Cell({ v }: { v: any }) {
 export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?: number }) {
   const [copied, setCopied] = useState(false);
 
+  /* ★ 哪几列该右对齐。
+   *
+   * 按**整列**判断而不是逐格：同一列里一半左一半右，比全部左对齐更乱 ——
+   * 右对齐的全部意义就是让个位落在同一条竖线上。
+   *
+   * 判定规则：这一列里出现过数字、且没出现过非数字（NULL 不算数，
+   * 它哪一列都可能出现）。这样 `id` / `COUNT(*)` / `AVG(score)` 会自动
+   * 右对齐，而 `name` / `created_at` 保持左对齐 —— 不用维护一张
+   * 「哪些列是数字」的表，那是必然会漂移的东西。
+   *
+   * ★ 必须对 columns / rows 做空值兜底，而且**不能**靠下面的 `if (rs.error)`
+   *   提前返回绕开 —— hooks 不允许写在条件分支之后，所以这个 useMemo
+   *   一定会执行，包括「SQL 执行失败」那条路径。而失败的结果集只有
+   *   { sql, error }，没有 columns / rows（类型上声明为必需，运行时不是）。
+   *   漏了兜底就是 TypeError: Cannot read properties of undefined
+   *   —— 页面白屏，而且只在「故意写错 SQL」时才复现。
+   *   这是 CI 的浏览器冒烟抓出来的，本地手测成功路径不会碰到。 */
+  const numericCols = useMemo(() => (rs.columns || []).map((_, ci) => {
+    let sawNumber = false;
+    for (const row of rs.rows || []) {
+      const v = row[ci];
+      if (v === null || v === undefined) continue;
+      if (typeof v !== 'number') return false;
+      sawNumber = true;
+    }
+    return sawNumber;
+  }), [rs.columns, rs.rows]);
+
   if (rs.error) {
     return (
       <div className={cn(
@@ -85,14 +113,14 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
   return (
     <div className="overflow-hidden rounded-lg border border-hairline">
       <div className="flex items-center justify-between gap-2 border-b border-hairline bg-veil/4 px-2.5 py-1.5">
-        <div className="flex items-center gap-2 text-[11.5px] text-fg-mute">
+        <div className="flex items-center gap-2 text-[12px] text-fg-mute">
           <Table2 size={13} />
           <span>{rs.rows.length} 行 · {rs.columns.length} 列</span>
           {rs.truncated && <Badge tone="warn">已截断显示</Badge>}
         </div>
         <button
           onClick={copyAsTsv}
-          className="inline-flex items-center gap-1 rounded border border-hairline px-1.5 py-0.5 text-[11px] text-fg-mute hover:bg-veil/6 hover:text-fg"
+          className="inline-flex items-center gap-1 rounded border border-hairline px-1.5 py-0.5 text-[12px] text-fg-mute hover:bg-veil/6 hover:text-fg"
           title="复制为 TSV（可直接粘进 Excel）"
         >
           {copied ? <Check size={11} /> : <Copy size={11} />}
@@ -104,13 +132,16 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="border-b border-r border-hairline bg-ink-900/90 px-2 py-1.5 text-right text-[10.5px] font-medium text-fg-faint backdrop-blur">
+              <th className="border-b border-r border-hairline bg-ink-900/90 px-2 py-1.5 text-right text-[12px] font-medium text-fg-faint backdrop-blur">
                 #
               </th>
               {rs.columns.map((c, i) => (
                 <th
                   key={i}
-                  className="whitespace-nowrap border-b border-hairline bg-ink-900/90 px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-cyan backdrop-blur"
+                  className={cn(
+                    'whitespace-nowrap border-b border-hairline bg-ink-900/90 px-2.5 py-1.5 text-[12px] font-semibold text-cyan backdrop-blur',
+                    numericCols[i] ? 'text-right' : 'text-left',
+                  )}
                 >
                   {c}
                 </th>
@@ -120,11 +151,17 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
           <tbody>
             {rs.rows.map((row, ri) => (
               <tr key={ri} className="odd:bg-veil/2 hover:bg-veil/6">
-                <td className="border-b border-r border-hairline px-2 py-1 text-right font-mono text-[10.5px] text-fg-faint">
+                <td className="border-b border-r border-hairline px-2 py-1 text-right font-mono text-[12px] text-fg-faint">
                   {ri + 1}
                 </td>
                 {row.map((c, ci) => (
-                  <td key={ci} className="border-b border-hairline px-2.5 py-1 align-top">
+                  <td
+                    key={ci}
+                    className={cn(
+                      'border-b border-hairline px-2.5 py-1 align-top',
+                      numericCols[ci] && 'text-right',
+                    )}
+                  >
                     <Cell v={c} />
                   </td>
                 ))}
@@ -134,7 +171,7 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
               <tr>
                 <td colSpan={rs.columns.length + 1} className="px-3 py-5 text-center text-[12.5px] text-fg-mute">
                   查询成功，但没有返回任何行。
-                  <div className="mt-0.5 text-[11.5px] text-fg-faint">
+                  <div className="mt-0.5 text-[12px] text-fg-faint">
                     想想是不是 WHERE 条件太严了，或者关联字段写错了。
                   </div>
                 </td>
@@ -152,7 +189,7 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
 export function RunMeta({ ms, warnCount }: { ms: number; warnCount?: number }) {
   const tone = ms < 50 ? 'text-ok' : ms < 300 ? 'text-fg-mute' : 'text-warn';
   return (
-    <div className="flex items-center gap-3 text-[11.5px] text-fg-mute">
+    <div className="flex items-center gap-3 text-[12px] text-fg-mute">
       <span>耗时 <b className={tone}>{ms} ms</b></span>
       {!!warnCount && <span className="text-warn">{warnCount} 条提醒</span>}
     </div>
@@ -187,8 +224,11 @@ export function SchemaBrowser({
               >
                 {t.name}
               </span>
-              <span className="truncate text-[11px] text-fg-mute">{t.comment}</span>
-              <span className="ml-auto shrink-0 text-[10.5px] tabular-nums text-fg-faint">{t.rows} 行</span>
+              {/* 注释经常比剩余宽度长（「选课成绩（学生与课程的多对多关系）」），
+                  截断不可避免 —— 但要给 title，否则鼠标移上去也看不到全文，
+                  等于这条注释白写了。 */}
+              <span className="truncate text-[12px] text-fg-mute" title={t.comment}>{t.comment}</span>
+              <span className="ml-auto shrink-0 text-[12px] tabular-nums text-fg-faint">{t.rows} 行</span>
             </button>
 
             {isOpen && (
@@ -208,14 +248,14 @@ export function SchemaBrowser({
                       <span className="w-[10px] shrink-0" />
                     )}
                     <button
-                      className="shrink-0 font-mono text-[11.5px] text-fg hover:text-cyan"
+                      className="shrink-0 font-mono text-[12px] text-fg hover:text-cyan"
                       onClick={() => onInsert?.(c.name)}
                       title={onInsert ? '点击插入列名' : undefined}
                     >
                       {c.name}
                     </button>
-                    <span className="shrink-0 text-[10.5px] uppercase text-fg-faint">{c.type}</span>
-                    {c.comment && <span className="truncate text-[11px] text-fg-mute">{c.comment}</span>}
+                    <span className="shrink-0 text-[12px] uppercase text-fg-faint">{c.type}</span>
+                    {c.comment && <span className="truncate text-[12px] text-fg-mute" title={c.comment}>{c.comment}</span>}
                   </div>
                 ))}
               </div>

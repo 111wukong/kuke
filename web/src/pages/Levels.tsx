@@ -111,7 +111,7 @@ export function Levels() {
                     : <Circle size={15} className="shrink-0 text-fg-faint" />}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10.5px] font-mono text-fg-faint">#{l.seq}</span>
+                      <span className="text-[12px] font-mono text-fg-faint">#{l.seq}</span>
                       <span className="truncate text-[12.5px] font-medium text-fg group-hover:text-cyan">
                         {l.title}
                       </span>
@@ -121,9 +121,9 @@ export function Levels() {
                         同一行网格里卡片高度参差，整片列表看起来是歪的。 */}
                     <div className="mt-1 flex min-h-[15px] items-center gap-2">
                       <DifficultyDots value={l.difficulty} />
-                      {l.orderMatters && <span className="text-[10px] text-warn">要求行序</span>}
+                      {l.orderMatters && <span className="text-[12px] text-warn">要求行序</span>}
                       {l.attempts > 0 && !l.passed && (
-                        <span className="text-[10px] text-fg-faint">试过 {l.attempts} 次</span>
+                        <span className="text-[12px] text-fg-faint">试过 {l.attempts} 次</span>
                       )}
                     </div>
                   </div>
@@ -275,7 +275,7 @@ export function LevelDetail() {
           {/* ---------- 题面 ---------- */}
           <Card>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] text-fg-faint">#{L.seq}</span>
+              <span className="font-mono text-[12px] text-fg-faint">#{L.seq}</span>
               <h1 className="text-[17px] font-semibold text-fg">{L.title}</h1>
               <DifficultyDots value={L.difficulty} />
               {L.orderMatters && <Badge tone="warn">要求行序</Badge>}
@@ -307,7 +307,7 @@ export function LevelDetail() {
             <Button variant="accent" onClick={submit} loading={submitting}>
               <Play size={14} />提交答案
             </Button>
-            <span className="text-[11.5px] text-fg-faint">
+            <span className="text-[12px] text-fg-faint">
               提交后会跑参考答案和你的答案，比对结果集
             </span>
           </div>
@@ -391,7 +391,7 @@ export function LevelDetail() {
           <Card padded={false} className="overflow-hidden">
             <div className="border-b border-hairline px-3.5 py-2.5">
               <div className="text-[12.5px] font-medium text-fg">{L.datasetTitle}</div>
-              <p className="mt-0.5 text-[10.5px] text-fg-faint">点表名或列名插入到编辑器</p>
+              <p className="mt-0.5 text-[12px] text-fg-faint">点表名或列名插入到编辑器</p>
             </div>
             <div className="max-h-[420px] overflow-y-auto p-2.5">
               <SchemaBrowser tables={tables} onInsert={(t) => setSql((v) => `${v}${t}`)} />

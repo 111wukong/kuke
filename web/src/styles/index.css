@@ -576,6 +576,79 @@ html[data-theme="paper"] {
   color-scheme: light;
 }
 
+/* ---- 素白 Modern SaaS ----
+ * 中性色板 + 单一强调色，克制、留白、专业。
+ *
+ * ── 这套的取舍（和别的主题不一样的地方）─────────────────────────
+ * 1. **底是暖白，不是纯白**。纯白（#fff）在大面积铺开时会显得冷硬，
+ *    像没上过色的画布；暖白（#faf9f7，R>G>B 依次递减）自带一点纸感，
+ *    而卡片用纯白 —— 于是「抬起的面」靠明度差自己成立，不需要靠阴影。
+ * 2. **只留一个强调色**（深靛蓝 #1d4ed8）。其余语义色（成功/警告/危险）
+ *    饱和度都压过一档：它们只在需要区分状态时出现，不该抢强调色的位置。
+ * 3. **光晕几乎关掉**。halo 的透明度压到 0.05 以下 —— 留白本身就是这套
+ *    主题的装饰，再叠两团彩色雾就变成"又一套 AI 落地页"了。
+ * 4. 强调色选深靛蓝而不是常见的青/紫：青绿已被山水占用，
+ *    而靛蓝在浅底上的对比度（6.4:1）足够高，做正文链接也读得清。 */
+html[data-theme="modern-saas"] {
+  --color-ink-1000: #faf9f7;
+  --color-ink-950: #f5f4f1;
+  --color-ink-900: #eeece8;
+  --color-ink-850: #e6e3de;
+  --color-ink-800: #ffffff;
+  --color-ink-700: #f2f1ee;
+  --color-ink-600: #dedbd5;
+  --color-veil: #000000;
+  --color-on-accent: #ffffff;
+  --color-glass-1: rgba(0, 0, 0, 0.020);
+  --color-glass-2: rgba(0, 0, 0, 0.035);
+  --color-glass-3: rgba(0, 0, 0, 0.055);
+  --color-hairline: rgba(0, 0, 0, 0.10);
+  --color-hairline-strong: rgba(0, 0, 0, 0.18);
+  /* 主强调：深靛蓝。6.4:1 on #faf9f7 */
+  --color-cyan: #1d4ed8;
+  --color-blue: #4f46e5;
+  --color-violet: #7c3aed;
+  --color-magenta: #be185d;
+  --color-emerald: #047857;
+  --color-amber: #b45309;
+  --color-rose: #be123c;
+  --color-ok: #047857;
+  --color-ok-soft: rgba(4, 120, 87, 0.12);
+  --color-bad: #be123c;
+  --color-bad-soft: rgba(190, 18, 60, 0.10);
+  --color-warn: #b45309;
+  --color-warn-soft: rgba(180, 83, 9, 0.12);
+  /* 四级文字。fg-faint 压到 #6f6963（5.1:1）—— 它承载的是
+   * 「未入班」「最后活跃」这类小字，恰恰最需要对比度。 */
+  --color-fg: #1a1917;
+  --color-fg-soft: #413d39;
+  --color-fg-mute: #56514b;
+  --color-fg-faint: #6f6963;
+  --glass-sheet: rgba(255, 255, 255, 0.82);
+  --glass-sheet-strong: rgba(255, 255, 255, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.90);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(0, 0, 0, 0.05);
+  --glass-shadow: rgba(26, 25, 23, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.018);
+  /* 光晕压到几乎看不见 —— 见上面第 3 条 */
+  --halo-1: rgba(29, 78, 216, 0.045);
+  --halo-2: rgba(120, 113, 108, 0.035);
+  --mesh: rgba(26, 25, 23, 0.04);
+  --mesh-size: 32px;
+  --sel-bg: rgba(29, 78, 216, 0.16);
+  --code-bg: rgba(0, 0, 0, 0.045);
+  --code-fg: #1d4ed8;
+  --skeleton: rgba(0, 0, 0, 0.05);
+  --sql-keyword: #7c3aed;
+  --sql-string: #047857;
+  --sql-number: #b45309;
+  --sql-comment: #a8a29e;
+  --sql-func: #1d4ed8;
+  --sql-op: #be185d;
+  color-scheme: light;
+}
+
 /* ---- 薄荷 冷白 + 青绿。比宣纸更清爽，适合夏天和强光环境 ---- */
 html[data-theme="mint"] {
   --color-ink-1000: #f2f8f6;
@@ -1213,6 +1286,7 @@ html[data-theme="mint"],
 html[data-theme="solarized"],
 html[data-theme="ink-dawn"],
 html[data-theme="ruoyi"],
+html[data-theme="modern-saas"],
 html[data-theme="shanshui"] {
   /* 亮色主题的"面"就是白纸本身 —— 各亮色主题的 ink-800 都是白/近白，
    * 直接拿来当卡片面即可（暗色那边不能这么干，见 :root 的说明）。 */
