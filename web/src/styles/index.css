@@ -1007,14 +1007,17 @@ html[data-theme="shanshui"] {
   --color-hairline: rgba(90, 62, 30, 0.16);
   --color-hairline-strong: rgba(90, 62, 30, 0.30);
 
-  /* ---- 强调色光谱（古风理解 · 山水偏鲜艳）---- */
-  --color-cyan: #3a6b5b;         /* 青绿 —— 主调，对应「青绿山水」 */
+  /* ---- 强调色光谱（仙侠水墨：青绿灵气 + 朱砂印章 + 淡金发光）---- */
+  --color-cyan: #2f6b5e;         /* 仙青 —— 主调，灵气 / 链接 / 激活 */
   --color-blue: #2f5578;         /* 靛蓝 —— 链接 */
   --color-violet: #6b4a6b;       /* 紫檀 —— 信任 / 分类 */
   --color-magenta: #8a2f52;      /* 绛紫 —— 次强调 */
   --color-emerald: #436134;      /* 苔绿 —— 成功 */
   --color-amber: #7d5a0e;        /* 蜡黄 —— 警告 */
   --color-rose: #9c2619;         /* 朱砂 —— 印章 / 强调 */
+  /* 淡金发光线条（仙侠专属）：只用于装饰描边/发光，不用作正文文字 */
+  --color-gold: #b8872c;
+  --color-gold-bright: #d9b45b;
   /* 语义 ok/bad/warn 与强调色同源，避免页面里同一类状态出现两种绿 */
   --color-ok: #436134;
   --color-ok-soft: rgba(67, 97, 52, 0.14);
@@ -1067,8 +1070,8 @@ html[data-theme="shanshui"] {
   color-scheme: light;
 
   /* ---- ★ 这一套的"招牌"：横幅背景图 ----
-   * 沿用 body::before 的 z-index 槽位（-30），但内容换成"远山 + 远帆"。
-   * AI 生成一张 1920×420 的横幅 JPEG 放在 /img/shanshui-banner.jpg，
+   * 沿用 body::before 的 z-index 槽位（-30），但内容换成"云海仙岛、飞瀑远山"。
+   * AI 生成一张 1408×480 的横幅 PNG 放在 /img/xianxia-banner.png，
    * 这里用 background-image 引用 + mask 把底部淡出 —— 让横幅"沉入"
    * 米黄底色，不与文字争夺注意力。
    *
@@ -1076,10 +1079,10 @@ html[data-theme="shanshui"] {
    *   body::before 默认是「两团径向光晕」（halo-1/halo-2），其它亮色
    *   主题不挂横幅。我们改用 ::before 的同时把原来的 halo 屏蔽掉，
    *   用 detail-image / detail-fill 方式让横幅 + 光晕共存。
-   *   简化起见：山水主题不画 halo，只画横幅 + 底色（已够）。
+   *   简化起见：仙侠主题不画 halo，只画横幅 + 底色（已够）。
    *   等价做法 = 在 body::before 之前先注入一张横幅，再覆盖一层米黄
    *   蒙版。 */
-  --shanshui-banner: url("/img/shanshui-banner.jpg");
+  --shanshui-banner: url("/img/xianxia-banner.png");
 }
 
 /* ---- 山水的横幅背景层 ----
@@ -1136,33 +1139,41 @@ html[data-theme="shanshui"] .app-main::before {
   z-index: -1;  /* 在主内容下、但比横幅（body::after, z=-29）上 */
 }
 
-/* ---- 山水的「库课」印章 ----
- * Brand 区域里 32×32 的图标方块改成朱砂印章的视觉：
- *   · 实心 #9c2619（朱砂）方块
- *   · 楷体「库」字反白居中（与截图里印章「登录」同构）
- *   · 圆角从 8px（通用）→ 4px（印章比卡片方），更有"印"感
+/* ---- 仙侠的「库课」印章 ----
+ * Brand 区域里 32×32 的图标方块改成朱砂印章：
+ *   · 背景直接引用生成的朱砂「库」字双龙印章图（/img/xianxia-seal.png）
+ *   · 图片自带「库」字 —— 组件里的 SVG 文字改为隐藏，避免叠字
+ *   · 外围叠淡金发光描边，呼应「淡金发光线条」的仙侠语汇
  * 用 .app-brand-mark 钩子（AppShell 配合改）。 */
 html[data-theme="shanshui"] .app-brand-mark {
-  background: #9c2619;
+  width: 34px;
+  height: 34px;
+  background: #9c2619 url("/img/xianxia-seal.png") center / cover no-repeat;
   border-radius: 4px;
   box-shadow:
-    0 0 0 1px rgba(156, 38, 25, 0.35) inset,
-    0 1px 0 rgba(255, 255, 255, 0.18) inset;
+    inset 0 0 0 1px rgba(156, 38, 25, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 10px rgba(217, 180, 91, 0.30);
 }
-html[data-theme="shanshui"] .app-brand-mark svg { color: #f4ecd5; }
-/* 切图标：默认主题显示 lucide 图标，shanshui 主题显示「库」字印章 */
+/* 印章图自带「库」字，组件里的 SVG 文字就不再叠印 */
+html[data-theme="shanshui"] .app-brand-mark svg { display: none; }
+/* 切图标：默认主题显示 lucide 图标，shanshui 主题显示朱砂印章图 */
 html[data-theme="shanshui"] .app-brand-icon-default { display: none; }
-html[data-theme="shanshui"] .app-brand-icon-shanshui { display: block; }
+html[data-theme="shanshui"] .app-brand-icon-shanshui { display: none; }
 
-/* ---- 山水的「卷轴轴头」装饰 ----
- * 侧栏顶部 Brand 上方加一条横向的卷轴装饰 —— 一根暖棕色横线 +
- * 两端的卷轴轴头（用伪元素画）。这是「国风题材 + 数据教学」
- * 最不喧宾夺主的装饰。 */
+/* ---- 仙侠的「卷轴轴头」装饰 ----
+ * 侧栏顶部 Brand 上方加一条横向的卷轴装饰 —— 一根淡金横线 +
+ * 两端的卷轴轴头（用伪元素画）。这是「仙侠题材 + 数据教学」
+ * 最不喧宾夺主的装饰，线条颜色从旧暖棕调成淡金（呼应发光线条）。 */
 html[data-theme="shanshui"] .app-sidebar .app-sidebar-scrollcap {
   display: block;
 }
+html[data-theme="shanshui"] .app-sidebar .app-sidebar-scrollcap svg {
+  color: #b8872c;
+  filter: drop-shadow(0 0 3px rgba(217, 180, 91, 0.55));
+}
 html[data-theme="shanshui"] .app-sidebar {
-  border-right-color: rgba(90, 62, 30, 0.20);
+  border-right-color: rgba(184, 135, 44, 0.22);
 }
 
 /* ---- 山水的国风侧栏图标 ----
@@ -1177,6 +1188,152 @@ html[data-theme="shanshui"] .app-sidebar {
  *   这里只做兜底——如果以后有人把 strokeWidth 改掉，CSS 这层会兜住。 */
 html[data-theme="shanshui"] .nav-item svg {
   stroke-width: 1.6;
+}
+
+/* ---- 仙侠的「屏风纸纹」卡片 ----
+ * 所有 .panel（卡片 / 面板 / 区块）叠一层极淡的宣纸纹理图，
+ * 让整站卡片都有"宣纸卷轴 / 屏风"的质感。透明度压到 6%：
+ * 纹理是氛围不是主角 —— 数据表格和代码块不能被水墨图案盖住。
+ * ::before 被内容自然压在下层，不需要额外 z-index。 */
+html[data-theme="shanshui"] .panel {
+  isolation: isolate;   /* 给下面 ::before 的 z-index:-1 提供层叠上下文 */
+}
+html[data-theme="shanshui"] .panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("/img/xianxia-texture.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: -1;          /* 垫到卡片内容之下，不干扰表格/代码可读性 */
+}
+
+/* ---- 仙侠的「朱砂印章」按钮 ----
+ * 主按钮从青绿实色改成朱砂印章：朱砂底 + 淡金描边 + 淡金柔光。
+ * 印章感 = 方直的小圆角 + 醒目的实色 + 一圈金线（像印泥压出的边缘）。
+ * 保留 hover 变亮与按下位移，行为语义不变，只换皮。 */
+html[data-theme="shanshui"] .btn-accent {
+  background: #9c2619;                              /* 朱砂印泥 */
+  color: #f4ecd5;                                   /* 宣纸反白 */
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 180, 91, 0.45),       /* 内圈淡金线 */
+    0 0 12px rgba(217, 180, 91, 0.28),              /* 淡金柔光 */
+    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+html[data-theme="shanshui"] .btn-accent:hover {
+  background: #b02d1c;
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 180, 91, 0.75),
+    0 0 18px rgba(217, 180, 91, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.15) inset;
+}
+html[data-theme="shanshui"] .btn-accent:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 180, 91, 0.45),
+    0 0 0 3px rgba(217, 180, 91, 0.35);
+}
+
+/* ---- 仙侠的「屏风页横幅」（AppShell 每页一张，见 XianxiaBanner）----
+ * 每个页面顶部一条屏风画：右侧该页专属图，左侧 46% 宣纸渐隐承接底色，
+ * 底部一道淡金发光细线，左侧叠朱砂小印章 + 仙侠注脚。
+ * 只出现在 shanshui 主题（组件本身也做了 theme 判断，双保险）。 */
+html[data-theme="shanshui"] .xianxia-banner {
+  background:
+    linear-gradient(100deg,
+      var(--color-ink-800) 0%,
+      var(--color-ink-800) 34%,
+      color-mix(in srgb, var(--color-ink-800) 55%, transparent) 62%,
+      transparent 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(184, 135, 44, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 18px -8px rgba(43, 24, 16, 0.18);
+}
+html[data-theme="shanshui"] .xianxia-banner-art {
+  background-size: cover;
+  background-position: center 42%;
+  mask-image: linear-gradient(to right, transparent 0%, #000 38%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 38%);
+  opacity: 0.92;
+}
+/* 左缘到正文区的柔化 —— 让图淡进卡片，而不是硬切 */
+html[data-theme="shanshui"] .xianxia-banner-sheen {
+  background: linear-gradient(to right,
+    var(--color-ink-800) 0%,
+    color-mix(in srgb, var(--color-ink-800) 72%, transparent) 100%);
+}
+html[data-theme="shanshui"] .xianxia-banner-goldline {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(217, 180, 91, 0.85) 20%,
+    rgba(217, 180, 91, 0.85) 80%,
+    transparent);
+  box-shadow: 0 0 6px rgba(217, 180, 91, 0.45);
+}
+html[data-theme="shanshui"] .xianxia-banner-seal {
+  background: #9c2619;
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 180, 91, 0.55),
+    0 0 10px rgba(217, 180, 91, 0.30);
+}
+
+/* ---- 仙侠的「登录页仙门图」背景（Auth 左栏）----
+ * 朱色仙门山门图叠在品牌区最底层：右缘渐隐进纸底（呼应侧栏朝向），
+ * 透明度 18% —— 大标题要压在图上，图只负责氛围不抢字。
+ * 组件只在该主题渲染该层，这里再兜一层 display 默认。 */
+html[data-theme="shanshui"] .auth-hero-art {
+  background-image: url("/img/xianxia-auth.png");
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.18;
+  mask-image: linear-gradient(to right, #000 0%, #000 62%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 62%, transparent 100%);
+}
+
+/* ---- 仙侠的「侧栏卷轴」背景 ----
+ * 侧栏叠一张御剑凌霄古松仙鹤图（xianxia-scroll.png 竖版）：
+ * 只在右缘露出画的边缘，向左渐隐进墨色侧栏 —— 像卷轴只展开一角。
+ * 透明度压到 22%：装饰是氛围不是主角，导航可读性第一。
+ * （AppShell 里 .app-sidebar-art 就是这个 absolute 层，随主题显隐。） */
+html[data-theme="shanshui"] .app-sidebar-art {
+  display: block;
+  background-image: url("/img/xianxia-scroll.png");
+  background-size: cover;
+  background-position: center top;
+  opacity: 0.22;
+  mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
+}
+
+/* ---- 仙侠的「导航激活态」：仙青 + 淡金发光 ----
+ * 激活指示条从纯青改成淡金发光 —— 呼应「淡金发光线条」；
+ * 激活文字保持仙青（对比度不变），但叠一层极淡的淡金微光，
+ * 让"当前在哪一页"在深色的侧栏卷轴背景上依然一眼可见。 */
+html[data-theme="shanshui"] .nav-active-bar::before {
+  background: linear-gradient(180deg, #d9b45b, #b8872c);
+  box-shadow: 0 0 6px rgba(217, 180, 91, 0.65);
+  width: 3px;
+  height: 18px;
+}
+html[data-theme="shanshui"] .nav-item.is-active {
+  text-shadow: 0 0 10px rgba(217, 180, 91, 0.35);
+}
+html[data-theme="shanshui"] .nav-item.is-active svg {
+  filter: drop-shadow(0 0 3px rgba(217, 180, 91, 0.45));
+}
+
+/* ---- 仙侠的「hero 区块」：淡金发光左侧条 + 顶部细线 ----
+html[data-theme="shanshui"] .card-grad {
+  border-left-color: #b8872c;
+  border-left-width: 3px;
+  box-shadow:
+    inset 3px 0 8px -6px rgba(217, 180, 91, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 4px 14px -8px rgba(43, 24, 16, 0.14);
 }
 
 /* ============================================================

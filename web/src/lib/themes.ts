@@ -244,13 +244,13 @@ export const THEMES: ThemeDef[] = [
    * 整页像「博物馆里嵌了一块LED屏」。fx 关掉，让横幅自己当背景。 */
   {
     id: 'shanshui',
-    name: '山水',
-    desc: '青绿山水横幅 + 朱砂印章 + 卷轴轴头。楷体，亮色。数据密集界面也能用的国风。',
+    name: '仙侠水墨',
+    desc: '云海仙岛飞瀑远山 + 飞剑符箓光阵。宣纸卷轴屏风卡片，朱砂印章按钮 + 淡金发光线条，楷体亮色。',
     mode: 'light',
     fx: false,
     layout: 'app',
     font: 'kai',
-    preview: ['#f4ecd5', '#fbf5e3', '#3a6b5b', '#9c2619', '#1f1408'],
+    preview: ['#f4ecd5', '#fbf5e3', '#9c2619', '#b8872c', '#1f1408'],
   },
   /* ---- 素白 Modern SaaS ----
    * 中性色板 + 单一强调色。是 ui-design-brain 那套「Modern SaaS」预设的落地：

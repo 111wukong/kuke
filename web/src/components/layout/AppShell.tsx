@@ -21,6 +21,7 @@ import { GuofengIcon, type GuofengIconName } from '@/components/ui/GuofengIcon';
 import { CyberGrid, Starfield } from '@/components/fx/Background';
 import { Toaster, ThemePicker } from '@/components/ui/Toaster';
 import { KeepAlivePages } from '@/components/layout/KeepAlivePages';
+import { XianxiaBanner } from '@/components/layout/XianxiaBanner';
 import { APP_PAGES, PAGE_NAMES } from '@/routes';
 import { AppNavLink } from '@/lib/links';
 import { useApp } from '@/stores/app';
@@ -197,10 +198,16 @@ export function AppShell() {
         )}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)' }}
       >
-        <Brand />
+        {/* 侧栏卷轴装饰 —— 仙侠（shanshui）主题下叠一张御剑古松图，
+            左缘渐隐进墨色侧栏，其余主题无此层。 */}
+        <div className="app-sidebar-art pointer-events-none absolute inset-0 z-0 hidden" aria-hidden="true" />
+
+        <div className="relative z-10">
+          <Brand />
+        </div>
 
         {/* 卷轴轴头 —— 山水中（shanshui）主题才有，其它主题默认隐藏。 */}
-        <div className="app-sidebar-scrollcap hidden px-4 pb-2" aria-hidden="true">
+        <div className="app-sidebar-scrollcap relative z-10 hidden px-4 pb-2" aria-hidden="true">
           <svg viewBox="0 0 240 16" className="h-3 w-full text-[#8a6a3a]" fill="none">
             <g stroke="currentColor" strokeWidth="1" fill="none" opacity="0.85">
               <ellipse cx="6" cy="8" rx="5.5" ry="7" />
@@ -215,7 +222,7 @@ export function AppShell() {
           </svg>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2.5 pb-3">
+        <div className="relative z-10 flex-1 overflow-y-auto px-2.5 pb-3">
           <nav aria-label="主导航">
             {NAV.map((g) => (
               <div key={g.group} className="mb-3">
@@ -258,6 +265,8 @@ export function AppShell() {
           className="app-main min-w-0 flex-1 px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pt-6"
         >
           <div className="mx-auto w-full max-w-[1200px]">
+            {/* 仙侠页横幅 —— 每页一张不重复的屏风画（shanshui 主题专属，见组件注释） */}
+            <XianxiaBanner />
             {/* 页面在这里切换。带保活 —— 切走的页面不卸载，只是藏起来，
                 所以本地状态和滚动位置都留着。 */}
             <KeepAlivePages pages={APP_PAGES} container={mainRef} />

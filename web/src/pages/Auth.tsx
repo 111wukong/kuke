@@ -12,11 +12,13 @@ import { Button, Field, Input, Callout } from '@/components/ui/Primitives';
 import { ThemePicker } from '@/components/ui/Toaster';
 import { useAuth } from '@/stores/auth';
 import { useApp } from '@/stores/app';
+import { useTheme } from '@/stores/theme';
 import { ApiError } from '@/lib/api';
 
 function AuthShell({ title, subtitle, children, footer }: {
   title: string; subtitle: string; children: ReactNode; footer: ReactNode;
 }) {
+  const { def: theme } = useTheme();
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-[1.08fr_1fr]">
       {/* 背景：一层极淡的斜向渐变 + 一道分隔线，就这些。
@@ -44,6 +46,12 @@ function AuthShell({ title, subtitle, children, footer }: {
 
       {/* 左侧品牌区。窄屏隐藏 —— 手机上那点空间应该全给表单。 */}
       <div className="relative hidden flex-col justify-between overflow-hidden border-r border-hairline p-10 lg:flex xl:p-14">
+        {/* 仙侠登录页专属背景 —— 朱色仙门山门图。
+            只在 shanshui 主题渲染，压在品牌区最底层：下缘渐隐进纸底，
+            透明度压到 18%，保证左侧大标题与特性列表的可读性。 */}
+        {theme.id === 'shanshui' && (
+          <div className="auth-hero-art pointer-events-none absolute inset-0" aria-hidden="true" />
+        )}
         <div className="flex items-center gap-2.5">
           {/* ★ 去掉渐变光晕，改成实色方块（理由同侧栏 Brand）。 */}
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
