@@ -312,6 +312,31 @@ function Brand() {
             库
           </text>
         </svg>
+        {/* ★ 2026-10-07 仙侠主题 brand —— 朱砂印章底 + 一柄小飞剑
+         *   （竖直 23px），剑尖向天。剑柄处有横丝灵气飘动。
+         *   比「库」字更玄。 */}
+        <svg
+          viewBox="0 0 64 64"
+          className="app-brand-icon-xianxia hidden"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {/* 飞剑剑身 + 剑柄 */}
+          <path d="M32 8 L32 38" />
+          {/* 剑格（横柄） */}
+          <path d="M27 12 L37 12 L32 16 Z" fill="currentColor" />
+          {/* 剑柄末端的圆头 */}
+          <circle cx="32" cy="20" r="1.5" fill="currentColor" stroke="none" />
+          {/* 剑尖的一抹灵气（横向飘带） */}
+          <path d="M22 6 C26 5 32 5 42 4" opacity="0.7" />
+          {/* 剑身底下的灵气环（符箓光阵） */}
+          <ellipse cx="32" cy="48" rx="9" ry="2.4" opacity="0.65" />
+          <ellipse cx="32" cy="48" rx="6" ry="1.6" opacity="0.4" />
+        </svg>
       </span>
       <div className="min-w-0">
         <div className="text-[15px] font-semibold leading-tight tracking-tight text-fg">库课</div>
@@ -330,10 +355,13 @@ function Brand() {
  *
  *   这和 Brand 区的双图标切换是同一套思路：不做全局替换，
  *   只在山水主题下切换，确保其他主题零影响。 */
+/* ★ 2026-10-07：山水（shanshui）与仙侠（xianxia）主题都触发国风图标切换。
+ *   两套主题共用 GUOFENG_MAP，但 viewLayer 在 CSS 层用 stroke 区分 —— 见
+ *   index.css 的 .nav-item svg 兜底，和 GuofengIcon 的 stroke="currentColor"。 */
 function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCount: number }) {
   const { def: theme } = useTheme();
   const guofengName = GUOFENG_MAP[to];
-  const useGuofeng = theme.id === 'shanshui' && guofengName != null;
+  const useGuofeng = (theme.id === 'shanshui' || theme.id === 'xianxia') && guofengName != null;
 
   return (
     <AppNavLink

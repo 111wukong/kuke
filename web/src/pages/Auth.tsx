@@ -12,11 +12,16 @@ import { Button, Field, Input, Callout } from '@/components/ui/Primitives';
 import { ThemePicker } from '@/components/ui/Toaster';
 import { useAuth } from '@/stores/auth';
 import { useApp } from '@/stores/app';
+import { useTheme } from '@/stores/theme';
 import { ApiError } from '@/lib/api';
 
 function AuthShell({ title, subtitle, children, footer }: {
   title: string; subtitle: string; children: ReactNode; footer: ReactNode;
 }) {
+  const { def: theme } = useTheme();
+  const isXianxia = theme.id === 'xianxia';
+  const isShanshui = theme.id === 'shanshui';
+
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-[1.08fr_1fr]">
       {/* 背景：一层极淡的斜向渐变 + 一道分隔线，就这些。
@@ -42,12 +47,67 @@ function AuthShell({ title, subtitle, children, footer }: {
         />
       </div>
 
-      {/* 左侧品牌区。窄屏隐藏 —— 手机上那点空间应该全给表单。 */}
+      {/* 左侧品牌区。窄屏隐藏 —— 手机上那点空间应该全给表单。
+       *
+       * ★ 2026-10-07：仙侠主题下，左侧背景加云海仙岛图 + 飞剑装饰图。
+       *   山水主题下沿用原有横幅（body::after 挂的）。
+       *   其它主题保持纯色 + halo 渐变。 */}
       <div className="relative hidden flex-col justify-between overflow-hidden border-r border-hairline p-10 lg:flex xl:p-14">
-        <div className="flex items-center gap-2.5">
-          {/* ★ 去掉渐变光晕，改成实色方块（理由同侧栏 Brand）。 */}
+        {/* 仙侠主题专属：云海仙岛背景图 */}
+        {isXianxia && (
+          <img
+            src="/img/xianxia-xiandao.jpg"
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
+            aria-hidden="true"
+          />
+        )}
+        {/* 仙侠主题专属：飞剑装饰图，右下角 */}
+        {isXianxia && (
+          <img
+            src="/img/xianxia-feijian.jpg"
+            alt=""
+            className="pointer-events-none absolute bottom-0 right-0 h-[55%] w-auto object-contain opacity-25"
+            style={{ maskImage: 'radial-gradient(ellipse at 70% 80%, #000 30%, transparent 75%)', WebkitMaskImage: 'radial-gradient(ellipse at 70% 80%, #000 30%, transparent 75%)' }}
+            aria-hidden="true"
+          />
+        )}
+        {/* 仙侠/山水主题专属：冷宣纸/米黄渐变蒙版，让文字浮起来 */}
+        {isXianxia && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(232,227,212,0.85) 0%, rgba(232,227,212,0.60) 40%, rgba(232,227,212,0.30) 70%, transparent 100%)',
+            }}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className="relative flex items-center gap-2.5">
+          {/* ★ 去掉渐变光晕，改成实色方块（理由同侧栏 Brand）。
+           *   仙侠主题下用飞剑 SVG（与侧栏 brand 同构）。
+           *   山水主题下用「库」字印章。
+           *   其它主题用 Database 图标。 */}
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-cyan text-on-accent">
-            <Database size={19} />
+            <Database size={19} className={isXianxia || isShanshui ? 'hidden' : ''} />
+            {isShanshui && (
+              <svg viewBox="0 0 64 64" className="h-full w-full" aria-hidden="true">
+                <text x="32" y="32" textAnchor="middle" dominantBaseline="central"
+                  fontFamily="'LXGW WenKai GB', 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif"
+                  fontSize="38" fontWeight="700" fill="currentColor" letterSpacing="-1">库</text>
+              </svg>
+            )}
+            {isXianxia && (
+              <svg viewBox="0 0 64 64" className="h-full w-full" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M32 8 L32 38" />
+                <path d="M27 12 L37 12 L32 16 Z" fill="currentColor" />
+                <circle cx="32" cy="20" r="1.5" fill="currentColor" stroke="none" />
+                <path d="M22 6 C26 5 32 5 42 4" opacity="0.7" />
+                <ellipse cx="32" cy="48" rx="9" ry="2.4" opacity="0.65" />
+                <ellipse cx="32" cy="48" rx="6" ry="1.6" opacity="0.4" />
+              </svg>
+            )}
           </span>
           <div>
             <div className="text-[17px] font-semibold tracking-tight text-fg">库课</div>
@@ -55,7 +115,7 @@ function AuthShell({ title, subtitle, children, footer }: {
           </div>
         </div>
 
-        <div className="max-w-lg">
+        <div className="relative max-w-lg">
           <h1 className="text-[32px] font-semibold leading-[1.22] tracking-tight text-fg xl:text-[38px]">
             数据库这门课，
             <br />
@@ -91,7 +151,7 @@ function AuthShell({ title, subtitle, children, footer }: {
           </ul>
         </div>
 
-        <div className="flex items-center gap-2 text-[12px] text-fg-faint">
+        <div className="relative flex items-center gap-2 text-[12px] text-fg-faint">
           <ShieldCheck size={13} />
           服务端会话鉴权 · SQL 在隔离沙箱中执行 · 教师权限按班级隔离
         </div>
