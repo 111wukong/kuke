@@ -1180,7 +1180,303 @@ html[data-theme="shanshui"] .nav-item svg {
 }
 
 /* ============================================================
-   古风主题的公共部分（砚秋 / 砚晨 / 山水）
+   ★ 2026-10-07 · 仙侠 · 水墨仙侠风格
+   ============================================================
+   ── 和山水的差别 ─────────────────────────────────────────────
+   山水是「青绿山水横幅 + 朱砂印章 + 卷轴轴头」—— 工笔重彩，明丽。
+   仙侠是「水墨淡彩 · 云海飞剑横幅 + 符箓光阵 + 屏风卷轴 + 淡金发光线条」
+   —— 水墨冷调，玄幻路线。
+
+   ── 配色要点 ─────────────────────────────────────────────────
+   底色比山水更冷一档（山水是 #f4ecd5 暖米黄，仙侠是 #e8e3d4 冷宣纸），
+   主调从青绿 #3a6b5b 换成**墨蓝** #2d3848（仙侠冷调子）。
+   朱砂保留作印章/强调色，新增**淡金** #b8893e 作发光线条和符箓光阵。
+   淡金不参与正文/图标的着色——只在分隔线、卡片描边、按钮光晕上出现，
+   是「仙气」的视觉锚点。
+
+   ── 招牌元素 ─────────────────────────────────────────────────
+   1. 云海飞剑横幅（body::after 挂 /img/xianxia-banner.jpg）
+   2. 屏风式卡片（.panel 加竖向淡金描边 + 上下卷轴饰带）
+   3. 朱砂印章按钮（.btn-primary 实色 #9c2619 + 淡金外光晕）
+   4. 淡金发光分隔线（.hairline-fade 在仙侠下变金色渐变）
+   5. 侧栏飞剑 brand 图标（.app-brand-icon-xianxia）
+   6. 国风侧栏图标（复用 GuofengIcon，stroke 用墨蓝）
+
+   ── 四级文字 ─────────────────────────────────────────────────
+   fg #1c1418 / fg-soft #3d3340 / fg-mute #5a4f5a / fg-faint #6e6370
+   实测对 ink-900(#e0dac6) 的对比度 ≈ 14.8 / 9.2 / 5.6 / 4.6：1，单调递减。 */
+html[data-theme="xianxia"] {
+  /* ---- 底 → 面阶梯（冷宣纸调）---- */
+  --color-ink-1000: #e8e3d4;     /* 页面底色 —— 冷宣纸 */
+  --color-ink-950:  #e2dccc;     /* 嵌套 / 代码块 */
+  --color-ink-900:  #e0dac6;     /* 卡片面"之间" */
+  --color-ink-850:  #ece6d2;
+  --color-ink-800:  #f4eedb;     /* 卡片面 —— 暖米白，比底色浅 */
+  --color-ink-700:  #efe9d6;
+  --color-ink-600:  #ddd6c0;
+
+  /* ---- 叠层色 ---- */
+  --color-veil: #000000;
+  --color-scrim: #0a0a14;
+  --color-on-accent: #f4eedb;
+
+  /* ---- 玻璃/描边（冷调暖灰）---- */
+  --color-glass-1: rgba(0, 0, 0, 0.016);
+  --color-glass-2: rgba(0, 0, 0, 0.028);
+  --color-glass-3: rgba(0, 0, 0, 0.048);
+  --color-hairline: rgba(44, 56, 72, 0.16);
+  --color-hairline-strong: rgba(44, 56, 72, 0.30);
+
+  /* ---- 强调色光谱（仙侠 · 墨蓝 + 朱砂 + 淡金）---- */
+  --color-cyan: #2d3848;         /* 墨蓝 —— 主调，替代青绿 */
+  --color-blue: #3455a0;         /* 靛蓝 —— 链接 */
+  --color-violet: #5a3d6b;       /* 紫檀 —— 信任 / 分类 */
+  --color-magenta: #7a2d52;      /* 绛紫 —— 次强调 */
+  --color-emerald: #3a6134;      /* 苔绿 —— 成功 */
+  --color-amber: #8a6210;        /* 蜡黄 —— 警告 */
+  --color-rose: #9c2619;         /* 朱砂 —— 印章 / 强调 */
+  /* ★ 仙侠专属：淡金色，用于发光线条、符箓光阵、卡片描边 */
+  --color-gold: #b8893e;
+
+  /* 语义色 */
+  --color-ok: #3a6134;
+  --color-ok-soft: rgba(58, 97, 52, 0.14);
+  --color-bad: #9c2619;
+  --color-bad-soft: rgba(156, 38, 25, 0.11);
+  --color-warn: #8a6210;
+  --color-warn-soft: rgba(138, 98, 16, 0.13);
+
+  /* ---- 文字：墨蓝黑四阶 ---- */
+  /* ---- 文字：墨蓝黑四阶 ----
+   * fg-faint 调到 #655c66 才能过 4.5:1（#6e6370 实测 4.08，不够）。 */
+  --color-fg: #1c1418;
+  --color-fg-soft: #3d3340;
+  --color-fg-mute: #5a4f5a;
+  --color-fg-faint: #655c66;
+
+  /* ---- 玻璃/光晕/网格 ---- */
+  --glass-sheet: rgba(244, 238, 219, 0.82);
+  --glass-sheet-strong: rgba(244, 238, 219, 0.94);
+  --glass-hi-1: rgba(255, 255, 255, 0.88);
+  --glass-hi-2: rgba(0, 0, 0, 0.012);
+  --glass-edge: rgba(44, 56, 72, 0.08);
+  --glass-shadow: rgba(28, 20, 24, 0.10);
+  --glass-subtle-bg: rgba(0, 0, 0, 0.016);
+
+  /* ---- 光晕：朱砂 + 淡金，两团淡斑（仙侠的"灵气"）---- */
+  --halo-1: rgba(184, 137, 62, 0.055);    /* 淡金 —— 右上角灵气 */
+  --halo-2: rgba(45, 56, 72, 0.045);      /* 墨蓝 —— 左上角远山 */
+  --mesh: rgba(44, 56, 72, 0.040);
+  --mesh-size: 34px;
+  --sel-bg: rgba(184, 137, 62, 0.18);
+
+  /* ---- 行内代码 / 骨架屏 / SQL 高亮 ---- */
+  --code-bg: rgba(44, 56, 72, 0.06);
+  --code-fg: #7a4a12;
+  --skeleton: rgba(44, 56, 72, 0.05);
+  --sql-keyword: #7a2d52;
+  --sql-string: #3a6134;
+  --sql-number: #8a6210;
+  --sql-comment: #8a7a64;
+  --sql-func: #2d3848;
+  --sql-op: #5a3d6b;
+  color-scheme: light;
+
+  /* ---- ★ 仙侠的"招牌"：云海飞剑横幅 ---- */
+  --xianxia-banner: url("/img/xianxia-banner.jpg");
+}
+
+/* ---- 仙侠的横幅背景层 ----
+ * 与山水同构：body::after 挂横幅，mask 底部淡出。 */
+html[data-theme="xianxia"] body::after {
+  display: block;
+  background-image: var(--xianxia-banner);
+  background-size: cover;
+  background-position: center 25%;
+  background-repeat: no-repeat;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 85%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 85%);
+  pointer-events: none;
+  height: 55vh;
+}
+
+/* 仙侠的顶栏 —— 让横幅露出顶栏底沿 */
+html[data-theme="xianxia"] .app-topbar {
+  background: transparent;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom-color: transparent;
+}
+
+/* 横幅底部的冷宣纸渐变蒙版 */
+html[data-theme="xianxia"] .auth-hero-veil,
+html[data-theme="xianxia"] .app-main::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 55vh;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(232, 227, 212, 0.08) 0%,
+    rgba(232, 227, 212, 0.32) 35%,
+    rgba(232, 227, 212, 0.72) 75%,
+    rgba(232, 227, 212, 1) 100%
+  );
+  z-index: -1;
+}
+
+/* ---- 仙侠的 brand 区飞剑图标 ----
+ * 朱砂印章底 + 反白飞剑 SVG（AppShell 里画好了 viewBox 64×64 的飞剑）。
+ * 比「库」字更玄幻。 */
+html[data-theme="xianxia"] .app-brand-mark {
+  background: #9c2619;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(184, 137, 62, 0.45) inset,   /* 淡金内描边 */
+    0 0 6px 1px rgba(184, 137, 62, 0.22),       /* 淡金外光晕 */
+    0 1px 0 rgba(255, 255, 255, 0.18) inset;
+}
+html[data-theme="xianxia"] .app-brand-mark svg { color: #f4eedb; }
+html[data-theme="xianxia"] .app-brand-icon-default { display: none; }
+html[data-theme="xianxia"] .app-brand-icon-shanshui { display: none; }
+html[data-theme="xianxia"] .app-brand-icon-xianxia { display: block; }
+
+/* ---- 仙侠的侧栏装饰 ----
+ * 复用山水的卷轴轴头，颜色改成冷墨蓝调。 */
+html[data-theme="xianxia"] .app-sidebar .app-sidebar-scrollcap {
+  display: block;
+}
+html[data-theme="xianxia"] .app-sidebar .app-sidebar-scrollcap svg {
+  color: #b8893e;   /* 淡金卷轴轴头 */
+}
+html[data-theme="xianxia"] .app-sidebar {
+  border-right-color: rgba(184, 137, 62, 0.20);   /* 淡金侧栏分隔线 */
+}
+
+/* ---- 仙侠的国风侧栏图标 ----
+ * 线宽 1.6（与山水一致），颜色继承 currentColor（墨蓝/淡金）。 */
+html[data-theme="xianxia"] .nav-item svg {
+  stroke-width: 1.6;
+}
+/* 激活态图标加淡金微光 */
+html[data-theme="xianxia"] .nav-item.is-active svg {
+  filter: drop-shadow(0 0 3px rgba(184, 137, 62, 0.35));
+}
+
+/* ---- ★ 仙侠的屏风式卡片 ----
+ * .panel 是全站卡片基类。仙侠主题下给它加：
+ *   1. 淡金竖向描边（左右各一条 1px 的淡金线）
+ *   2. 上下各一条淡金饰带（用 ::before / ::after 画横线）
+ *   3. 圆角略收（从 8px → 6px），更像屏风板
+ * 注意：只在 .panel 上加，不动 .app-topbar / .app-sidebar 等结构面。 */
+html[data-theme="xianxia"] .panel {
+  border-radius: 6px;
+  border: 1px solid rgba(184, 137, 62, 0.18);
+  box-shadow:
+    0 1px 2px rgba(28, 20, 24, 0.04),
+    0 0 0 1px rgba(184, 137, 62, 0.06) inset;   /* 内侧淡金微光 */
+}
+/* 屏风上下饰带 */
+html[data-theme="xianxia"] .panel::before,
+html[data-theme="xianxia"] .panel::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(184, 137, 62, 0.25) 15%,
+    rgba(184, 137, 62, 0.40) 50%,
+    rgba(184, 137, 62, 0.25) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+html[data-theme="xianxia"] .panel::before { top: 4px; }
+html[data-theme="xianxia"] .panel::after { bottom: 4px; }
+/* .panel 需要相对定位才能放饰带 —— 如果它本来没有，这里补上 */
+html[data-theme="xianxia"] .panel { position: relative; }
+
+/* ---- ★ 仙侠的朱砂印章按钮 + 淡金发光 ----
+ * .btn-primary 是全站主按钮。仙侠下给它：
+ *   1. 朱砂实色底（#9c2619）
+ *   2. 淡金外光晕（box-shadow 的 spread ring）
+ *   3. hover 时淡金光晕变亮 */
+html[data-theme="xianxia"] .btn-primary,
+html[data-theme="xianxia"] button.bg-cyan,
+html[data-theme="xianxia"] a.bg-cyan {
+  background: #9c2619 !important;
+  color: #f4eedb !important;
+  box-shadow:
+    0 0 0 1px rgba(184, 137, 62, 0.35) inset,
+    0 0 8px 1px rgba(184, 137, 62, 0.18);
+  border: 1px solid rgba(184, 137, 62, 0.30);
+}
+html[data-theme="xianxia"] .btn-primary:hover,
+html[data-theme="xianxia"] button.bg-cyan:hover,
+html[data-theme="xianxia"] a.bg-cyan:hover {
+  box-shadow:
+    0 0 0 1px rgba(184, 137, 62, 0.55) inset,
+    0 0 12px 2px rgba(184, 137, 62, 0.30);
+}
+
+/* ---- ★ 仙侠的淡金发光分隔线 ----
+ * .hairline-fade 是顶栏底边的渐变线。仙侠下从灰变金。 */
+html[data-theme="xianxia"] .hairline-fade {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(184, 137, 62, 0.30) 20%,
+    rgba(184, 137, 62, 0.50) 50%,
+    rgba(184, 137, 62, 0.30) 80%,
+    transparent 100%
+  );
+}
+
+/* ---- ★ 仙侠的页面标题装饰 ----
+ * h1 / h2 在仙侠下加左侧淡金竖线（符箓感）。 */
+html[data-theme="xianxia"] main h1,
+html[data-theme="xianxia"] main h2 {
+  position: relative;
+  padding-left: 12px;
+}
+html[data-theme="xianxia"] main h1::before,
+html[data-theme="xianxia"] main h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    rgba(184, 137, 62, 0.60),
+    rgba(184, 137, 62, 0.20)
+  );
+  border-radius: 2px;
+}
+
+/* ---- ★ 仙侠的输入框淡金聚焦光晕 ----
+ * focus-visible 是键盘导航时才出现的光环。仙侠下变淡金。 */
+html[data-theme="xianxia"] input:focus-visible,
+html[data-theme="xianxia"] textarea:focus-visible,
+html[data-theme="xianxia"] select:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(184, 137, 62, 0.40),
+    0 0 6px 1px rgba(184, 137, 62, 0.18);
+}
+
+/* ---- ★ 仙侠的链接淡金下划线 ---- */
+html[data-theme="xianxia"] a:not(.btn-primary):not(.bg-cyan):not(.nav-item):hover {
+  text-decoration-color: rgba(184, 137, 62, 0.50);
+}
+
+/* ============================================================
+   古风主题的公共部分（砚秋 / 砚晨 / 山水 / 仙侠）
    ============================================================
    ★ 只做两件事：换字体、补偿排版。颜色各自管各自的。
 
@@ -1197,13 +1493,15 @@ html[data-theme="shanshui"] .nav-item svg {
    行高同理：楷体的笔画分布不如黑体均匀，行距紧一点就会糊在一起。 */
 html[data-theme="ink-autumn"],
 html[data-theme="ink-dawn"],
-html[data-theme="shanshui"] {
+html[data-theme="shanshui"],
+html[data-theme="xianxia"] {
   --font-sans: var(--font-kai);
   font-size: 103.5%;   /* 默认 100%（16px）→ 约 16.6px */
 }
 html[data-theme="ink-autumn"] body,
 html[data-theme="ink-dawn"] body,
-html[data-theme="shanshui"] body {
+html[data-theme="shanshui"] body,
+html[data-theme="xianxia"] body {
   line-height: 1.78;   /* 默认 1.7 */
 }
 
@@ -1287,7 +1585,8 @@ html[data-theme="solarized"],
 html[data-theme="ink-dawn"],
 html[data-theme="ruoyi"],
 html[data-theme="modern-saas"],
-html[data-theme="shanshui"] {
+html[data-theme="shanshui"],
+html[data-theme="xianxia"] {
   /* 亮色主题的"面"就是白纸本身 —— 各亮色主题的 ink-800 都是白/近白，
    * 直接拿来当卡片面即可（暗色那边不能这么干，见 :root 的说明）。 */
   --panel: var(--color-ink-800);
