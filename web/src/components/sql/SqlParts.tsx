@@ -56,10 +56,18 @@ export function ResultTable({ rs, maxHeight = 360 }: { rs: ResultSet; maxHeight?
    * 判定规则：这一列里出现过数字、且没出现过非数字（NULL 不算数，
    * 它哪一列都可能出现）。这样 `id` / `COUNT(*)` / `AVG(score)` 会自动
    * 右对齐，而 `name` / `created_at` 保持左对齐 —— 不用维护一张
-   * 「哪些列是数字」的表，那是必然会漂移的东西。 */
-  const numericCols = useMemo(() => rs.columns.map((_, ci) => {
+   * 「哪些列是数字」的表，那是必然会漂移的东西。
+   *
+   * ★ 必须对 columns / rows 做空值兜底，而且**不能**靠下面的 `if (rs.error)`
+   *   提前返回绕开 —— hooks 不允许写在条件分支之后，所以这个 useMemo
+   *   一定会执行，包括「SQL 执行失败」那条路径。而失败的结果集只有
+   *   { sql, error }，没有 columns / rows（类型上声明为必需，运行时不是）。
+   *   漏了兜底就是 TypeError: Cannot read properties of undefined
+   *   —— 页面白屏，而且只在「故意写错 SQL」时才复现。
+   *   这是 CI 的浏览器冒烟抓出来的，本地手测成功路径不会碰到。 */
+  const numericCols = useMemo(() => (rs.columns || []).map((_, ci) => {
     let sawNumber = false;
-    for (const row of rs.rows) {
+    for (const row of rs.rows || []) {
       const v = row[ci];
       if (v === null || v === undefined) continue;
       if (typeof v !== 'number') return false;
