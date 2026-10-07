@@ -252,6 +252,24 @@ export const THEMES: ThemeDef[] = [
     font: 'kai',
     preview: ['#f4ecd5', '#fbf5e3', '#3a6b5b', '#9c2619', '#1f1408'],
   },
+  /* ---- 素白 Modern SaaS ----
+   * 中性色板 + 单一强调色。是 ui-design-brain 那套「Modern SaaS」预设的落地：
+   * 留白当装饰、光晕几乎关掉、只留一个自信的强调色（深靛蓝）。
+   *
+   * ★ 它和「山水」是刻意做成对照的：同一份代码，一套是国风（横幅 + 印章 +
+   *   楷体 + 青绿朱砂），一套是现代 SaaS（纯色面 + 系统字 + 单一靛蓝）。
+   *   想看清「设计语言」和「组件实现」是两件事，切这两套主题最直观 ——
+   *   组件结构一个像素都没变，变的只有令牌。 */
+  {
+    id: 'modern-saas',
+    name: '素白',
+    desc: '中性色板 + 单一深靛蓝强调。克制的现代 SaaS 风 —— 留白当装饰，光晕几乎关掉。',
+    mode: 'light',
+    fx: false,
+    layout: 'app',
+    font: 'sans',
+    preview: ['#faf9f7', '#ffffff', '#1d4ed8', '#56514b', '#1a1917'],
+  },
 ];
 
 const BY_ID = new Map(THEMES.map((t) => [t.id, t]));

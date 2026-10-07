@@ -52,6 +52,8 @@ export interface Toast {
   text: string;
   /** 可选的副标题，用于放更长的说明（比如判题的差异详情）。 */
   detail?: string;
+  /** 自动消失的时长（毫秒）。悬停暂停时要拿它算剩余时间。 */
+  duration: number;
 }
 
 /* 服务端配置快照。
@@ -84,9 +86,34 @@ interface AppState {
   toasts: Toast[];
   toast: (kind: ToastKind, text: string, detail?: string) => void;
   dismiss: (id: number) => void;
+  /** 鼠标悬停在提示上时暂停倒计时 —— 正在读的内容不该被抽走。 */
+  pauseToast: (id: number) => void;
+  /** 鼠标移开继续倒计时，从暂停处接着走，不重新计时。 */
+  resumeToast: (id: number) => void;
 }
 
 let toastSeq = 0;
+
+/* 提示的倒计时句柄。
+ *
+ * ★ 放在模块级 Map 而不是 zustand state 里 —— 它每秒都在变，
+ *   放进 state 会让每次 set 都触发全组件树重渲染，而这些数字
+ *   一个组件都不需要看到。Map 只服务于 dismiss/pause/resume 三个动作。
+ *
+ * handle 为 null = 当前处于「悬停暂停」状态，remaining 是剩下的毫秒数。 */
+const toastTimers = new Map<number, {
+  handle: ReturnType<typeof setTimeout> | null;
+  remaining: number;
+  startedAt: number;
+}>();
+
+/** 各档提示的停留时长。skill 的通行区间是 4–6 秒：
+ *  · error 6.5s —— 判题失败会带「你少了哪几行」这种需要逐行读的详情；
+ *  · warn  5s   —— 需要看一眼才能决定要不要处理；
+ *  · 其余  4.2s —— 原先是 3.2s。一句话的提示（「已保存」）够，
+ *                  但「已加入复习队列，明天见」这种就偏紧，
+ *                  用户眼睛刚扫到就没了。4.2s 仍在舒适区内。 */
+const TOAST_MS: Record<ToastKind, number> = { error: 6500, warn: 5000, info: 4200, ok: 4200 };
 
 export const useApp = create<AppState>((set, get) => ({
   navOpen: false,
@@ -125,14 +152,40 @@ export const useApp = create<AppState>((set, get) => ({
 
   toast(kind, text, detail) {
     const id = ++toastSeq;
-    set({ toasts: [...get().toasts, { id, kind, text, detail }] });
-    /* 错误的停留久一点 —— 判题失败的信息里有"你少了哪几行"这种
-     * 需要读的内容，2 秒就消失等于没给。 */
-    const ms = kind === 'error' ? 6500 : kind === 'warn' ? 5000 : 3200;
-    setTimeout(() => get().dismiss(id), ms);
+    const duration = TOAST_MS[kind] ?? 4200;
+    /* ★ 新提示追加到**末尾**（不是开头）。容器固定在右下角、flex-col，
+     *   所以末尾那条离底边最近 —— 也就是最靠近用户视线落点的位置。
+     *   skill 里「newest on top」是针对**顶部**提示栏的建议；
+     *   照搬到右下角会让新消息跑到离视线最远的一格，反而更难被注意到。 */
+    set({ toasts: [...get().toasts, { id, kind, text, detail, duration }] });
+    toastTimers.set(id, {
+      handle: setTimeout(() => get().dismiss(id), duration),
+      remaining: duration,
+      startedAt: Date.now(),
+    });
   },
 
   dismiss(id) {
+    const rec = toastTimers.get(id);
+    if (rec?.handle) clearTimeout(rec.handle);
+    toastTimers.delete(id);
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
+  },
+
+  pauseToast(id) {
+    const rec = toastTimers.get(id);
+    /* 已经在暂停态（handle 为 null）就什么都不做 —— 鼠标在子元素之间
+     * 移动会连发多次 mouseenter，不加这层判断会把剩余时间扣成负数。 */
+    if (!rec || !rec.handle) return;
+    clearTimeout(rec.handle);
+    rec.remaining = Math.max(0, rec.remaining - (Date.now() - rec.startedAt));
+    rec.handle = null;
+  },
+
+  resumeToast(id) {
+    const rec = toastTimers.get(id);
+    if (!rec || rec.handle) return;
+    rec.startedAt = Date.now();
+    rec.handle = setTimeout(() => get().dismiss(id), rec.remaining);
   },
 }));

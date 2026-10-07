@@ -96,7 +96,7 @@ export default function Review() {
               <div className="text-[15px] font-semibold tabular-nums text-fg">
                 {Math.min(idx, items.length)}/{items.length}
               </div>
-              <div className="text-[10.5px] text-fg-faint">今日到期</div>
+              <div className="text-[12px] text-fg-faint">今日到期</div>
             </div>
           )}
         </div>
@@ -118,12 +118,12 @@ export default function Review() {
               {item.state === 'new' && <Badge tone="accent">新卡</Badge>}
               {item.state === 'relearning' && <Badge tone="warn">重学中</Badge>}
               {item.reps > 0 && (
-                <span className="text-[11px] text-fg-faint">
+                <span className="text-[12px] text-fg-faint">
                   复习过 {item.reps} 次{item.lapses > 0 ? ` · 忘过 ${item.lapses} 次` : ''}
                 </span>
               )}
               {item.retrievability !== null && (
-                <span className="ml-auto text-[11px] text-fg-mute">
+                <span className="ml-auto text-[12px] text-fg-mute">
                   当前可回忆概率 ≈ {Math.round(item.retrievability * 100)}%
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function Review() {
               </div>
             ) : item.knowledge ? (
               <div>
-                <div className="text-[11.5px] text-fg-faint">回忆一下这个知识点讲的是什么</div>
+                <div className="text-[12px] text-fg-faint">回忆一下这个知识点讲的是什么</div>
                 <div className="mt-1 text-[17px] font-semibold text-fg">{item.knowledge.title}</div>
                 <AppLink
                   to={`/learn/${item.knowledge.id}`}
@@ -185,7 +185,7 @@ export default function Review() {
                   )}>
                     {r.label}
                   </span>
-                  <span className="text-[10.5px] text-fg-faint">{r.desc}</span>
+                  <span className="text-[12px] text-fg-faint">{r.desc}</span>
                 </button>
               ))}
             </div>
@@ -217,13 +217,13 @@ export default function Review() {
 
           {done.length > 0 && (
             <div className="mt-3 border-t border-hairline pt-3">
-              <div className="mb-2 text-[11.5px] font-medium text-fg-mute">这一轮排出的下次复习</div>
+              <div className="mb-2 text-[12px] font-medium text-fg-mute">这一轮排出的下次复习</div>
               <div className="flex flex-wrap gap-1.5">
                 {done.map((d, i) => (
                   <span
                     key={i}
                     className={cn(
-                      'rounded border px-1.5 py-0.5 text-[11px] tabular-nums',
+                      'rounded border px-1.5 py-0.5 text-[12px] tabular-nums',
                       d.rating === 1 ? 'border-bad/30 text-bad' : 'border-hairline text-fg-mute',
                     )}
                   >
@@ -266,7 +266,7 @@ export default function Review() {
           <div className="flex flex-wrap gap-2">
             {data.upcoming.map((u) => (
               <div key={u.due} className="rounded-lg border border-hairline bg-veil/2 px-2.5 py-1.5">
-                <div className="text-[11px] text-fg-faint">{u.due.slice(5)}</div>
+                <div className="text-[12px] text-fg-faint">{u.due.slice(5)}</div>
                 <div className="text-[13px] font-semibold tabular-nums text-fg-soft">{u.n} 张</div>
               </div>
             ))}

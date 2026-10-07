@@ -19,6 +19,7 @@ export const THEME_IDS = [
   'ink-dawn',
   'ruoyi',
   'shanshui',
+  'modern-saas',
 ];
 
 export const DEFAULT_THEME = 'deep-space';

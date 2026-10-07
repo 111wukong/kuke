@@ -51,7 +51,7 @@ function AuthShell({ title, subtitle, children, footer }: {
           </span>
           <div>
             <div className="text-[17px] font-semibold tracking-tight text-fg">库课</div>
-            <div className="text-[11px] text-fg-faint">数据库课程学习平台</div>
+            <div className="text-[12px] text-fg-faint">数据库课程学习平台</div>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ function AuthShell({ title, subtitle, children, footer }: {
           </ul>
         </div>
 
-        <div className="flex items-center gap-2 text-[11.5px] text-fg-faint">
+        <div className="flex items-center gap-2 text-[12px] text-fg-faint">
           <ShieldCheck size={13} />
           服务端会话鉴权 · SQL 在隔离沙箱中执行 · 教师权限按班级隔离
         </div>

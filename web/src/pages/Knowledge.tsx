@@ -120,6 +120,8 @@ export default function Knowledge() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜知识点…"
               className="pl-9"
+              /* ⌘/Ctrl+K 会聚焦到这里（见 layout/Hotkeys.tsx） */
+              data-search-input
             />
           </div>
         </div>
@@ -148,7 +150,7 @@ export default function Knowledge() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <h3 className="text-[14.5px] font-semibold text-fg">{cat.name}</h3>
-                      <span className="text-[11.5px] tabular-nums text-fg-mute">
+                      <span className="text-[12px] tabular-nums text-fg-mute">
                         掌握 {done}/{all.length}
                       </span>
                     </div>
@@ -164,7 +166,7 @@ export default function Knowledge() {
                     <div key={ch.id}>
                       <div className="mb-1.5 flex items-baseline gap-2">
                         <span className="text-[12.5px] font-medium text-fg-soft">{ch.name}</span>
-                        <span className="text-[11px] text-fg-faint">{ch.summary}</span>
+                        <span className="text-[12px] text-fg-faint">{ch.summary}</span>
                       </div>
                       <div className="grid gap-1.5 sm:grid-cols-2">
                         {ch.knowledge.map((k) => {
@@ -192,12 +194,12 @@ export default function Knowledge() {
                                   </span>
                                   {k.importance >= 3 && <Badge tone="accent">重点</Badge>}
                                 </div>
-                                <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-relaxed text-fg-mute">
+                                <p className="mt-0.5 line-clamp-2 text-[12px] leading-relaxed text-fg-mute">
                                   {k.summary}
                                 </p>
                                 {tried && (
                                   <div className="mt-1 flex items-center gap-1.5">
-                                    <span className="text-[10.5px] tabular-nums text-fg-faint">
+                                    <span className="text-[12px] tabular-nums text-fg-faint">
                                       掌握度 {Math.round((m ?? 0) * 100)}%
                                     </span>
                                   </div>
@@ -244,7 +246,7 @@ export default function Knowledge() {
                         ? <Badge tone="ok">前置已备</Badge>
                         : <Badge tone="warn">缺 {k.missing} 个前置</Badge>}
                     </div>
-                    <p className="mt-0.5 line-clamp-1 text-[11.5px] text-fg-mute">{k.summary}</p>
+                    <p className="mt-0.5 line-clamp-1 text-[12px] text-fg-mute">{k.summary}</p>
                   </div>
                   <ChevronRight size={14} className="shrink-0 text-fg-faint group-hover:text-cyan" />
                 </AppLink>

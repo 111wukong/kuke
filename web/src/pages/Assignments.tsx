@@ -96,7 +96,7 @@ export function Assignments() {
                         <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-fg-mute">{a.brief}</p>
                       )}
 
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11.5px] text-fg-mute">
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-fg-mute">
                         <span className="flex items-center gap-1">
                           <CalendarClock size={11} />
                           {a.dueAt ? `截止 ${formatDateTime(a.dueAt)}` : '不限时'}
@@ -278,7 +278,7 @@ export function AssignmentDetail() {
               )}>
                 {data.mySubmission.score ?? '—'}
               </div>
-              <div className="text-[11px] text-fg-faint">
+              <div className="text-[12px] text-fg-faint">
                 {data.mySubmission.status === 'graded' ? '已批改' : '待批改'}
               </div>
             </div>
@@ -313,7 +313,7 @@ export function AssignmentDetail() {
                 <div key={s.userId} className="flex flex-wrap items-center gap-3 rounded-lg border border-hairline bg-veil/2 p-2.5">
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg">
                     {s.realName || s.username}
-                    {s.studentNo && <span className="ml-1.5 text-[11px] text-fg-faint">{s.studentNo}</span>}
+                    {s.studentNo && <span className="ml-1.5 text-[12px] text-fg-faint">{s.studentNo}</span>}
                   </span>
 
                   {s.status === 'not_submitted' ? (
@@ -333,7 +333,7 @@ export function AssignmentDetail() {
                   )}
 
                   {s.submittedAt && (
-                    <span className="text-[10.5px] text-fg-faint">{formatDate(s.submittedAt)}</span>
+                    <span className="text-[12px] text-fg-faint">{formatDate(s.submittedAt)}</span>
                   )}
 
                   {s.status !== 'not_submitted' && (
@@ -389,7 +389,7 @@ export function AssignmentDetail() {
                         </div>
 
                         <div className="flex shrink-0 items-center gap-1.5">
-                          <span className="text-[11px] text-fg-faint">给分</span>
+                          <span className="text-[12px] text-fg-faint">给分</span>
                           <Input
                             type="number"
                             min={0}
@@ -401,20 +401,20 @@ export function AssignmentDetail() {
                             }))}
                             className="w-16 text-center"
                           />
-                          <span className="text-[11px] text-fg-faint">/ {it.points}</span>
+                          <span className="text-[12px] text-fg-faint">/ {it.points}</span>
                         </div>
                       </div>
 
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         <div className="rounded border border-hairline bg-ink-1000/40 p-2">
-                          <div className="mb-1 text-[10.5px] text-fg-faint">学生的作答</div>
-                          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-fg-soft">
+                          <div className="mb-1 text-[12px] text-fg-faint">学生的作答</div>
+                          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] text-fg-soft">
                             {it.answer || '（空）'}
                           </pre>
                         </div>
                         <div className="rounded border border-hairline bg-ink-1000/40 p-2">
-                          <div className="mb-1 text-[10.5px] text-fg-faint">参考答案</div>
-                          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-ok">
+                          <div className="mb-1 text-[12px] text-fg-faint">参考答案</div>
+                          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] text-ok">
                             {it.correctAnswer || '—'}
                           </pre>
                         </div>
@@ -422,17 +422,17 @@ export function AssignmentDetail() {
 
                       {it.analysis && (
                         <div className="mt-2 rounded border border-hairline bg-veil/3 p-2">
-                          <div className="mb-1 text-[10.5px] text-fg-faint">解析</div>
+                          <div className="mb-1 text-[12px] text-fg-faint">解析</div>
                           <Markdown source={it.analysis} />
                         </div>
                       )}
                       {it.steps?.length ? (
                         <div className="mt-2">
-                          <div className="mb-1 text-[10.5px] text-fg-faint">评分点</div>
+                          <div className="mb-1 text-[12px] text-fg-faint">评分点</div>
                           <ul className="space-y-0.5">
                             {it.steps.map((s: any, i: number) => (
                               <li key={i} className="text-[12px] text-fg-mute">
-                                <span className="mr-1.5 rounded bg-veil/10 px-1 text-[10.5px]">{s.pts}分</span>
+                                <span className="mr-1.5 rounded bg-veil/10 px-1 text-[12px]">{s.pts}分</span>
                                 {s.t}
                               </li>
                             ))}
@@ -451,7 +451,7 @@ export function AssignmentDetail() {
                         onChange={(e) => setGradeDraft((d) => ({ ...d, score: Number(e.target.value) }))}
                         className="w-20 text-center"
                       />
-                      <span className="text-[11.5px] text-fg-faint">/ {a.totalPoints}</span>
+                      <span className="text-[12px] text-fg-faint">/ {a.totalPoints}</span>
                       <Button size="sm" variant="ghost" onClick={() => setGradeDraft((d) => ({ ...d, score: autoSum }))}>
                         用逐题之和（{autoSum}）
                       </Button>
@@ -517,7 +517,7 @@ export function AssignmentDetail() {
                 return (
                   <div key={it.id} className="rounded-lg border border-hairline bg-veil/2 p-3">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span className="grid h-5 w-5 place-items-center rounded bg-veil/10 text-[10.5px] font-semibold text-fg-mute">
+                      <span className="grid h-5 w-5 place-items-center rounded bg-veil/10 text-[12px] font-semibold text-fg-mute">
                         {idx + 1}
                       </span>
                       <Icon size={13} className="text-fg-mute" />
@@ -609,7 +609,7 @@ export function AssignmentDetail() {
 
                     {it.level?.hint && !locked && (
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-[11.5px] text-warn hover:underline">看提示</summary>
+                        <summary className="cursor-pointer text-[12px] text-warn hover:underline">看提示</summary>
                         <div className="mt-1 text-[12px] text-fg-mute">{it.level.hint}</div>
                       </details>
                     )}
@@ -620,7 +620,7 @@ export function AssignmentDetail() {
 
             {data.mySubmission?.status !== 'graded' ? (
               <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-[11.5px] text-fg-faint">
+                <span className="text-[12px] text-fg-faint">
                   {data.mySubmission ? '已提交过，可以重交' : '还没提交'}
                 </span>
                 <Button variant="accent" onClick={submit} loading={busy}>

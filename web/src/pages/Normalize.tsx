@@ -117,7 +117,7 @@ export default function Normalize() {
               <Sigma size={16} className="text-violet" />
               范式实验室
             </h2>
-            <p className="mt-0.5 text-[11.5px] text-fg-mute">
+            <p className="mt-0.5 text-[12px] text-fg-mute">
               {solvedCount}/{tasks.length} 道已解出
             </p>
           </div>
@@ -148,9 +148,9 @@ export default function Normalize() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[12.5px] font-medium text-fg">{t.title}</div>
                     <div className="mt-0.5 flex items-center gap-1.5">
-                      <span className="text-[10.5px] text-fg-faint">{Ask.t}</span>
+                      <span className="text-[12px] text-fg-faint">{Ask.t}</span>
                       {t.attempts > 0 && !t.solved && (
-                        <span className="text-[10px] text-warn">试过 {t.attempts} 次</span>
+                        <span className="text-[12px] text-warn">试过 {t.attempts} 次</span>
                       )}
                     </div>
                   </div>
@@ -176,7 +176,7 @@ export default function Normalize() {
             {/* 题目数据 */}
             <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 text-[11px] font-medium text-fg-faint">属性集</div>
+                <div className="mb-1 text-[12px] font-medium text-fg-faint">属性集</div>
                 <div className="flex flex-wrap gap-1">
                   {task.attrs.map((a) => (
                     <span key={a} className="rounded bg-veil/10 px-1.5 py-0.5 font-mono text-[12px] text-fg">
@@ -186,7 +186,7 @@ export default function Normalize() {
                 </div>
               </div>
               <div className="rounded-lg border border-hairline bg-veil/3 p-3">
-                <div className="mb-1 text-[11px] font-medium text-fg-faint">函数依赖集 F</div>
+                <div className="mb-1 text-[12px] font-medium text-fg-faint">函数依赖集 F</div>
                 <div className="space-y-0.5">
                   {task.fds.map((fd, i) => (
                     <div key={i} className="font-mono text-[12px] text-fg-soft">{fmtFd(fd)}</div>
@@ -259,7 +259,7 @@ export default function Normalize() {
             )}
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11.5px] text-fg-faint">
+              <span className="text-[12px] text-fg-faint">
                 {task.ask === 'keys' || task.ask === 'decompose'
                   ? '写 AB 或 A,B 都行 —— 系统按题目的属性集来切分'
                   : '选好后点提交'}
@@ -291,7 +291,7 @@ export default function Normalize() {
                   </pre>
                   {verdict.correctAnswer && !verdict.pass && task.ask !== 'decompose' && (
                     <div className="mt-2 rounded-lg border border-hairline bg-veil/3 p-2.5">
-                      <div className="mb-1 text-[11.5px] text-fg-faint">正确答案</div>
+                      <div className="mb-1 text-[12px] text-fg-faint">正确答案</div>
                       <div className="font-mono text-[12.5px] text-ok">
                         {Array.isArray(verdict.correctAnswer)
                           ? (Array.isArray(verdict.correctAnswer[0])
@@ -339,7 +339,7 @@ export default function Normalize() {
                       </span>
                     ))}
                   </div>
-                  <div className="mt-1.5 text-[11.5px] text-fg-mute">
+                  <div className="mt-1.5 text-[12px] text-fg-mute">
                     必含属性：{derivation.mustAttrs?.join(',') || '无'} ·
                     需枚举：{derivation.optionalAttrs?.join(',') || '无'} ·
                     必不含：{derivation.neverAttrs?.join(',') || '无'}
@@ -358,11 +358,11 @@ export default function Normalize() {
                   <div className="flex items-center gap-2">
                     <Badge tone="accent">{derivation.normalForm?.nf}</Badge>
                     {derivation.normalForm?.note && (
-                      <span className="text-[11.5px] text-fg-mute">{derivation.normalForm.note}</span>
+                      <span className="text-[12px] text-fg-mute">{derivation.normalForm.note}</span>
                     )}
                   </div>
                   {derivation.normalForm?.violations?.bcnf?.length > 0 && (
-                    <div className="mt-1.5 text-[11.5px] text-fg-mute">
+                    <div className="mt-1.5 text-[12px] text-fg-mute">
                       违反 BCNF 的依赖：
                       {derivation.normalForm.violations.bcnf.map((v: any, i: number) => (
                         <span key={i} className="ml-1 font-mono">{fmtFd(v.fd)}</span>
@@ -402,7 +402,7 @@ export default function Normalize() {
             <div className="text-center">
               <button
                 onClick={showDerivation}
-                className="text-[11.5px] text-fg-faint hover:text-cyan"
+                className="text-[12px] text-fg-faint hover:text-cyan"
               >
                 先自己推一遍，再看推导过程 →
               </button>
@@ -417,7 +417,7 @@ export default function Normalize() {
 function DeriveRow({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-hairline bg-veil/2 p-3">
-      <div className="mb-1.5 text-[11.5px] font-semibold text-fg-soft">{title}</div>
+      <div className="mb-1.5 text-[12px] font-semibold text-fg-soft">{title}</div>
       {children}
     </div>
   );
@@ -436,7 +436,7 @@ function GroupEditor({
     <div className="space-y-2">
       {groups.map((g, gi) => (
         <div key={gi} className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-veil/2 p-2.5">
-          <span className="shrink-0 text-[11.5px] text-fg-faint">
+          <span className="shrink-0 text-[12px] text-fg-faint">
             {label} {gi + 1}
           </span>
           <div className="flex flex-wrap gap-1">

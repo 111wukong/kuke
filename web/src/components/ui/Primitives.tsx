@@ -225,7 +225,7 @@ export function Badge({
 }: { children: ReactNode; tone?: Tone; className?: string }) {
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-tight',
+      'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[12px] font-medium leading-tight',
       TONES[tone], className,
     )}>
       {children}
@@ -287,7 +287,7 @@ export function Progress({
         </span>
       </span>
       {showLabel && (
-        <span className="w-9 text-right text-[11px] tabular-nums text-fg-mute">
+        <span className="w-9 text-right text-[12px] tabular-nums text-fg-mute">
           {Math.round(v * 100)}%
         </span>
       )}
@@ -341,7 +341,7 @@ export function Stat({
             看不出「这周比上周好还是差」。 */}
         {typeof trend === 'number' && trend !== 0 && (
           <span className={cn(
-            'flex items-center gap-0.5 text-[11.5px] font-medium',
+            'flex items-center gap-0.5 text-[12px] font-medium',
             trend > 0 ? 'text-ok' : 'text-bad',
           )}>
             <span aria-hidden="true">{trend > 0 ? '↑' : '↓'}</span>
@@ -349,7 +349,7 @@ export function Stat({
           </span>
         )}
       </div>
-      {sub && <div className="mt-1.5 text-[11.5px] leading-relaxed text-fg-faint">{sub}</div>}
+      {sub && <div className="mt-1.5 text-[12px] leading-relaxed text-fg-faint">{sub}</div>}
       {sparkline && sparkline.length > 1 && (
         <Sparkline data={sparkline} className="mt-2" />
       )}
@@ -570,7 +570,7 @@ export function Empty({
 /** 键位提示。比一行说明文字更容易被记住，也更省空间。 */
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border border-hairline bg-veil/6 px-1 font-mono text-[10.5px] text-fg-mute">
+    <kbd className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border border-hairline bg-veil/6 px-1 font-mono text-[12px] text-fg-mute">
       {children}
     </kbd>
   );
@@ -586,7 +586,7 @@ export function ErrorBox({ error, onRetry }: { error: any; onRetry?: () => void 
           <div className="text-[13px] font-medium text-bad">出错了</div>
           <div className="mt-0.5 break-words text-[12.5px] text-fg-soft">{msg}</div>
           {error?.detail && (
-            <div className="mt-1 break-words font-mono text-[11.5px] text-fg-mute">{String(error.detail)}</div>
+            <div className="mt-1 break-words font-mono text-[12px] text-fg-mute">{String(error.detail)}</div>
           )}
           {onRetry && (
             <Button size="sm" variant="outline" className="mt-2" onClick={onRetry}>重试</Button>
@@ -626,7 +626,7 @@ export function Tabs<T extends string>({
             {t.label}
             {t.count !== undefined && (
               <span className={cn(
-                'rounded px-1 text-[10.5px] tabular-nums',
+                'rounded px-1 text-[12px] tabular-nums',
                 active ? 'bg-cyan/20' : 'bg-veil/10',
               )}>
                 {t.count}

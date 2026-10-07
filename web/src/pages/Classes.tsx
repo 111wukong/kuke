@@ -98,7 +98,7 @@ function StudentClasses() {
                       {c.term && <Badge tone="neutral">{c.term}</Badge>}
                       {c.isOwner && <Badge tone="accent">我是老师</Badge>}
                     </div>
-                    <div className="mt-1 text-[11.5px] text-fg-mute">
+                    <div className="mt-1 text-[12px] text-fg-mute">
                       任课教师：{c.teacherName} · {c.memberCount} 名成员
                     </div>
                   </div>
@@ -233,12 +233,12 @@ function TeacherClasses() {
                   <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-fg">{c.name}</span>
                   {c.status === 'archived' && <Badge tone="neutral">已归档</Badge>}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[11px] text-fg-mute">
+                <div className="mt-1 flex items-center gap-2 text-[12px] text-fg-mute">
                   <span>{c.memberCount} 名学生</span>
                   {c.term && <span>· {c.term}</span>}
                 </div>
                 <div className="mt-1.5 flex items-center gap-1">
-                  <span className="font-mono text-[11px] tracking-wider text-cyan">{c.code}</span>
+                  <span className="font-mono text-[12px] tracking-wider text-cyan">{c.code}</span>
                   <span
                     onClick={(e) => { e.stopPropagation(); copyCode(c.id, c.code); }}
                     className="rounded p-0.5 text-fg-faint hover:text-cyan"
@@ -257,7 +257,7 @@ function TeacherClasses() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="text-[16px] font-semibold text-fg">{detail.class.name}</h3>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11.5px] text-fg-mute">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-fg-mute">
                       {detail.class.term && <Badge tone="neutral">{detail.class.term}</Badge>}
                       <span>{detail.members.length} 名学生</span>
                       <span>创建于 {formatDate(detail.class.createdAt)}</span>
@@ -295,7 +295,7 @@ function TeacherClasses() {
                 <div className="mt-3 flex items-center gap-2 rounded-lg border border-hairline bg-veil/3 p-2.5">
                   <Ticket size={14} className="shrink-0 text-cyan" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-fg-faint">邀请码（发给学生，注册时填）</div>
+                    <div className="text-[12px] text-fg-faint">邀请码（发给学生，注册时填）</div>
                     <div className="font-mono text-[15px] font-semibold tracking-[0.2em] text-cyan">
                       {detail.class.code}
                     </div>
@@ -336,7 +336,7 @@ function TeacherClasses() {
                             tone={c.ratio >= 0.5 ? 'bad' : 'warn'}
                           />
                         </div>
-                        <span className="w-24 shrink-0 text-right text-[11.5px] tabular-nums text-fg-mute">
+                        <span className="w-24 shrink-0 text-right text-[12px] tabular-nums text-fg-mute">
                           {c.students}/{analytics.total} 人 · {Math.round(c.avgMastery * 100)}%
                         </span>
                       </div>
@@ -357,7 +357,7 @@ function TeacherClasses() {
                         <AppLink
                           key={u.id}
                           to={`/admin/students/${u.id}`}
-                          className="rounded border border-bad/25 bg-bad-soft px-2 py-0.5 text-[11.5px] text-bad hover:border-bad/50"
+                          className="rounded border border-bad/25 bg-bad-soft px-2 py-0.5 text-[12px] text-bad hover:border-bad/50"
                           title={u.lastActive ? `最后活跃 ${u.lastActive}` : '从未活跃'}
                         >
                           {u.username}
@@ -381,7 +381,7 @@ function TeacherClasses() {
                   {detail.members.map((m: any) => (
                     <div key={m.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-hairline bg-veil/2 p-2.5">
                       <span
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white"
                         style={avatarStyle(m.avatarHue)}
                       >
                         {m.username.slice(0, 1)}
@@ -394,14 +394,14 @@ function TeacherClasses() {
                           >
                             {m.realName || m.username}
                           </AppLink>
-                          {m.studentNo && <span className="text-[11px] text-fg-faint">{m.studentNo}</span>}
+                          {m.studentNo && <span className="text-[12px] text-fg-faint">{m.studentNo}</span>}
                           {m.status === 'disabled' && <Badge tone="bad">已停用</Badge>}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-fg-mute">
+                        <div className="mt-0.5 text-[12px] text-fg-mute">
                           Lv.{m.stats.level} · 正确率 {m.stats.accuracy}% · 活跃 {m.stats.activeDays} 天
                         </div>
                       </div>
-                      <span className="shrink-0 text-[11.5px] tabular-nums"
+                      <span className="shrink-0 text-[12px] tabular-nums"
                         style={{ color: masteryColor(m.stats.accuracy / 100) }}>
                         {m.stats.accuracy}%
                       </span>
@@ -444,7 +444,7 @@ function TeacherClasses() {
                       key={a.id}
                       title={a.title}
                       desc={`${a.itemCount} 道题 · 已交 ${a.submittedCount}/${detail.members.length}${a.gradedCount ? ` · 已批 ${a.gradedCount}` : ''}`}
-                      right={a.dueAt ? <span className="text-[11px] text-fg-faint">{formatDate(a.dueAt)} 截止</span> : null}
+                      right={a.dueAt ? <span className="text-[12px] text-fg-faint">{formatDate(a.dueAt)} 截止</span> : null}
                     />
                   ))}
                 </div>

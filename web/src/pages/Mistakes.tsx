@@ -103,14 +103,14 @@ export default function Mistakes() {
           {data && data.total > 0 && (
             <div className="text-right">
               <div className="text-[26px] font-semibold tabular-nums text-bad">{data.total}</div>
-              <div className="text-[11px] text-fg-faint">道待消化</div>
+              <div className="text-[12px] text-fg-faint">道待消化</div>
             </div>
           )}
         </div>
 
         {data?.byError?.length ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[11.5px] text-fg-mute">
+            <span className="flex items-center gap-1 text-[12px] text-fg-mute">
               <TrendingDown size={12} />错因分布
             </span>
             {data.byError.map((e) => (
@@ -142,7 +142,7 @@ export default function Mistakes() {
                 <span className="w-10 shrink-0 text-right text-[12px] tabular-nums text-fg-mute">{k.n} 道</span>
                 <AppLink
                   to={`/practice?kid=${k.kid}`}
-                  className="shrink-0 text-[11.5px] text-cyan hover:underline"
+                  className="shrink-0 text-[12px] text-cyan hover:underline"
                 >
                   去练
                 </AppLink>
@@ -188,7 +188,7 @@ export default function Mistakes() {
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11.5px] text-fg-mute">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-fg-mute">
                       {m.kidTitle && (
                         <AppLink to={`/learn/${m.kid}`} className="hover:text-cyan">
                           {m.kidTitle}
@@ -200,7 +200,7 @@ export default function Mistakes() {
                   </div>
                   <AppLink
                     to={t.to}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline px-2 py-1 text-[11.5px] text-fg-soft hover:border-cyan/40 hover:text-cyan"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline px-2 py-1 text-[12px] text-fg-soft hover:border-cyan/40 hover:text-cyan"
                   >
                     {t.label}
                     <ArrowRight size={11} />

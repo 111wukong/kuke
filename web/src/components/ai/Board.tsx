@@ -135,7 +135,7 @@ function GraphBlock({ item, fresh }: { item: BoardItem; fresh: boolean }) {
 
   return (
     <div>
-      {item.title && <div className="mb-2 font-mono text-[11px] text-fg-mute">{item.title}</div>}
+      {item.title && <div className="mb-2 font-mono text-[12px] text-fg-mute">{item.title}</div>}
       <svg viewBox={`0 0 ${GW} ${GH}`} className="block w-full" role="img" aria-label={item.title || item.expr}>
         <defs>
           <clipPath id={clipId}>
@@ -145,19 +145,19 @@ function GraphBlock({ item, fresh }: { item: BoardItem; fresh: boolean }) {
         {ticks.xs.map((x) => (
           <g key={`x${x}`}>
             <line x1={px(x)} y1={GP} x2={px(x)} y2={GH - GP} stroke="currentColor" strokeWidth={1} className="text-fg-faint/15" />
-            <text x={px(x)} y={GH - GP + 14} textAnchor="middle" className="fill-fg-mute font-mono text-[11px]">{x}</text>
+            <text x={px(x)} y={GH - GP + 14} textAnchor="middle" className="fill-fg-mute font-mono text-[12px]">{x}</text>
           </g>
         ))}
         {ticks.ys.map((y) => (
           <g key={`y${y}`}>
             <line x1={GP} y1={py(y)} x2={GW - GP} y2={py(y)} stroke="currentColor" strokeWidth={1} className="text-fg-faint/15" />
-            <text x={GP - 6} y={py(y) + 4} textAnchor="end" className="fill-fg-mute font-mono text-[11px]">{y}</text>
+            <text x={GP - 6} y={py(y) + 4} textAnchor="end" className="fill-fg-mute font-mono text-[12px]">{y}</text>
           </g>
         ))}
         <line x1={GP} y1={oy} x2={GW - GP} y2={oy} stroke="currentColor" strokeWidth={1} className="text-fg-faint/40" />
         <line x1={ox} y1={GP} x2={ox} y2={GH - GP} stroke="currentColor" strokeWidth={1} className="text-fg-faint/40" />
-        <text x={GW - GP + 2} y={oy + 4} className="fill-fg-mute font-mono text-[11px]">x</text>
-        <text x={ox + 6} y={GP - 2} className="fill-fg-mute font-mono text-[11px]">y</text>
+        <text x={GW - GP + 2} y={oy + 4} className="fill-fg-mute font-mono text-[12px]">x</text>
+        <text x={ox + 6} y={GP - 2} className="fill-fg-mute font-mono text-[12px]">y</text>
         <g clipPath={`url(#${clipId})`}>
           {/* pathLength="1" 把路径长度归一化，描线动画就不用去量真实长度 */}
           <path
@@ -186,12 +186,12 @@ function GraphBlock({ item, fresh }: { item: BoardItem; fresh: boolean }) {
                 value={scope[p.name] ?? p.value}
                 onChange={(e) => { setTouched(true); setScope((s) => ({ ...s, [p.name]: Number(e.target.value) })); }}
               />
-              <span className="w-12 flex-none text-right font-mono text-[11px] text-fg-soft">
+              <span className="w-12 flex-none text-right font-mono text-[12px] text-fg-soft">
                 {Math.round((scope[p.name] ?? p.value) * 1000) / 1000}
               </span>
             </label>
           ))}
-          <p className="text-[10.5px] text-fg-mute">拖一下滑块看曲线怎么变。坐标轴是钉死的 —— 不钉的话整张图会跟着手抖。</p>
+          <p className="text-[12px] text-fg-mute">拖一下滑块看曲线怎么变。坐标轴是钉死的 —— 不钉的话整张图会跟着手抖。</p>
         </div>
       )}
     </div>
@@ -215,9 +215,9 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
     body = (
       <>
         <div className="mb-2 flex items-center gap-2">
-          <span className="font-mono text-[11px] text-cyan">SQL</span>
-          <span className="text-[11px] text-fg-mute">{item.datasetTitle || item.dataset}</span>
-          {item.ms != null && <span className="ml-auto font-mono text-[10.5px] text-fg-mute">{item.ms}ms</span>}
+          <span className="font-mono text-[12px] text-cyan">SQL</span>
+          <span className="text-[12px] text-fg-mute">{item.datasetTitle || item.dataset}</span>
+          {item.ms != null && <span className="ml-auto font-mono text-[12px] text-fg-mute">{item.ms}ms</span>}
         </div>
         <pre
           className="mb-3 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-code-bg p-2.5 font-mono text-[12px] leading-relaxed"
@@ -231,7 +231,7 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
   } else if (item.kind === 'steps') {
     body = (
       <>
-        {item.title && <div className="mb-2 font-mono text-[11px] text-fg-mute">{item.title}</div>}
+        {item.title && <div className="mb-2 font-mono text-[12px] text-fg-mute">{item.title}</div>}
         <ol className="flex flex-col">
           {(item.steps || []).map((s: string, i: number) => (
             <li
@@ -240,7 +240,7 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
                 fresh && 'ai-step')}
               style={fresh ? { animationDelay: `${0.05 + i * 0.12}s` } : undefined}
             >
-              <span className="absolute left-0 top-1.5 grid h-[19px] w-[19px] place-items-center rounded-md bg-gradient-to-br from-amber to-amber/70 font-mono text-[10px] font-bold text-scrim">
+              <span className="absolute left-0 top-1.5 grid h-[19px] w-[19px] place-items-center rounded-md bg-gradient-to-br from-amber to-amber/70 font-mono text-[12px] font-bold text-scrim">
                 {i + 1}
               </span>
               <InlineMarkdown text={s} />
@@ -262,7 +262,7 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
           <div className="overflow-x-auto py-3 text-center text-[17px] leading-loose text-fg"
             dangerouslySetInnerHTML={{ __html: renderLatex(item.tex) }} />
         )}
-        {item.caption && <div className="mt-1 text-center text-[11px] text-fg-mute">{item.caption}</div>}
+        {item.caption && <div className="mt-1 text-center text-[12px] text-fg-mute">{item.caption}</div>}
       </>
     );
   }
@@ -270,14 +270,14 @@ function Block({ item, fresh, lit }: { item: BoardItem; fresh: boolean; lit?: Bo
   return (
     <div className={cls} data-kind={item.kind}>
       {lit && (
-        <span className="absolute -top-2 right-3 rounded-full bg-amber px-2 text-[10px] font-bold text-scrim">圈</span>
+        <span className="absolute -top-2 right-3 rounded-full bg-amber px-2 text-[12px] font-bold text-scrim">圈</span>
       )}
       {body}
       {lit?.why && (
-        <div className="mt-2 border-l-2 border-amber/50 pl-2 text-[11px] text-amber">{String(lit.why)}</div>
+        <div className="mt-2 border-l-2 border-amber/50 pl-2 text-[12px] text-amber">{String(lit.why)}</div>
       )}
       {item.by && (
-        <span className="absolute -bottom-2 left-3 rounded-full border border-hairline bg-scrim px-2 text-[9.5px] text-fg-mute">
+        <span className="absolute -bottom-2 left-3 rounded-full border border-hairline bg-scrim px-2 text-[12px] text-fg-mute">
           {ROLE_NAME[item.by] || item.by}
         </span>
       )}
@@ -320,7 +320,7 @@ export function Board({ items }: { items: BoardItem[] }) {
         <div>
           <div className="mb-3 text-[34px] leading-none text-fg-faint/40">∅</div>
           <p className="text-[12.5px] text-fg-mute">老师写上去的东西会出现在这里</p>
-          <p className="mt-1 text-[11.5px] text-fg-faint">SQL 结果、曲线、解题步骤、公式</p>
+          <p className="mt-1 text-[12px] text-fg-faint">SQL 结果、曲线、解题步骤、公式</p>
         </div>
       </div>
     );
@@ -336,7 +336,7 @@ export function Board({ items }: { items: BoardItem[] }) {
       data-page={pageIdx}
     >
       {total > 1 && (
-        <div className="flex flex-none items-center gap-2 text-[10.5px] text-fg-mute">
+        <div className="flex flex-none items-center gap-2 text-[12px] text-fg-mute">
           <button className="rounded border border-hairline px-2 disabled:opacity-30" disabled={pageIdx <= 0} onClick={() => setPage(pageIdx - 1)}>‹</button>
           <span className="font-mono">{pageIdx + 1}/{total}</span>
           <button className="rounded border border-hairline px-2 disabled:opacity-30" disabled={pageIdx >= total - 1} onClick={() => setPage(pageIdx + 1)}>›</button>

@@ -269,7 +269,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
   return (
     <div className="code-block relative">
       {lang && (
-        <span className="absolute right-2.5 top-1.5 select-none text-[10px] uppercase tracking-wider text-fg-faint">
+        <span className="absolute right-2.5 top-1.5 select-none text-[12px] uppercase tracking-wider text-fg-faint">
           {lang}
         </span>
       )}

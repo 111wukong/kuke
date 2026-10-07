@@ -223,9 +223,9 @@ export function AppShell() {
                     英文界面用「小号大写 + 加字距」做分组标签，但这两个属性
                     对汉字都没用甚至有害：uppercase 对中文无效，
                     0.14em 的字距会把「学 习」「训 练」撑成散架的样子。
-                    中文用字重和颜色做层次；字号从 10.5 提到 11.5，
-                    因为汉字在小字号下比拉丁字母难认。 */}
-                <div className="px-2.5 pb-1.5 pt-2 text-[11.5px] font-semibold text-fg-faint">
+                    中文用字重和颜色做层次；字号统一到 12px ——
+                    汉字在小字号下比拉丁字母难认，11px 以下基本读不动。 */}
+                <div className="px-2.5 pb-1.5 pt-2 text-[12px] font-semibold text-fg-faint">
                   {g.group}
                 </div>
                 {g.items.map((it) => (
@@ -315,7 +315,7 @@ function Brand() {
       </span>
       <div className="min-w-0">
         <div className="text-[15px] font-semibold leading-tight tracking-tight text-fg">库课</div>
-        <div className="truncate text-[10.5px] text-fg-faint">数据库课程学习平台</div>
+        <div className="truncate text-[12px] text-fg-faint">数据库课程学习平台</div>
       </div>
     </div>
   );
@@ -353,7 +353,7 @@ function NavItemRow({ to, icon: Icon, label, badgeCount }: NavItem & { badgeCoun
         : <Icon size={16} className="shrink-0" />}
       <span className="truncate">{label}</span>
       {badgeCount > 0 && (
-        <span className="ml-auto shrink-0 rounded-full bg-rose/20 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-rose">
+        <span className="ml-auto shrink-0 rounded-full bg-rose/20 px-1.5 py-0.5 text-[12px] font-semibold tabular-nums text-rose">
           {badgeCount > 99 ? '99+' : badgeCount}
         </span>
       )}
@@ -391,20 +391,20 @@ function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
              *   头像色是从用户 hue 生成的**渐变**，在一套刻意统一的
              *   后台配色里是一块突兀的彩斑 —— 而侧栏里已经有
              *   「当前在哪一页」这个用色任务了，两处抢色只会互相削弱。 */
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white"
             style={theme.layout === 'console' ? { background: 'var(--color-cyan)' } : avatarStyle(user.avatarHue)}
           >
             {lv}
           </span>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12px] font-medium text-fg">{title}</div>
-            <div className="text-[10.5px] tabular-nums text-fg-faint">
+            <div className="text-[12px] tabular-nums text-fg-faint">
               {into} / {need} XP
             </div>
           </div>
           {streak > 0 && (
             <span
-              className="flex shrink-0 items-center gap-0.5 text-[11px] font-semibold text-amber"
+              className="flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-amber"
               title={`连续学习 ${streak} 天`}
             >
               <Flame size={12} />
@@ -425,7 +425,7 @@ function SideFooter({ onShowHotkeys }: { onShowHotkeys: () => void }) {
             }}
           />
         </div>
-        <div className="mt-1 text-right text-[10px] tabular-nums text-fg-faint">
+        <div className="mt-1 text-right text-[12px] tabular-nums text-fg-faint">
           总 {Math.round(xp)} XP
         </div>
       </div>
@@ -445,18 +445,18 @@ function UserRow() {
   return (
     <div className="mt-2 flex items-center gap-2 rounded-lg px-1.5 py-1.5">
       <span
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white"
         style={avatarStyle(user.avatarHue)}
       >
         {user.username.slice(0, 1)}
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[12.5px] font-medium text-fg">{user.username}</div>
-        <div className="text-[10.5px] text-fg-faint">{roleLabel}</div>
+        <div className="text-[12px] text-fg-faint">{roleLabel}</div>
       </div>
       <button
         onClick={async () => { await logout(); toast('info', '已退出登录'); }}
-        className="shrink-0 rounded px-1.5 py-1 text-[11px] text-fg-mute hover:bg-veil/8 hover:text-fg"
+        className="shrink-0 rounded px-1.5 py-1 text-[12px] text-fg-mute hover:bg-veil/8 hover:text-fg"
       >
         退出
       </button>
@@ -534,7 +534,9 @@ function TabsBar() {
                 aria-label={`关闭 ${pageNameOf(p)}`}
                 onClick={() => close(p)}
                 className={cn(
-                  'grid h-3.5 w-3.5 place-items-center rounded-full text-[10px] leading-none',
+                  /* ★ 容器从 14px 提到 16px —— 字号统一到 12px 之后，
+                     14px 的圆里塞一个 12px 的 ✕ 会顶到边。 */
+                  'grid h-4 w-4 place-items-center rounded-full text-[12px] leading-none',
                   active ? 'hover:bg-white/25' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100',
                 )}
               >
@@ -571,19 +573,19 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
 
         <div className="ml-auto flex items-center gap-2">
           {snapshot && snapshot.combo >= 3 && (
-            <span className="glow-pulse hidden items-center gap-1 rounded-md border border-amber/30 bg-warn-soft px-2 py-1 text-[11.5px] font-semibold text-amber sm:flex">
+            <span className="glow-pulse hidden items-center gap-1 rounded-md border border-amber/30 bg-warn-soft px-2 py-1 text-[12px] font-semibold text-amber sm:flex">
               <Zap size={12} />
               连对 {snapshot.combo}
             </span>
           )}
           {snapshot && (
-            <span className="hidden items-center gap-1 text-[11.5px] tabular-nums text-fg-mute sm:flex">
+            <span className="hidden items-center gap-1 text-[12px] tabular-nums text-fg-mute sm:flex">
               今日 {snapshot.today.attempts} 题
             </span>
           )}
           <ThemePicker compact />
           {user?.role === 'admin' && (
-            <span className="hidden rounded-md border border-violet/30 bg-violet/10 px-1.5 py-0.5 text-[10.5px] font-medium text-violet sm:inline">
+            <span className="hidden rounded-md border border-violet/30 bg-violet/10 px-1.5 py-0.5 text-[12px] font-medium text-violet sm:inline">
               管理员
             </span>
           )}

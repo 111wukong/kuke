@@ -307,7 +307,7 @@ export default function Classroom() {
                 ))}
               </Select>
             </Field>
-            {currentMode && <p className="-mt-1 text-[11.5px] leading-relaxed text-fg-mute">{currentMode.desc}</p>}
+            {currentMode && <p className="-mt-1 text-[12px] leading-relaxed text-fg-mute">{currentMode.desc}</p>}
             <Button variant="accent" onClick={start} disabled={running || !kid} loading={running}>
               <Play size={14} />{running ? '上课中…' : '开一节课'}
             </Button>
@@ -330,7 +330,7 @@ export default function Classroom() {
                 <div className="bg-blue" style={{ width: `${(moves.probing / (moves.focus + moves.probing + moves.telling || 1)) * 100}%` }} />
                 <div className="bg-amber" style={{ width: `${(moves.telling / (moves.focus + moves.probing + moves.telling || 1)) * 100}%` }} />
               </div>
-              <div className="mt-2 flex flex-wrap gap-3 text-[10.5px] text-fg-mute">
+              <div className="mt-2 flex flex-wrap gap-3 text-[12px] text-fg-mute">
                 <span><i className="mr-1 inline-block h-[7px] w-[7px] rounded-sm bg-ok" />focus {moves.focus}</span>
                 <span><i className="mr-1 inline-block h-[7px] w-[7px] rounded-sm bg-blue" />probing {moves.probing}</span>
                 <span><i className="mr-1 inline-block h-[7px] w-[7px] rounded-sm bg-amber" />telling {moves.telling}</span>
@@ -341,7 +341,7 @@ export default function Classroom() {
 
         <Card>
           <SectionTitle title="四个角色" desc="差异靠机制，不靠形容词" />
-          <div className="flex flex-col gap-2.5 text-[11.5px] leading-relaxed">
+          <div className="flex flex-col gap-2.5 text-[12px] leading-relaxed">
             {[
               ['teacher', '掌握全部资料与学情数据，能跑 SQL、能查你的错题'],
               ['a', '资料齐全，但容易**跳过边界条件**直接下结论'],
@@ -351,13 +351,13 @@ export default function Classroom() {
               const m = ROLE_META[r];
               return (
                 <div key={r} className="flex gap-2">
-                  <span className={cn('grid h-6 w-6 flex-none place-items-center rounded-lg bg-gradient-to-br text-[11px] font-bold text-scrim', m.cls)}>{m.short}</span>
+                  <span className={cn('grid h-6 w-6 flex-none place-items-center rounded-lg bg-gradient-to-br text-[12px] font-bold text-scrim', m.cls)}>{m.short}</span>
                   <span className="text-fg-mute"><b className="text-fg-soft">{m.name}</b>：{desc.replace(/\*\*/g, '')}</span>
                 </div>
               );
             })}
           </div>
-          <p className="mt-3 border-t border-hairline pt-2.5 text-[11px] leading-relaxed text-fg-mute">
+          <p className="mt-3 border-t border-hairline pt-2.5 text-[12px] leading-relaxed text-fg-mute">
             学生手里**没有**「写完整解答」的工具 —— 会跑 SQL 不等于会写解法。
             这条边界靠提示词约束不住，只能靠工具表约束。
           </p>
@@ -388,7 +388,7 @@ export default function Classroom() {
               <div className="flex flex-col gap-3.5">
                 {feed.map((it, i) => <FeedItem key={i} entry={it} />)}
                 {running && awaiting && (
-                  <div className="self-center text-[11.5px] text-fg-mute">老师停下了，等你的回答…</div>
+                  <div className="self-center text-[12px] text-fg-mute">老师停下了，等你的回答…</div>
                 )}
               </div>
             )}
@@ -397,11 +397,11 @@ export default function Classroom() {
           {/* ---- 答题卡 ---- */}
           {ask && (
             <div className="mx-4 mb-3 rounded-lg border border-cyan/40 bg-cyan/8 p-3.5">
-              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold text-cyan">
+              <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-cyan">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan" />该你了
               </div>
               <div className="mb-2 text-[13.5px] text-fg"><Markdown source={ask.prompt} /></div>
-              {ask.hint && <div className="mb-2 border-l-2 border-hairline-strong pl-2 text-[11.5px] text-fg-mute">提示：{ask.hint}</div>}
+              {ask.hint && <div className="mb-2 border-l-2 border-hairline-strong pl-2 text-[12px] text-fg-mute">提示：{ask.hint}</div>}
               <div className="flex gap-2">
                 <input
                   autoFocus
@@ -443,7 +443,7 @@ export default function Classroom() {
                 <Send size={13} />插话
               </Button>
             </div>
-            <p className="mt-1.5 text-[11px] text-fg-mute">
+            <p className="mt-1.5 text-[12px] text-fg-mute">
               {!running ? '开课之后可以随时插话' : awaiting ? '等你答完这道题，插话入口才会打开' : '插的话老师下一轮会看到'}
             </p>
           </div>
@@ -455,7 +455,7 @@ export default function Classroom() {
         <div className="flex flex-none items-center gap-2 border-b border-hairline px-4 py-3">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan shadow-[0_0_9px_var(--color-cyan)]" />
           <span className="text-[12.5px] font-semibold text-fg-soft">黑板</span>
-          {board.length > 0 && <span className="ml-auto font-mono text-[10.5px] text-fg-mute">{board.length} 块</span>}
+          {board.length > 0 && <span className="ml-auto font-mono text-[12px] text-fg-mute">{board.length} 块</span>}
         </div>
         <div className="min-h-0 flex-1">
           <Board items={board} />
@@ -473,7 +473,7 @@ function FeedItem({ entry }: { entry: Entry }) {
     return (
       <div className="my-1 flex items-center gap-3">
         <span className="h-px flex-1 bg-gradient-to-r from-transparent via-hairline-strong to-transparent" />
-        <span className="whitespace-nowrap rounded-full border border-hairline bg-scrim/40 px-3 py-0.5 text-[11px] text-fg-mute">
+        <span className="whitespace-nowrap rounded-full border border-hairline bg-scrim/40 px-3 py-0.5 text-[12px] text-fg-mute">
           第 <b className="text-cyan">{entry.round + 1}</b> 轮 · {entry.label}
         </span>
         <span className="h-px flex-1 bg-gradient-to-r from-transparent via-hairline-strong to-transparent" />
@@ -483,7 +483,7 @@ function FeedItem({ entry }: { entry: Entry }) {
 
   if (entry.k === 'note') {
     return (
-      <div className={cn('self-center rounded-full border px-3.5 py-0.5 text-center text-[11.5px]',
+      <div className={cn('self-center rounded-full border px-3.5 py-0.5 text-center text-[12px]',
         entry.level === 'warn' ? 'border-warn/30 text-warn'
           : entry.level === 'err' ? 'border-bad/40 text-bad'
             : 'border-hairline bg-scrim/30 text-fg-mute')}>
@@ -494,7 +494,7 @@ function FeedItem({ entry }: { entry: Entry }) {
 
   if (entry.k === 'tool') {
     return (
-      <div className={cn('flex items-center gap-2 self-start rounded-full border px-3 py-0.5 font-mono text-[11px]',
+      <div className={cn('flex items-center gap-2 self-start rounded-full border px-3 py-0.5 font-mono text-[12px]',
         entry.done ? 'border-hairline text-fg-mute opacity-70' : 'border-dashed border-hairline-strong text-fg-mute')}>
         {entry.done
           ? <span className={entry.ok ? 'text-ok' : 'text-bad'}>{entry.ok ? '✓' : '✕'}</span>
@@ -530,11 +530,11 @@ function FeedItem({ entry }: { entry: Entry }) {
         {m.short}
       </span>
       <div className="min-w-0 max-w-[84%]">
-        <div className="mb-1 flex items-center gap-2 text-[11px] text-fg-mute">
+        <div className="mb-1 flex items-center gap-2 text-[12px] text-fg-mute">
           <span className="font-semibold text-fg-soft">{m.name}</span>
           <span className="rounded-full border border-hairline px-1.5">{m.tag}</span>
           {isTeacher && entry.move && (
-            <span className={cn('rounded-full border px-1.5 font-mono text-[10px]', MOVE_TONE[entry.move] || '')}>{entry.move}</span>
+            <span className={cn('rounded-full border px-1.5 font-mono text-[12px]', MOVE_TONE[entry.move] || '')}>{entry.move}</span>
           )}
         </div>
         <div className={cn('rounded-2xl border px-3.5 py-2.5 text-[13.5px] leading-relaxed text-fg',

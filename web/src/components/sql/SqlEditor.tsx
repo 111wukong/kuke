@@ -170,10 +170,10 @@ export function SqlEditor({
           </button>
         )}
 
-        <span className="ml-auto hidden items-center gap-1 text-[11px] text-fg-faint sm:flex">
-          <kbd className="rounded border border-hairline px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>
+        <span className="ml-auto hidden items-center gap-1 text-[12px] text-fg-faint sm:flex">
+          <kbd className="rounded border border-hairline px-1 py-0.5 font-mono text-[12px]">Ctrl</kbd>
           <span>+</span>
-          <kbd className="rounded border border-hairline px-1 py-0.5 font-mono text-[10px]">Enter</kbd>
+          <kbd className="rounded border border-hairline px-1 py-0.5 font-mono text-[12px]">Enter</kbd>
           <span>运行</span>
         </span>
         {extraTools}

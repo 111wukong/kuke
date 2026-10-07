@@ -124,7 +124,7 @@ function Overview({ onGoTab }: { onGoTab: (t: 'overview' | 'students' | 'classes
                   <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-fg">{c.name}</span>
                   {c.status === 'archived' && <Badge tone="neutral">已归档</Badge>}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[11.5px] text-fg-mute">
+                <div className="mt-1 flex items-center gap-2 text-[12px] text-fg-mute">
                   <span>{c.memberCount} 名学生</span>
                   <span className="font-mono tracking-wider text-cyan">{c.code}</span>
                 </div>
@@ -210,6 +210,8 @@ function Students() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜姓名、邮箱、学号、备注…"
               className="pl-9"
+              /* ⌘/Ctrl+K 会聚焦到这里（见 layout/Hotkeys.tsx） */
+              data-search-input
             />
           </div>
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -238,7 +240,7 @@ function Students() {
           <Button variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
             <UserPlus size={13} />批量建号
           </Button>
-          <span className="ml-auto self-center text-[11.5px] text-fg-mute">
+          <span className="ml-auto self-center text-[12px] text-fg-mute">
             共 {data?.total ?? 0} 名学生
           </span>
         </div>
@@ -248,12 +250,26 @@ function Students() {
         <TableSkeleton rows={6} cols={8} />
       ) : data?.students.length ? (
         <Card padded={false} className="overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* ★ max-h + overflow-auto：让表格自己滚，表头才能吸顶。
+              只在整页滚动的话，表头会跟着滚出视口，看第 80 行时
+              已经不记得第 3 列是什么了。 */}
+          <div className="max-h-[65vh] overflow-auto">
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
-                <tr className="bg-veil/5">
-                  {['学生', '班级', '作答', '正确率', '活跃', '等级', '最后活跃', '操作'].map((h) => (
-                    <th key={h} className="whitespace-nowrap border-b border-hairline px-3 py-2 text-left font-medium text-fg-mute">
+                <tr>
+                  {['学生', '班级', '作答', '正确率', '活跃', '等级', '最后活跃', '操作'].map((h, i) => (
+                    <th
+                      key={h}
+                      className={cn(
+                        /* sticky 表头必须**不透明** —— 半透明底色（veil/5 那种）
+                         * 会让下面的行透出来，滚动时表头变成一团糊字。 */
+                        'sticky top-0 z-10 whitespace-nowrap border-b border-hairline bg-[var(--panel)] px-3 py-2 font-medium text-fg-mute',
+                        /* ★ 数字列右对齐。左对齐时「7」和「132」的个位不在一条线上，
+                         *   扫一列数字要靠长度猜大小；右对齐后个位对齐，一眼能比。
+                         *   2–6 列是作答 / 正确率 / 活跃 / 等级 / 最后活跃。 */
+                        i >= 2 && i <= 6 ? 'text-right' : 'text-left',
+                      )}
+                    >
                       {h}
                     </th>
                   ))}
@@ -265,7 +281,7 @@ function Students() {
                     <td className="border-b border-hairline px-3 py-2">
                       <div className="flex items-center gap-2">
                         <span
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white"
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white"
                           style={avatarStyle(s.avatarHue)}
                         >
                           {s.username.slice(0, 1)}
@@ -277,7 +293,7 @@ function Students() {
                           >
                             {s.realName || s.username}
                           </AppLink>
-                          <div className="truncate text-[10.5px] text-fg-faint">
+                          <div className="truncate text-[12px] text-fg-faint">
                             {s.studentNo || s.email}
                           </div>
                         </div>
@@ -288,20 +304,20 @@ function Students() {
                       <div className="flex flex-wrap gap-1">
                         {s.classes.length
                           ? s.classes.map((c: any) => <Badge key={c.id} tone="info">{c.name}</Badge>)
-                          : <span className="text-[11px] text-fg-faint">未入班</span>}
+                          : <span className="text-[12px] text-fg-faint">未入班</span>}
                       </div>
                     </td>
-                    <td className="border-b border-hairline px-3 py-2 tabular-nums text-fg-soft">{s.stats.attempts}</td>
-                    <td className="border-b border-hairline px-3 py-2">
+                    <td className="border-b border-hairline px-3 py-2 text-right tabular-nums text-fg-soft">{s.stats.attempts}</td>
+                    <td className="border-b border-hairline px-3 py-2 text-right">
                       <span className="tabular-nums font-medium" style={{ color: masteryColor(s.stats.accuracy / 100) }}>
                         {s.stats.accuracy}%
                       </span>
                     </td>
-                    <td className="border-b border-hairline px-3 py-2 tabular-nums text-fg-soft">
+                    <td className="border-b border-hairline px-3 py-2 text-right tabular-nums text-fg-soft">
                       {s.stats.activeDays} 天
                     </td>
-                    <td className="border-b border-hairline px-3 py-2 tabular-nums text-fg-soft">Lv.{s.stats.level}</td>
-                    <td className="border-b border-hairline px-3 py-2 text-[11px] text-fg-mute">
+                    <td className="border-b border-hairline px-3 py-2 text-right tabular-nums text-fg-soft">Lv.{s.stats.level}</td>
+                    <td className="border-b border-hairline px-3 py-2 text-right text-[12px] text-fg-mute">
                       {s.stats.lastActive || '从未'}
                     </td>
                     <td className="border-b border-hairline px-3 py-2">
@@ -550,9 +566,9 @@ function CreateStudentModal({ open, onClose, onDone }: { open: boolean; onClose:
             初始密码只显示这一次，请现在抄给学生。
           </Callout>
           <div className="rounded-lg border border-hairline bg-ink-1000/50 p-3">
-            <div className="text-[11.5px] text-fg-faint">邮箱</div>
+            <div className="text-[12px] text-fg-faint">邮箱</div>
             <div className="font-mono text-[13px] text-fg">{result.student.email}</div>
-            <div className="mt-2 text-[11.5px] text-fg-faint">初始密码</div>
+            <div className="mt-2 text-[12px] text-fg-faint">初始密码</div>
             <div className="flex items-center gap-2">
               <code className="flex-1 font-mono text-[16px] font-semibold tracking-wider text-cyan">
                 {result.initialPassword}
@@ -678,11 +694,13 @@ function BatchCreateModal({ open, onClose, onDone }: { open: boolean; onClose: (
           </Callout>
           <div className="max-h-64 overflow-auto rounded-lg border border-hairline">
             <table className="w-full border-collapse text-[12px]">
-              <thead className="sticky top-0">
-                <tr className="bg-veil/8">
-                  <th className="border-b border-hairline px-2 py-1.5 text-left font-medium text-fg-mute">邮箱</th>
-                  <th className="border-b border-hairline px-2 py-1.5 text-left font-medium text-fg-mute">昵称</th>
-                  <th className="border-b border-hairline px-2 py-1.5 text-left font-medium text-fg-mute">初始密码</th>
+              <thead>
+                <tr>
+                  {/* ★ 原来表头是 bg-veil/8 —— 8% 不透明度的白，滚动时下面的
+                      行会透上来，表头变成一团糊字。吸顶元素必须用实色。 */}
+                  <th className="sticky top-0 z-10 border-b border-hairline bg-[var(--panel)] px-2 py-1.5 text-left font-medium text-fg-mute">邮箱</th>
+                  <th className="sticky top-0 z-10 border-b border-hairline bg-[var(--panel)] px-2 py-1.5 text-left font-medium text-fg-mute">昵称</th>
+                  <th className="sticky top-0 z-10 border-b border-hairline bg-[var(--panel)] px-2 py-1.5 text-left font-medium text-fg-mute">初始密码</th>
                 </tr>
               </thead>
               <tbody>
@@ -836,7 +854,7 @@ function ContentTab() {
                     <div key={q.id} className="flex items-center gap-2 rounded border border-hairline bg-veil/2 px-2.5 py-1.5">
                       <Badge tone="neutral">{q.type}</Badge>
                       <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg-soft">{q.stem}</span>
-                      <span className="shrink-0 text-[11px] text-fg-faint">{q.kid}</span>
+                      <span className="shrink-0 text-[12px] text-fg-faint">{q.kid}</span>
                     </div>
                   ))}
                 </div>
@@ -922,7 +940,7 @@ function AuditTab() {
           <Button variant={mine ? 'accent' : 'outline'} size="sm" onClick={() => setMine((v) => !v)}>
             只看我做的
           </Button>
-          <span className="ml-auto text-[11.5px] text-fg-mute">{data?.logs.length ?? 0} 条</span>
+          <span className="ml-auto text-[12px] text-fg-mute">{data?.logs.length ?? 0} 条</span>
         </div>
       </Card>
 
@@ -950,13 +968,13 @@ function AuditTab() {
                     )}
                   </div>
                   {l.detail && Object.keys(l.detail).length > 0 && (
-                    <pre className="mt-0.5 max-h-20 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-fg-mute">
+                    <pre className="mt-0.5 max-h-20 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] text-fg-mute">
                       {JSON.stringify(l.detail)}
                     </pre>
                   )}
                 </div>
-                <span className="shrink-0 font-mono text-[10.5px] text-fg-faint">{l.ip || ''}</span>
-                <span className="shrink-0 text-[10.5px] text-fg-faint">{formatDateTime(l.at)}</span>
+                <span className="shrink-0 font-mono text-[12px] text-fg-faint">{l.ip || ''}</span>
+                <span className="shrink-0 text-[12px] text-fg-faint">{formatDateTime(l.at)}</span>
               </div>
             ))}
           </div>
@@ -1097,16 +1115,16 @@ export function StudentDetail() {
               {diag.roots.slice(0, 5).map((r: any, i: number) => (
                 <div key={r.kid} className="rounded-lg border border-hairline bg-veil/2 p-2.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-bad/20 text-[10.5px] font-bold text-bad">
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-bad/20 text-[12px] font-bold text-bad">
                       {i + 1}
                     </span>
                     <span className="text-[13px] font-medium text-fg">{r.title}</span>
-                    <span className="text-[11.5px] font-semibold tabular-nums"
+                    <span className="text-[12px] font-semibold tabular-nums"
                       style={{ color: masteryColor(r.mastery) }}>
                       {Math.round(r.mastery * 100)}%
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[11.5px] text-fg-mute">{r.reason}</p>
+                  <p className="mt-0.5 text-[12px] text-fg-mute">{r.reason}</p>
                 </div>
               ))}
             </div>
@@ -1134,7 +1152,7 @@ export function StudentDetail() {
                 <div key={n.kid} className="flex items-center gap-3">
                   <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg-soft">{n.title}</span>
                   <div className="w-28 shrink-0"><Progress value={n.mastery / 100} /></div>
-                  <span className="w-24 shrink-0 text-right text-[11.5px] tabular-nums"
+                  <span className="w-24 shrink-0 text-right text-[12px] tabular-nums"
                     style={{ color: masteryColor(n.mastery / 100) }}>
                     {n.mastery}% · {n.correct}/{n.attempts}
                   </span>
@@ -1156,17 +1174,17 @@ export function StudentDetail() {
                   'rounded-lg border p-2.5',
                   r.ok ? 'border-hairline bg-veil/2' : 'border-bad/25 bg-bad-soft',
                 )}>
-                  <div className="flex flex-wrap items-center gap-2 text-[10.5px] text-fg-faint">
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-fg-faint">
                     {r.ok ? <Terminal size={11} /> : <CircleAlert size={11} className="text-bad" />}
                     <span>{formatDate(r.ts)}</span>
                     <span>{r.datasetId}</span>
                     {r.levelId && <Badge tone="info">{r.levelId}</Badge>}
                     {r.ok && <span>{r.ms}ms · {r.rowCount} 行</span>}
                   </div>
-                  <pre className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-fg-soft">
+                  <pre className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] text-fg-soft">
                     {r.sql}
                   </pre>
-                  {r.error && <div className="mt-1 text-[11.5px] text-bad">{r.error}</div>}
+                  {r.error && <div className="mt-1 text-[12px] text-bad">{r.error}</div>}
                 </div>
               ))}
             </div>
@@ -1186,7 +1204,7 @@ export function StudentDetail() {
                   </span>
                   <Badge tone="neutral">{a.kind}</Badge>
                   {a.errorType && <Badge tone="warn">{a.errorType}</Badge>}
-                  <span className="shrink-0 text-[10.5px] text-fg-faint">{a.date}</span>
+                  <span className="shrink-0 text-[12px] text-fg-faint">{a.date}</span>
                 </div>
               ))}
             </div>
@@ -1204,7 +1222,7 @@ export function StudentDetail() {
           />
           <div className="space-y-1">
             {data.sessions.map((x: any, i: number) => (
-              <div key={i} className="flex flex-wrap items-center gap-2 rounded border border-hairline bg-veil/2 px-2.5 py-1.5 text-[11.5px]">
+              <div key={i} className="flex flex-wrap items-center gap-2 rounded border border-hairline bg-veil/2 px-2.5 py-1.5 text-[12px]">
                 <span className="min-w-0 flex-1 truncate text-fg-mute">{x.user_agent || '未知设备'}</span>
                 <span className="font-mono text-fg-faint">{x.ip || '—'}</span>
                 <span className="text-fg-faint">{formatDateTime(x.last_seen_at)}</span>
@@ -1223,7 +1241,7 @@ export function StudentDetail() {
           />
           <div className="space-y-1">
             {data.logs.map((l: any) => (
-              <div key={l.id} className="flex flex-wrap items-center gap-2 rounded border border-hairline bg-veil/2 px-2.5 py-1.5 text-[11.5px]">
+              <div key={l.id} className="flex flex-wrap items-center gap-2 rounded border border-hairline bg-veil/2 px-2.5 py-1.5 text-[12px]">
                 <Badge tone="neutral">{l.action}</Badge>
                 <span className="min-w-0 flex-1 truncate text-fg-mute">
                   by {l.actor_email}

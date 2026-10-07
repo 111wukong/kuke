@@ -373,14 +373,14 @@ export function AiConfigCard() {
           )}
         </div>
 
-        <p className="text-[11.5px] leading-relaxed text-fg-mute">
+        <p className="text-[12px] leading-relaxed text-fg-mute">
           {editingGlobal
             ? '这是全局配置 —— 保存后，你创建的账号会自动使用它，不需要重启服务。'
             : '这是你自己的配置 —— 会覆盖全局配置，只影响你自己的 AI 课堂。'}
           {' '}测试用的是<b>输入框里的值</b>，不需要先保存，填错了不会影响正在用的配置。
         </p>
         {!editingGlobal && (
-          <p className="text-[11.5px] leading-relaxed text-fg-faint">
+          <p className="text-[12px] leading-relaxed text-fg-faint">
             ★ <b className="text-fg-mute">只有填了 API Key 才算「配置了自己的」</b> ——
             只改模型名不填 Key 的话，用的还是全局那把 Key，系统会认为你在用全局配置。
             （Key 是「谁付钱」的标志。）
